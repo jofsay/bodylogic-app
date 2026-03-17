@@ -711,33 +711,37 @@ const filaBotones = {
 };
 
 const botonPrimario = {
-  padding: "12px 18px",
-  borderRadius: "14px",
-  border: "1px solid #f3c9a9",
-  backgroundColor: "#fff7ed",
-  color: "#9a3412",
-  cursor: "pointer",
-  fontWeight: "bold",
-  boxShadow: "0 4px 14px rgba(124,45,18,0.04)",
-  transition: "all 0.2s ease",
+ padding: "12px 18px",
+ borderRadius: "14px",
+ border: "1px solid #f3d2b7",
+ backgroundColor: "#fffaf5",
+ color: "#7c2d12",
+ cursor: "pointer",
+ fontWeight: "bold",
+ boxShadow: "0 4px 14px rgba(124,45,18,0.04)",
+ transition: "all 0.2s ease",
+ appearance: "none",
+ WebkitAppearance: "none",
 };
 
 const botonPrimarioActivo = {
-  ...botonPrimario,
-  background: "linear-gradient(135deg, #fdba74 0%, #fb923c 100%)",
-  border: "2px solid #ea580c",
-  color: "#ffffff",
-  boxShadow: "0 10px 24px rgba(249,115,22,0.20)",
+ ...botonPrimario,
+ background: "linear-gradient(135deg, #fdba74 0%, #fb923c 100%)",
+ border: "2px solid #ea580c",
+ color: "#ffffff",
+ boxShadow: "0 10px 24px rgba(249,115,22,0.20)",
 };
 
 const botonSecundario = {
-  padding: "12px 18px",
-  borderRadius: "14px",
-  border: "1px solid #f3d2b7",
-  backgroundColor: "#fffaf5",
-  color: "#7c2d12",
-  cursor: "pointer",
-  fontWeight: "bold",
+ padding: "12px 18px",
+ borderRadius: "14px",
+ border: "1px solid #f3d2b7",
+ backgroundColor: "#fffaf5",
+ color: "#7c2d12",
+ cursor: "pointer",
+ fontWeight: "bold",
+ appearance: "none",
+ WebkitAppearance: "none",
 };
 
 const gridControles = {
@@ -896,11 +900,15 @@ const estiloTdTotal = {
 };
 
 const inputCantidad = {
-  width: "84px",
-  padding: "9px 10px",
-  borderRadius: "10px",
-  border: "1px solid #f3c9a9",
-  backgroundColor: "#ffffff",
+ width: "84px",
+ padding: "9px 10px",
+ borderRadius: "10px",
+ border: "1px solid #f3c9a9",
+ backgroundColor: "#ffffff",
+ color: "#111827",
+ WebkitTextFillColor: "#111827",
+ appearance: "none",
+ WebkitAppearance: "none",
 };
 
 const gridInformacion = {
@@ -986,7 +994,9 @@ const infoCardLink = {
   backgroundColor: "#ffffff",
   border: "1px solid #fdc9a3",
   boxShadow: "0 8px 18px rgba(249,115,22,0.08)",
+  cursor: "pointer",
 };
+
 
 const leyendaItem = {
   padding: "12px 14px",

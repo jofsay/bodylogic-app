@@ -663,9 +663,10 @@ function FilaDoble({
 const seccionEstilo = {
   marginTop: "20px",
   padding: "16px",
-  borderRadius: "12px",
+  borderRadius: "18px",
   backgroundColor: "#ffffff",
-  border: "1px solid #e2e8f0",
+  border: "1px solid #fde2cc",
+  boxShadow: "0 10px 24px rgba(124,45,18,0.05)",
 };
 
 const gridCampos = {
@@ -678,54 +679,70 @@ const labelEstilo = {
   display: "block",
   marginBottom: "6px",
   fontWeight: "bold",
-  color: "#334155",
+  color: "#7c2d12",
 };
 
 const inputEstilo = {
   width: "100%",
   padding: "10px 12px",
   borderRadius: "10px",
-  border: "1px solid #cbd5e1",
+  border: "1px solid #d6d3d1",
   boxSizing: "border-box",
+  backgroundColor: "#ffffff",
+  color: "#111827",
+  WebkitTextFillColor: "#111827",
+  appearance: "none",
+  WebkitAppearance: "none",
 };
 
 const textareaEstilo = {
   width: "100%",
   padding: "10px 12px",
   borderRadius: "10px",
-  border: "1px solid #cbd5e1",
+  border: "1px solid #d6d3d1",
   boxSizing: "border-box",
   resize: "vertical",
+  backgroundColor: "#ffffff",
+  color: "#111827",
+  WebkitTextFillColor: "#111827",
+  appearance: "none",
+ WebkitAppearance: "none",
 };
 
 const botonPrincipal = {
   padding: "10px 16px",
-  borderRadius: "10px",
-  border: "1px solid #2563eb",
-  backgroundColor: "#2563eb",
+  borderRadius: "12px",
+  border: "1px solid #ea580c",
+  background: "linear-gradient(135deg, #fdba74 0%, #fb923c 100%)",
   color: "#ffffff",
   cursor: "pointer",
   fontWeight: "bold",
+  appearance: "none",
+  WebkitAppearance: "none",
 };
 
 const botonExito = {
   padding: "10px 16px",
-  borderRadius: "10px",
-  border: "1px solid #16a34a",
+  borderRadius: "12px",
+  border: "1px solid #15803d",
   backgroundColor: "#16a34a",
   color: "#ffffff",
   cursor: "pointer",
   fontWeight: "bold",
+  appearance: "none",
+  WebkitAppearance: "none",
 };
 
 const botonSecundario = {
   padding: "10px 16px",
-  borderRadius: "10px",
-  border: "1px solid #cbd5e1",
-  backgroundColor: "#ffffff",
-  color: "#1f2937",
+  borderRadius: "12px",
+  border: "1px solid #f3d2b7",
+  backgroundColor: "#fffaf5",
+  color: "#7c2d12",
   cursor: "pointer",
   fontWeight: "bold",
+  appearance: "none",
+  WebkitAppearance: "none",
 };
 
 const tituloBloqueImpresion = {
