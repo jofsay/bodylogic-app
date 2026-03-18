@@ -4,7 +4,6 @@ import { productos } from "./data/productos";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-
 function App() {
   const [cantidades, setCantidades] = useState({});
   const [modo, setModo] = useState("compraInicial");
@@ -13,8 +12,10 @@ function App() {
   const [filaActiva, setFilaActiva] = useState("");
   const [busqueda, setBusqueda] = useState("");
   const [esMovil, setEsMovil] = useState(window.innerWidth <= 768);
-  const [vistaMovil, setVistaMovil] = useState(window.innerWidth <= 768 ? "cards" : "tabla");
-
+  const [vistaMovil, setVistaMovil] = useState(
+    window.innerWidth <= 768 ? "cards" : "tabla"
+  );
+  const [resumenContraido, setResumenContraido] = useState(false);
 
   useEffect(() => {
     const manejarResize = () => {
@@ -22,17 +23,14 @@ function App() {
       setEsMovil(movil);
     };
 
-
     window.addEventListener("resize", manejarResize);
     return () => window.removeEventListener("resize", manejarResize);
   }, []);
-
 
   const categorias = useMemo(() => {
     const unicas = [...new Set(productos.map((item) => item.categoria))];
     return ["TODAS", ...unicas];
   }, []);
-
 
   const documentos = [
     {
@@ -57,7 +55,6 @@ function App() {
     },
   ];
 
-
   const cambiarCantidad = (codigo, valor) => {
     const numero = Number(valor);
     setCantidades({
@@ -67,7 +64,6 @@ function App() {
     setFilaActiva(codigo);
   };
 
-
   const incrementarProducto = (codigo) => {
     const actual = cantidades[codigo] || 0;
     setCantidades({
@@ -76,7 +72,6 @@ function App() {
     });
     setFilaActiva(codigo);
   };
-
 
   const decrementarProducto = (codigo) => {
     const actual = cantidades[codigo] || 0;
@@ -88,7 +83,6 @@ function App() {
     setFilaActiva(codigo);
   };
 
-
   const eliminarProducto = (codigo) => {
     setCantidades({
       ...cantidades,
@@ -99,21 +93,33 @@ function App() {
     }
   };
 
-
   const limpiarCantidades = () => {
     setCantidades({});
     setFilaActiva("");
   };
 
+  const vaciarPedidoActual = () => {
+    setCantidades({});
+    setFilaActiva("");
+  };
+
+  const irAPedidoActual = () => {
+    const seccion = document.getElementById("pedido-actual");
+    if (seccion) {
+      seccion.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const irArriba = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const productosFiltradosBase =
     categoriaSeleccionada === "TODAS"
       ? productos
       : productos.filter((item) => item.categoria === categoriaSeleccionada);
 
-
   const textoBusqueda = busqueda.trim().toLowerCase();
-
 
   const productosFiltrados = productosFiltradosBase.filter((item) => {
     if (!textoBusqueda) return true;
@@ -124,10 +130,8 @@ function App() {
     );
   });
 
-
   const filasCalculadas = productosFiltrados.map((item) => {
     const unidades = cantidades[item.codigo] || 0;
-
 
     const subtotalPuntos = unidades * item.puntos;
     const subtotalPrecioPublico = unidades * item.precioPublico;
@@ -140,7 +144,6 @@ function App() {
     const subtotal37 = unidades * item.precio37;
     const subtotal40 = unidades * item.precio40;
     const subtotal42 = unidades * item.precio42;
-
 
     return {
       ...item,
@@ -158,12 +161,10 @@ function App() {
       subtotal42,
     };
   });
-
 
   const filasTotales = productos.map((item) => {
     const unidades = cantidades[item.codigo] || 0;
 
-
     const subtotalPuntos = unidades * item.puntos;
     const subtotalPrecioPublico = unidades * item.precioPublico;
     const subtotalValorComisionable = unidades * item.valorComisionable;
@@ -175,7 +176,6 @@ function App() {
     const subtotal37 = unidades * item.precio37;
     const subtotal40 = unidades * item.precio40;
     const subtotal42 = unidades * item.precio42;
-
 
     return {
       ...item,
@@ -194,14 +194,23 @@ function App() {
     };
   });
 
-
-  const productosSeleccionados = filasTotales.filter((item) => item.unidades > 0);
-
+  const productosSeleccionados = filasTotales.filter(
+    (item) => item.unidades > 0
+  );
 
   const totalUnidades = filasTotales.reduce((acc, item) => acc + item.unidades, 0);
-  const totalPuntos = filasTotales.reduce((acc, item) => acc + item.subtotalPuntos, 0);
-  const totalPrecioPublico = filasTotales.reduce((acc, item) => acc + item.subtotalPrecioPublico, 0);
-  const totalValorComisionable = filasTotales.reduce((acc, item) => acc + item.subtotalValorComisionable, 0);
+  const totalPuntos = filasTotales.reduce(
+    (acc, item) => acc + item.subtotalPuntos,
+    0
+  );
+  const totalPrecioPublico = filasTotales.reduce(
+    (acc, item) => acc + item.subtotalPrecioPublico,
+    0
+  );
+  const totalValorComisionable = filasTotales.reduce(
+    (acc, item) => acc + item.subtotalValorComisionable,
+    0
+  );
   const totalCP10 = filasTotales.reduce((acc, item) => acc + item.subtotalCP10, 0);
   const total20 = filasTotales.reduce((acc, item) => acc + item.subtotal20, 0);
   const total30 = filasTotales.reduce((acc, item) => acc + item.subtotal30, 0);
@@ -210,7 +219,6 @@ function App() {
   const total37 = filasTotales.reduce((acc, item) => acc + item.subtotal37, 0);
   const total40 = filasTotales.reduce((acc, item) => acc + item.subtotal40, 0);
   const total42 = filasTotales.reduce((acc, item) => acc + item.subtotal42, 0);
-
 
   const obtenerEstadoPuntos = () => {
     if (modo === "compraInicial") {
@@ -233,7 +241,6 @@ function App() {
       }
     }
 
-
     if (totalPuntos < 100) {
       return {
         texto: "Esta recompra aún no te califica para recibir comisiones. Necesitas mínimo 100 puntos para calificar.",
@@ -243,7 +250,6 @@ function App() {
         colorSemaforo: "#dc2626",
       };
     }
-
 
     if (totalPuntos >= 100 && totalPuntos < 200) {
       return {
@@ -255,7 +261,6 @@ function App() {
       };
     }
 
-
     return {
       texto: "Esta recompra te califica para recibir comisiones y te permite mantener el 42% de descuento en recompras durante este mes. ¡MUCHAS FELICIDADES!",
       colorFondo: "#ecfccb",
@@ -265,9 +270,7 @@ function App() {
     };
   };
 
-
   const estado = obtenerEstadoPuntos();
-
 
   const formatoMoneda = (numero) => {
     return Number(numero || 0).toLocaleString("es-MX", {
@@ -276,13 +279,11 @@ function App() {
     });
   };
 
-
   const descargarPDFPedido = () => {
     if (productosSeleccionados.length === 0) {
       alert("Primero captura al menos un producto con unidades mayores a 0.");
       return;
     }
-
 
     const doc = new jsPDF({
       orientation: "landscape",
@@ -290,19 +291,15 @@ function App() {
       format: "a4",
     });
 
-
     const fechaActual = new Date().toLocaleString("es-MX");
-
 
     doc.setFillColor(234, 88, 12);
     doc.rect(0, 0, 842, 84, "F");
-
 
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(24);
     doc.text("BodyLogic - Resumen de pedido", 40, 38);
-
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
@@ -314,12 +311,10 @@ function App() {
       60
     );
 
-
     doc.setTextColor(80, 80, 80);
     doc.setFontSize(10);
     doc.text(`Fecha: ${fechaActual}`, 40, 108);
     doc.text(`Estado del pedido: ${estado.texto}`, 40, 124);
-
 
     const body = productosSeleccionados.map((item) => [
       item.producto,
@@ -331,7 +326,6 @@ function App() {
       formatoMoneda(item.subtotal42),
     ]);
 
-
     autoTable(doc, {
       startY: 145,
       head: [[
@@ -341,7 +335,7 @@ function App() {
         "Subtotal precio público",
         "Subtotal 10%",
         "Subtotal 30%",
-        "Subtotal 42%"
+        "Subtotal 42%",
       ]],
       body,
       theme: "grid",
@@ -372,27 +366,26 @@ function App() {
       margin: { left: 40, right: 40 },
     });
 
-
     const finalY = doc.lastAutoTable.finalY + 22;
-
 
     doc.setDrawColor(234, 88, 12);
     doc.setLineWidth(1);
     doc.line(40, finalY, 802, finalY);
-
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(124, 45, 18);
     doc.text(`Total de unidades: ${totalUnidades}`, 40, finalY + 22);
     doc.text(`Total de puntos: ${totalPuntos}`, 190, finalY + 22);
-    doc.text(`Total precio público: ${formatoMoneda(totalPrecioPublico)}`, 330, finalY + 22);
+    doc.text(
+      `Total precio público: ${formatoMoneda(totalPrecioPublico)}`,
+      330,
+      finalY + 22
+    );
     doc.text(`Total 10%: ${formatoMoneda(totalCP10)}`, 570, finalY + 22);
-
 
     doc.text(`Total 30%: ${formatoMoneda(total30)}`, 40, finalY + 44);
     doc.text(`Total 42%: ${formatoMoneda(total42)}`, 220, finalY + 44);
-
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
@@ -403,30 +396,14 @@ function App() {
       finalY + 70
     );
 
-
     doc.save("Resumen-Pedido-BodyLogic.pdf");
   };
-
-
-const irAPedidoActual = () => {
-  const seccion = document.getElementById("pedido-actual");
-  if (seccion) {
-    seccion.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-};
-
-
-const irArriba = () => {
-  window.scrollTo({ top: 0, behavior: "smooth" });
-};
-
 
   const imprimirFormulario = () => {
     if (productosSeleccionados.length === 0) {
       alert("Primero captura al menos un producto con unidades mayores a 0.");
       return;
     }
-
 
     const filasHTML = productosSeleccionados
       .map(
@@ -444,15 +421,12 @@ const irArriba = () => {
       )
       .join("");
 
-
     const ventana = window.open("", "_blank", "width=1200,height=900");
-
 
     if (!ventana) {
       alert("Tu navegador bloqueó la ventana de impresión. Permite pop-ups e inténtalo de nuevo.");
       return;
     }
-
 
     ventana.document.write(`
       <html>
@@ -484,12 +458,10 @@ const irArriba = () => {
             </div>
           </div>
 
-
           <div class="meta">
             <div><strong>Fecha:</strong> ${new Date().toLocaleString("es-MX")}</div>
             <div><strong>Estado del pedido:</strong> ${estado.texto}</div>
           </div>
-
 
           <table>
             <thead>
@@ -508,7 +480,6 @@ const irArriba = () => {
             </tbody>
           </table>
 
-
           <div class="totales">
             <div><strong>Total de unidades:</strong> ${totalUnidades}</div>
             <div><strong>Total de puntos:</strong> ${totalPuntos}</div>
@@ -518,11 +489,9 @@ const irArriba = () => {
             <div><strong>Total 42%:</strong> ${formatoMoneda(total42)}</div>
           </div>
 
-
           <div class="firma">
             Este material ha sido creado por el líder Jorge Francisco Sánchez Yerenas para el apoyo de su comunidad empresarial BodyLogic.
           </div>
-
 
           <script>
             window.onload = function() {
@@ -533,16 +502,13 @@ const irArriba = () => {
       </html>
     `);
 
-
     ventana.document.close();
   };
-
 
   return (
     <div style={pagina}>
       <div style={brilloSuperior}></div>
       <div style={brilloLateral}></div>
-
 
       <div style={contenedorPrincipal}>
         <header style={hero}>
@@ -551,21 +517,20 @@ const irArriba = () => {
               <div style={badgeSuperior}>Plataforma de Apoyo Comercial</div>
               <h1 style={heroTitulo}>BodyLogic</h1>
               <p style={heroTexto}>
-                Centro avanzado de cálculo de puntos, validación comercial, documentos oficiales
-                y gestión operativa para asociados.
+                Centro avanzado de cálculo de puntos, validación comercial,
+                documentos oficiales y gestión operativa para asociados.
               </p>
-
 
               <div style={fraseAutorContainer}>
                 <div style={fraseAutor}>
-                  Este material ha sido creado por el líder Jorge Francisco Sánchez Yerenas
-                  para el apoyo de su comunidad empresarial BodyLogic.
+                  Este material ha sido creado por el líder Jorge Francisco
+                  Sánchez Yerenas para el apoyo de su comunidad empresarial
+                  BodyLogic.
                 </div>
               </div>
             </div>
           </div>
         </header>
-
 
         <section style={panelControles}>
           <div style={panelTituloFila}>
@@ -575,23 +540,25 @@ const irArriba = () => {
             </p>
           </div>
 
-
           <div style={filaBotones}>
-            <button onClick={() => setModo("compraInicial")} style={modo === "compraInicial" ? botonPrimarioActivo : botonPrimario}>
+            <button
+              onClick={() => setModo("compraInicial")}
+              style={modo === "compraInicial" ? botonPrimarioActivo : botonPrimario}
+            >
               Compra inicial
             </button>
 
-
-            <button onClick={() => setModo("recompraMensual")} style={modo === "recompraMensual" ? botonPrimarioActivo : botonPrimario}>
+            <button
+              onClick={() => setModo("recompraMensual")}
+              style={modo === "recompraMensual" ? botonPrimarioActivo : botonPrimario}
+            >
               Recompra mensual
             </button>
-
 
             <button onClick={limpiarCantidades} style={botonSecundario}>
               Limpiar cantidades
             </button>
           </div>
-
 
           <div style={gridControles}>
             {modo === "compraInicial" && (
@@ -611,7 +578,6 @@ const irArriba = () => {
               </div>
             )}
 
-
             <div style={controlCard}>
               <label style={labelControl}>Filtrar por categoría</label>
               <select
@@ -627,7 +593,6 @@ const irArriba = () => {
               </select>
             </div>
 
-
             <div style={controlCard}>
               <label style={labelControl}>Buscar producto o código</label>
               <input
@@ -639,15 +604,15 @@ const irArriba = () => {
               />
             </div>
 
-
             <div style={controlInfoCard}>
               <div style={controlInfoNumero}>
-                {categoriaSeleccionada === "TODAS" ? "Todas" : categoriaSeleccionada}
+                {categoriaSeleccionada === "TODAS"
+                  ? "Todas"
+                  : categoriaSeleccionada}
               </div>
               <div style={controlInfoTexto}>Categoría visible</div>
             </div>
           </div>
-
 
           {esMovil && (
             <div style={switchVistaMovil}>
@@ -658,7 +623,6 @@ const irArriba = () => {
                 Vista móvil
               </button>
 
-
               <button
                 onClick={() => setVistaMovil("tabla")}
                 style={vistaMovil === "tabla" ? botonPrimarioActivo : botonPrimario}
@@ -668,7 +632,6 @@ const irArriba = () => {
             </div>
           )}
         </section>
-
 
         <section
           style={{
@@ -685,11 +648,14 @@ const irArriba = () => {
             }}
           />
           <div>
-            <div style={{ ...semaforoTitulo, color: estado.colorTexto }}>Semáforo de puntos</div>
-            <div style={{ ...semaforoTexto, color: estado.colorTexto }}>{estado.texto}</div>
+            <div style={{ ...semaforoTitulo, color: estado.colorTexto }}>
+              Semáforo de puntos
+            </div>
+            <div style={{ ...semaforoTexto, color: estado.colorTexto }}>
+              {estado.texto}
+            </div>
           </div>
         </section>
-
 
         <section id="pedido-actual" style={pedidoActualPanel}>
           <div style={panelTituloFila}>
@@ -697,8 +663,15 @@ const irArriba = () => {
             <p style={panelSubtitulo}>
               Aquí aparecen únicamente los productos que ya capturaste.
             </p>
-          </div>
 
+            {productosSeleccionados.length > 0 && (
+              <div style={{ marginTop: "12px" }}>
+                <button onClick={vaciarPedidoActual} style={botonVaciarPedido}>
+                  Vaciar todo el pedido
+                </button>
+              </div>
+            )}
+          </div>
 
           {productosSeleccionados.length === 0 ? (
             <div style={pedidoVacio}>
@@ -715,7 +688,6 @@ const irArriba = () => {
                       <div style={pedidoContenido}>{item.contenido}</div>
                     </div>
 
-
                     <button
                       onClick={() => eliminarProducto(item.codigo)}
                       style={botonEliminarPedido}
@@ -724,12 +696,13 @@ const irArriba = () => {
                     </button>
                   </div>
 
-
                   <div style={pedidoControles}>
-                    <button onClick={() => decrementarProducto(item.codigo)} style={botonCantidad}>
+                    <button
+                      onClick={() => decrementarProducto(item.codigo)}
+                      style={botonCantidad}
+                    >
                       −
                     </button>
-
 
                     <input
                       type="number"
@@ -739,26 +712,38 @@ const irArriba = () => {
                       style={inputCantidadPedido}
                     />
 
-
-                    <button onClick={() => incrementarProducto(item.codigo)} style={botonCantidad}>
+                    <button
+                      onClick={() => incrementarProducto(item.codigo)}
+                      style={botonCantidad}
+                    >
                       +
                     </button>
                   </div>
 
-
                   <div style={pedidoTotalesGrid}>
                     <MiniDato label="Subtotal puntos" valor={item.subtotalPuntos} />
-                    <MiniDato label="Público" valor={formatoMoneda(item.subtotalPrecioPublico)} />
-                    <MiniDato label="10%" valor={formatoMoneda(item.subtotalCP10)} />
-                    <MiniDato label="30%" valor={formatoMoneda(item.subtotal30)} />
-                    <MiniDato label="42%" valor={formatoMoneda(item.subtotal42)} />
+                    <MiniDato
+                      label="Público"
+                      valor={formatoMoneda(item.subtotalPrecioPublico)}
+                    />
+                    <MiniDato
+                      label="10%"
+                      valor={formatoMoneda(item.subtotalCP10)}
+                    />
+                    <MiniDato
+                      label="30%"
+                      valor={formatoMoneda(item.subtotal30)}
+                    />
+                    <MiniDato
+                      label="42%"
+                      valor={formatoMoneda(item.subtotal42)}
+                    />
                   </div>
                 </div>
               ))}
             </div>
           )}
         </section>
-
 
         {esMovil && (
           <section style={resumenMovilPanel}>
@@ -773,16 +758,19 @@ const irArriba = () => {
               </div>
               <div style={resumenMiniCard}>
                 <div style={resumenMiniLabel}>Público</div>
-                <div style={resumenMiniValorPeque}>{formatoMoneda(totalPrecioPublico)}</div>
+                <div style={resumenMiniValorPeque}>
+                  {formatoMoneda(totalPrecioPublico)}
+                </div>
               </div>
               <div style={resumenMiniCard}>
                 <div style={resumenMiniLabel}>42%</div>
-                <div style={resumenMiniValorPeque}>{formatoMoneda(total42)}</div>
+                <div style={resumenMiniValorPeque}>
+                  {formatoMoneda(total42)}
+                </div>
               </div>
             </div>
           </section>
         )}
-
 
         <section style={tablaPanel}>
           <div style={panelTituloFila}>
@@ -796,19 +784,16 @@ const irArriba = () => {
               </p>
             </div>
 
-
             <div style={accionesResumen}>
               <button onClick={descargarPDFPedido} style={botonDocumento}>
                 Descargar PDF del pedido
               </button>
-
 
               <button onClick={imprimirFormulario} style={botonSecundarioPremium}>
                 Imprimir formulario
               </button>
             </div>
           </div>
-
 
           {esMovil && vistaMovil === "cards" ? (
             <div style={cardsProductosMovil}>
@@ -817,9 +802,8 @@ const irArriba = () => {
                 const cardStyle = activa
                   ? { ...cardProductoMovil, ...cardProductoActiva }
                   : item.unidades > 0
-                  ? { ...cardProductoMovil, ...cardProductoConCaptura }
-                  : cardProductoMovil;
-
+                    ? { ...cardProductoMovil, ...cardProductoConCaptura }
+                    : cardProductoMovil;
 
                 return (
                   <div
@@ -836,7 +820,6 @@ const irArriba = () => {
                       <div style={cardBadgeCategoria}>{item.categoria}</div>
                     </div>
 
-
                     <div style={cardInputRow}>
                       <label style={labelMini}>Unidades</label>
                       <input
@@ -849,14 +832,25 @@ const irArriba = () => {
                       />
                     </div>
 
-
                     <div style={cardResumenGrid}>
                       <MiniDato label="Puntos unit." valor={item.puntos} />
                       <MiniDato label="Subtotal puntos" valor={item.subtotalPuntos} />
-                      <MiniDato label="Público" valor={formatoMoneda(item.subtotalPrecioPublico)} />
-                      <MiniDato label="10%" valor={formatoMoneda(item.subtotalCP10)} />
-                      <MiniDato label="30%" valor={formatoMoneda(item.subtotal30)} />
-                      <MiniDato label="42%" valor={formatoMoneda(item.subtotal42)} />
+                      <MiniDato
+                        label="Público"
+                        valor={formatoMoneda(item.subtotalPrecioPublico)}
+                      />
+                      <MiniDato
+                        label="10%"
+                        valor={formatoMoneda(item.subtotalCP10)}
+                      />
+                      <MiniDato
+                        label="30%"
+                        valor={formatoMoneda(item.subtotal30)}
+                      />
+                      <MiniDato
+                        label="42%"
+                        valor={formatoMoneda(item.subtotal42)}
+                      />
                     </div>
                   </div>
                 );
@@ -897,7 +891,6 @@ const irArriba = () => {
                   </tr>
                 </thead>
 
-
                 <tbody>
                   {filasCalculadas.map((item, index) => {
                     const activa = filaActiva === item.codigo;
@@ -905,12 +898,15 @@ const irArriba = () => {
                     const estiloFila = activa
                       ? filaActivaEstilo
                       : item.unidades > 0
-                      ? filaConCaptura
-                      : base;
-
+                        ? filaConCaptura
+                        : base;
 
                     return (
-                      <tr key={item.codigo} onClick={() => setFilaActiva(item.codigo)} style={estiloFila}>
+                      <tr
+                        key={item.codigo}
+                        onClick={() => setFilaActiva(item.codigo)}
+                        style={estiloFila}
+                      >
                         <td style={estiloTd}>{item.categoria}</td>
                         <td style={estiloTd}>{item.codigo}</td>
                         <td style={{ ...estiloTdProducto, cursor: "pointer" }}>
@@ -929,12 +925,22 @@ const irArriba = () => {
                         </td>
                         <td style={estiloTd}>{item.puntos}</td>
                         <td style={estiloTd}>{item.subtotalPuntos}</td>
-                        <td style={estiloTd}>{formatoMoneda(item.precioPublico)}</td>
-                        <td style={estiloTd}>{formatoMoneda(item.subtotalPrecioPublico)}</td>
-                        <td style={estiloTd}>{formatoMoneda(item.valorComisionable)}</td>
-                        <td style={estiloTd}>{formatoMoneda(item.subtotalValorComisionable)}</td>
+                        <td style={estiloTd}>
+                          {formatoMoneda(item.precioPublico)}
+                        </td>
+                        <td style={estiloTd}>
+                          {formatoMoneda(item.subtotalPrecioPublico)}
+                        </td>
+                        <td style={estiloTd}>
+                          {formatoMoneda(item.valorComisionable)}
+                        </td>
+                        <td style={estiloTd}>
+                          {formatoMoneda(item.subtotalValorComisionable)}
+                        </td>
                         <td style={estiloTd}>{formatoMoneda(item.precioCP10)}</td>
-                        <td style={estiloTd}>{formatoMoneda(item.subtotalCP10)}</td>
+                        <td style={estiloTd}>
+                          {formatoMoneda(item.subtotalCP10)}
+                        </td>
                         <td style={estiloTd}>{formatoMoneda(item.precio20)}</td>
                         <td style={estiloTd}>{formatoMoneda(item.subtotal20)}</td>
                         <td style={estiloTd}>{formatoMoneda(item.precio30)}</td>
@@ -953,13 +959,16 @@ const irArriba = () => {
                     );
                   })}
 
-
                   <tr style={filaTotal}>
                     <td style={estiloTdTotal}></td>
                     <td style={estiloTdTotal}></td>
-                    <td style={estiloTdTotal}><strong>TOTAL GENERAL</strong></td>
+                    <td style={estiloTdTotal}>
+                      <strong>TOTAL GENERAL</strong>
+                    </td>
                     <td style={estiloTdTotal}></td>
-                    <td style={estiloTdTotal}><strong>{totalUnidades}</strong></td>
+                    <td style={estiloTdTotal}>
+                      <strong>{totalUnidades}</strong>
+                    </td>
                     <td style={estiloTdTotal}></td>
                     <td
                       style={{
@@ -974,32 +983,51 @@ const irArriba = () => {
                       {totalPuntos}
                     </td>
                     <td style={estiloTdTotal}></td>
-                    <td style={estiloTdTotal}><strong>{formatoMoneda(totalPrecioPublico)}</strong></td>
+                    <td style={estiloTdTotal}>
+                      <strong>{formatoMoneda(totalPrecioPublico)}</strong>
+                    </td>
                     <td style={estiloTdTotal}></td>
-                    <td style={estiloTdTotal}><strong>{formatoMoneda(totalValorComisionable)}</strong></td>
+                    <td style={estiloTdTotal}>
+                      <strong>{formatoMoneda(totalValorComisionable)}</strong>
+                    </td>
                     <td style={estiloTdTotal}></td>
-                    <td style={estiloTdTotal}><strong>{formatoMoneda(totalCP10)}</strong></td>
+                    <td style={estiloTdTotal}>
+                      <strong>{formatoMoneda(totalCP10)}</strong>
+                    </td>
                     <td style={estiloTdTotal}></td>
-                    <td style={estiloTdTotal}><strong>{formatoMoneda(total20)}</strong></td>
+                    <td style={estiloTdTotal}>
+                      <strong>{formatoMoneda(total20)}</strong>
+                    </td>
                     <td style={estiloTdTotal}></td>
-                    <td style={estiloTdTotal}><strong>{formatoMoneda(total30)}</strong></td>
+                    <td style={estiloTdTotal}>
+                      <strong>{formatoMoneda(total30)}</strong>
+                    </td>
                     <td style={estiloTdTotal}></td>
-                    <td style={estiloTdTotal}><strong>{formatoMoneda(total33)}</strong></td>
+                    <td style={estiloTdTotal}>
+                      <strong>{formatoMoneda(total33)}</strong>
+                    </td>
                     <td style={estiloTdTotal}></td>
-                    <td style={estiloTdTotal}><strong>{formatoMoneda(total35)}</strong></td>
+                    <td style={estiloTdTotal}>
+                      <strong>{formatoMoneda(total35)}</strong>
+                    </td>
                     <td style={estiloTdTotal}></td>
-                    <td style={estiloTdTotal}><strong>{formatoMoneda(total37)}</strong></td>
+                    <td style={estiloTdTotal}>
+                      <strong>{formatoMoneda(total37)}</strong>
+                    </td>
                     <td style={estiloTdTotal}></td>
-                    <td style={estiloTdTotal}><strong>{formatoMoneda(total40)}</strong></td>
+                    <td style={estiloTdTotal}>
+                      <strong>{formatoMoneda(total40)}</strong>
+                    </td>
                     <td style={estiloTdTotal}></td>
-                    <td style={estiloTdTotal}><strong>{formatoMoneda(total42)}</strong></td>
+                    <td style={estiloTdTotal}>
+                      <strong>{formatoMoneda(total42)}</strong>
+                    </td>
                   </tr>
                 </tbody>
               </table>
             </div>
           )}
         </section>
-
 
         <section style={gridInformacionUnaColumna}>
           <div style={infoPanel}>
@@ -1009,50 +1037,67 @@ const irArriba = () => {
                 <div style={miniBadge}>Web</div>
                 <h3 style={infoCardTitulo}>Sitio web</h3>
                 <p style={infoCardTexto}>Ingresa directamente a:</p>
-                <a href="https://www.bodylogicglobal.com" target="_blank" rel="noreferrer" style={infoCardLink}>
+                <a
+                  href="https://www.bodylogicglobal.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={infoCardLink}
+                >
                   www.bodylogicglobal.com ↗
                 </a>
               </div>
-
 
               <div style={infoCard}>
                 <div style={miniBadge}>Teléfono</div>
                 <h3 style={infoCardTitulo}>Centro de servicio</h3>
                 <p style={infoCardDato}>800 702 4840</p>
-                <p style={infoCardTexto}>Lunes a viernes de 8:00 a 20:00 hrs.</p>
+                <p style={infoCardTexto}>
+                  Lunes a viernes de 8:00 a 20:00 hrs.
+                </p>
                 <p style={infoCardTexto}>Sábados de 9:00 a 14:00 hrs.</p>
               </div>
-
 
               <div style={infoCard}>
                 <div style={miniBadge}>Presencial</div>
                 <h3 style={infoCardTitulo}>CAD</h3>
-                <p style={infoCardTexto}>Adquiere tus productos en tu CAD más cercano.</p>
+                <p style={infoCardTexto}>
+                  Adquiere tus productos en tu CAD más cercano.
+                </p>
               </div>
             </div>
           </div>
 
-
           <div style={leyendasPanel}>
             <h2 style={panelTitulo}>Leyendas importantes</h2>
-            <div style={leyendaItem}>Los puntos mostrados corresponden al valor en puntos de cada producto.</div>
-            <div style={leyendaItem}>El valor comisionable corresponde al 89% del precio con descuento sin IVA.</div>
-            <div style={leyendaItem}>Las herramientas de negocio no generan puntos ni valor comisionable.</div>
-            <div style={leyendaItem}>La información debe validarse siempre con la lista vigente de la empresa.</div>
+            <div style={leyendaItem}>
+              Los puntos mostrados corresponden al valor en puntos de cada
+              producto.
+            </div>
+            <div style={leyendaItem}>
+              El valor comisionable corresponde al 89% del precio con descuento
+              sin IVA.
+            </div>
+            <div style={leyendaItem}>
+              Las herramientas de negocio no generan puntos ni valor
+              comisionable.
+            </div>
+            <div style={leyendaItem}>
+              La información debe validarse siempre con la lista vigente de la
+              empresa.
+            </div>
           </div>
         </section>
-
 
         <section style={documentosPanel}>
           <div style={panelTituloFila}>
             <div>
               <h2 style={panelTitulo}>Documentos importantes</h2>
               <p style={panelSubtitulo}>
-                Consulta, abre o descarga los archivos oficiales desde la misma plataforma.
+                Consulta, abre o descarga los archivos oficiales desde la misma
+                plataforma.
               </p>
             </div>
           </div>
-
 
           <div style={listaDocs}>
             {documentos.map((doc) => {
@@ -1065,12 +1110,15 @@ const irArriba = () => {
                     <div style={docArchivo}>{doc.archivo}</div>
                   </div>
 
-
                   <div style={accionesDoc}>
-                    <a href={ruta} target="_blank" rel="noreferrer" style={linkDocumento}>
+                    <a
+                      href={ruta}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={linkDocumento}
+                    >
                       Abrir PDF
                     </a>
-
 
                     <a href={ruta} download style={linkDocumento}>
                       Descargar
@@ -1082,91 +1130,179 @@ const irArriba = () => {
           </div>
         </section>
 
+        {esMovil && (
+          <div
+            style={{
+              ...resumenFlotante,
+              background: estado.colorFondo,
+              border: `1px solid ${estado.colorBorde}`,
+              boxShadow: `0 18px 40px rgba(0,0,0,0.18)`,
+            }}
+          >
+            <div style={resumenHeaderContraible}>
+              <div style={resumenHeaderMiniDatos}>
+                <div style={resumenHeaderDato}>
+                  <span
+                    style={{ ...resumenHeaderLabel, color: estado.colorTexto }}
+                  >
+                    Puntos
+                  </span>
+                  <span
+                    style={{ ...resumenHeaderValor, color: estado.colorTexto }}
+                  >
+                    {totalPuntos}
+                  </span>
+                </div>
 
-{esMovil && (
-  <div
-    style={{
-      ...resumenFlotante,
-      background: estado.colorFondo,
-      border: `1px solid ${estado.colorBorde}`,
-      boxShadow: `0 18px 40px rgba(0,0,0,0.18)`,
-    }}
-  >
-    <div style={resumenFlotanteFila}>
-      <div
-        style={{
-          ...resumenFlotanteMini,
-          border: `1px solid ${estado.colorBorde}`,
-          backgroundColor: "rgba(255,255,255,0.55)",
-        }}
-      >
-        <div style={{ ...resumenFlotanteLabel, color: estado.colorTexto }}>Puntos</div>
-        <div style={{ ...resumenFlotanteValor, color: estado.colorTexto }}>{totalPuntos}</div>
-      </div>
+                <div style={resumenHeaderDato}>
+                  <span
+                    style={{ ...resumenHeaderLabel, color: estado.colorTexto }}
+                  >
+                    42%
+                  </span>
+                  <span
+                    style={{
+                      ...resumenHeaderValorMoneda,
+                      color: estado.colorTexto,
+                    }}
+                  >
+                    {formatoMoneda(total42)}
+                  </span>
+                </div>
+              </div>
 
+              <button
+                onClick={() => setResumenContraido(!resumenContraido)}
+                style={botonContraerResumen}
+              >
+                {resumenContraido ? "Abrir" : "Ocultar"}
+              </button>
+            </div>
 
-      <div
-        style={{
-          ...resumenFlotanteMini,
-          border: `1px solid ${estado.colorBorde}`,
-          backgroundColor: "rgba(255,255,255,0.55)",
-        }}
-      >
-        <div style={{ ...resumenFlotanteLabel, color: estado.colorTexto }}>Unidades</div>
-        <div style={{ ...resumenFlotanteValor, color: estado.colorTexto }}>{totalUnidades}</div>
-      </div>
+            {!resumenContraido && (
+              <>
+                <div style={resumenFlotanteFila}>
+                  <div
+                    style={{
+                      ...resumenFlotanteMini,
+                      border: `1px solid ${estado.colorBorde}`,
+                      backgroundColor: "rgba(255,255,255,0.55)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        ...resumenFlotanteLabel,
+                        color: estado.colorTexto,
+                      }}
+                    >
+                      Puntos
+                    </div>
+                    <div
+                      style={{
+                        ...resumenFlotanteValor,
+                        color: estado.colorTexto,
+                      }}
+                    >
+                      {totalPuntos}
+                    </div>
+                  </div>
 
+                  <div
+                    style={{
+                      ...resumenFlotanteMini,
+                      border: `1px solid ${estado.colorBorde}`,
+                      backgroundColor: "rgba(255,255,255,0.55)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        ...resumenFlotanteLabel,
+                        color: estado.colorTexto,
+                      }}
+                    >
+                      Unidades
+                    </div>
+                    <div
+                      style={{
+                        ...resumenFlotanteValor,
+                        color: estado.colorTexto,
+                      }}
+                    >
+                      {totalUnidades}
+                    </div>
+                  </div>
 
-      <div
-        style={{
-          ...resumenFlotanteMini,
-          border: `1px solid ${estado.colorBorde}`,
-          backgroundColor: "rgba(255,255,255,0.55)",
-        }}
-      >
-        <div style={{ ...resumenFlotanteLabel, color: estado.colorTexto }}>42%</div>
-        <div style={{ ...resumenFlotanteValorMoneda, color: estado.colorTexto }}>
-          {formatoMoneda(total42)}
-        </div>
-      </div>
-    </div>
+                  <div
+                    style={{
+                      ...resumenFlotanteMini,
+                      border: `1px solid ${estado.colorBorde}`,
+                      backgroundColor: "rgba(255,255,255,0.55)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        ...resumenFlotanteLabel,
+                        color: estado.colorTexto,
+                      }}
+                    >
+                      42%
+                    </div>
+                    <div
+                      style={{
+                        ...resumenFlotanteValorMoneda,
+                        color: estado.colorTexto,
+                      }}
+                    >
+                      {formatoMoneda(total42)}
+                    </div>
+                  </div>
+                </div>
 
+                <div style={resumenFlotanteMensaje}>
+                  <span style={{ color: estado.colorTexto, fontWeight: "bold" }}>
+                    {estado.texto}
+                  </span>
+                </div>
 
-    <div style={resumenFlotanteMensaje}>
-      <span style={{ color: estado.colorTexto, fontWeight: "bold" }}>{estado.texto}</span>
-    </div>
+                <div style={resumenFlotanteBotonesGrid}>
+                  <button
+                    onClick={irAPedidoActual}
+                    style={botonResumenFlotantePrimario}
+                  >
+                    Ver pedido
+                  </button>
 
+                  <button
+                    onClick={descargarPDFPedido}
+                    style={botonResumenFlotanteAccion}
+                  >
+                    PDF
+                  </button>
 
-    <div style={resumenFlotanteBotonesGrid}>
-      <button onClick={irAPedidoActual} style={botonResumenFlotantePrimario}>
-        Ver pedido
-      </button>
+                  <button
+                    onClick={imprimirFormulario}
+                    style={botonResumenFlotanteAccion}
+                  >
+                    Imprimir
+                  </button>
 
-
-      <button onClick={descargarPDFPedido} style={botonResumenFlotanteAccion}>
-        PDF
-      </button>
-
-
-      <button onClick={imprimirFormulario} style={botonResumenFlotanteAccion}>
-        Imprimir
-      </button>
-
-
-      <button onClick={irArriba} style={botonResumenFlotanteSecundario}>
-        Subir
-      </button>
-    </div>
-  </div>
-)}
-
+                  <button
+                    onClick={irArriba}
+                    style={botonResumenFlotanteSecundario}
+                  >
+                    Subir
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         <FormularioMembresia />
       </div>
     </div>
   );
 }
-
 
 function MiniDato({ label, valor }) {
   return (
@@ -1177,18 +1313,16 @@ function MiniDato({ label, valor }) {
   );
 }
 
-
 const pagina = {
   minHeight: "100vh",
   background:
     "radial-gradient(circle at top, rgba(255,237,213,0.92) 0%, rgba(255,247,237,0.90) 16%, #fffaf5 40%, #fffdf9 100%)",
   padding: "28px",
-  paddingBottom: "120px",
+  paddingBottom: "140px",
   fontFamily: "Arial, sans-serif",
   position: "relative",
   overflow: "hidden",
 };
-
 
 const brilloSuperior = {
   position: "absolute",
@@ -1201,7 +1335,6 @@ const brilloSuperior = {
   pointerEvents: "none",
 };
 
-
 const brilloLateral = {
   position: "absolute",
   bottom: "120px",
@@ -1213,14 +1346,12 @@ const brilloLateral = {
   pointerEvents: "none",
 };
 
-
 const contenedorPrincipal = {
   maxWidth: "1880px",
   margin: "0 auto",
   position: "relative",
   zIndex: 1,
 };
-
 
 const hero = {
   borderRadius: "34px",
@@ -1231,18 +1362,15 @@ const hero = {
   marginBottom: "24px",
 };
 
-
 const heroOverlay = {
   background:
     "radial-gradient(circle at top right, rgba(255,255,255,0.22), transparent 24%), radial-gradient(circle at left bottom, rgba(255,255,255,0.10), transparent 28%), linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.04))",
 };
 
-
 const heroContent = {
   padding: "42px",
   color: "#ffffff",
 };
-
 
 const badgeSuperior = {
   display: "inline-block",
@@ -1257,7 +1385,6 @@ const badgeSuperior = {
   letterSpacing: "0.3px",
 };
 
-
 const heroTitulo = {
   margin: 0,
   fontSize: "52px",
@@ -1268,7 +1395,6 @@ const heroTitulo = {
   textShadow: "0 4px 18px rgba(0,0,0,0.16)",
 };
 
-
 const heroTexto = {
   marginTop: "14px",
   maxWidth: "980px",
@@ -1277,12 +1403,10 @@ const heroTexto = {
   color: "rgba(255,255,255,0.95)",
 };
 
-
 const fraseAutorContainer = {
   marginTop: "18px",
   maxWidth: "920px",
 };
-
 
 const fraseAutor = {
   display: "inline-block",
@@ -1297,7 +1421,6 @@ const fraseAutor = {
   backdropFilter: "blur(6px)",
 };
 
-
 const panelControles = {
   backgroundColor: "rgba(255,255,255,0.93)",
   borderRadius: "28px",
@@ -1307,18 +1430,15 @@ const panelControles = {
   marginBottom: "20px",
 };
 
-
 const panelTituloFila = {
   marginBottom: "18px",
 };
-
 
 const panelTitulo = {
   margin: 0,
   fontSize: "26px",
   color: "#7c2d12",
 };
-
 
 const panelSubtitulo = {
   margin: "8px 0 0 0",
@@ -1327,14 +1447,12 @@ const panelSubtitulo = {
   lineHeight: 1.5,
 };
 
-
 const filaBotones = {
   display: "flex",
   gap: "12px",
   flexWrap: "wrap",
   marginBottom: "18px",
 };
-
 
 const botonPrimario = {
   padding: "12px 18px",
@@ -1346,7 +1464,6 @@ const botonPrimario = {
   fontWeight: "bold",
 };
 
-
 const botonPrimarioActivo = {
   ...botonPrimario,
   background: "linear-gradient(135deg, #fdba74 0%, #fb923c 100%)",
@@ -1354,7 +1471,6 @@ const botonPrimarioActivo = {
   color: "#ffffff",
   boxShadow: "0 10px 24px rgba(249,115,22,0.20)",
 };
-
 
 const botonSecundario = {
   padding: "12px 18px",
@@ -1366,7 +1482,6 @@ const botonSecundario = {
   fontWeight: "bold",
 };
 
-
 const botonSecundarioPremium = {
   padding: "10px 16px",
   borderRadius: "12px",
@@ -1377,13 +1492,11 @@ const botonSecundarioPremium = {
   fontWeight: "bold",
 };
 
-
 const gridControles = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
   gap: "16px",
 };
-
 
 const controlCard = {
   background: "linear-gradient(180deg, #fffaf5 0%, #fff7ed 100%)",
@@ -1391,7 +1504,6 @@ const controlCard = {
   borderRadius: "18px",
   padding: "16px",
 };
-
 
 const controlInfoCard = {
   background: "linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%)",
@@ -1403,7 +1515,6 @@ const controlInfoCard = {
   justifyContent: "center",
 };
 
-
 const controlInfoNumero = {
   fontSize: "20px",
   fontWeight: "bold",
@@ -1411,12 +1522,10 @@ const controlInfoNumero = {
   wordBreak: "break-word",
 };
 
-
 const controlInfoTexto = {
   marginTop: "8px",
   color: "#7c6f64",
 };
-
 
 const labelControl = {
   display: "block",
@@ -1424,7 +1533,6 @@ const labelControl = {
   fontWeight: "bold",
   color: "#7c2d12",
 };
-
 
 const selectEstilo = {
   width: "100%",
@@ -1436,7 +1544,6 @@ const selectEstilo = {
   boxSizing: "border-box",
 };
 
-
 const inputBusqueda = {
   width: "100%",
   padding: "12px 14px",
@@ -1447,14 +1554,12 @@ const inputBusqueda = {
   boxSizing: "border-box",
 };
 
-
 const switchVistaMovil = {
   display: "flex",
   gap: "10px",
   flexWrap: "wrap",
   marginTop: "16px",
 };
-
 
 const semaforoCard = {
   display: "flex",
@@ -1466,7 +1571,6 @@ const semaforoCard = {
   boxShadow: "0 18px 36px rgba(124,45,18,0.06)",
 };
 
-
 const dotSemaforo = {
   width: "22px",
   height: "22px",
@@ -1474,18 +1578,15 @@ const dotSemaforo = {
   flexShrink: 0,
 };
 
-
 const semaforoTitulo = {
   fontSize: "18px",
   fontWeight: "bold",
 };
 
-
 const semaforoTexto = {
   marginTop: "4px",
   lineHeight: 1.5,
 };
-
 
 const pedidoActualPanel = {
   backgroundColor: "rgba(255,255,255,0.95)",
@@ -1496,7 +1597,6 @@ const pedidoActualPanel = {
   marginBottom: "20px",
 };
 
-
 const pedidoVacio = {
   padding: "16px",
   borderRadius: "16px",
@@ -1505,12 +1605,10 @@ const pedidoVacio = {
   color: "#7c6f64",
 };
 
-
 const pedidoActualGrid = {
   display: "grid",
   gap: "14px",
 };
-
 
 const pedidoCard = {
   background: "linear-gradient(180deg, #fffaf5 0%, #fff4ea 100%)",
@@ -1519,7 +1617,6 @@ const pedidoCard = {
   padding: "16px",
 };
 
-
 const pedidoCardTop = {
   display: "flex",
   justifyContent: "space-between",
@@ -1527,13 +1624,11 @@ const pedidoCardTop = {
   alignItems: "flex-start",
 };
 
-
 const pedidoCodigo = {
   fontSize: "12px",
   color: "#9a3412",
   fontWeight: "bold",
 };
-
 
 const pedidoNombre = {
   marginTop: "4px",
@@ -1543,13 +1638,11 @@ const pedidoNombre = {
   lineHeight: 1.35,
 };
 
-
 const pedidoContenido = {
   marginTop: "4px",
   fontSize: "12px",
   color: "#7c6f64",
 };
-
 
 const botonEliminarPedido = {
   padding: "8px 12px",
@@ -1561,6 +1654,15 @@ const botonEliminarPedido = {
   fontWeight: "bold",
 };
 
+const botonVaciarPedido = {
+  padding: "10px 14px",
+  borderRadius: "12px",
+  border: "1px solid #fecaca",
+  backgroundColor: "#fff1f2",
+  color: "#b91c1c",
+  cursor: "pointer",
+  fontWeight: "bold",
+};
 
 const pedidoControles = {
   display: "flex",
@@ -1568,7 +1670,6 @@ const pedidoControles = {
   gap: "10px",
   marginTop: "14px",
 };
-
 
 const botonCantidad = {
   width: "40px",
@@ -1582,7 +1683,6 @@ const botonCantidad = {
   cursor: "pointer",
 };
 
-
 const inputCantidadPedido = {
   width: "90px",
   padding: "10px 12px",
@@ -1594,14 +1694,12 @@ const inputCantidadPedido = {
   fontWeight: "bold",
 };
 
-
 const pedidoTotalesGrid = {
   marginTop: "14px",
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
   gap: "10px",
 };
-
 
 const resumenMovilPanel = {
   backgroundColor: "rgba(255,255,255,0.95)",
@@ -1612,13 +1710,11 @@ const resumenMovilPanel = {
   marginBottom: "20px",
 };
 
-
 const resumenMovilGrid = {
   display: "grid",
   gridTemplateColumns: "1fr 1fr",
   gap: "10px",
 };
-
 
 const resumenMiniCard = {
   background: "linear-gradient(180deg, #fffaf5 0%, #fff4ea 100%)",
@@ -1627,13 +1723,11 @@ const resumenMiniCard = {
   padding: "12px",
 };
 
-
 const resumenMiniLabel = {
   fontSize: "12px",
   color: "#7c6f64",
   marginBottom: "6px",
 };
-
 
 const resumenMiniValor = {
   fontSize: "22px",
@@ -1641,14 +1735,12 @@ const resumenMiniValor = {
   color: "#7c2d12",
 };
 
-
 const resumenMiniValorPeque = {
   fontSize: "14px",
   fontWeight: "bold",
   color: "#7c2d12",
   lineHeight: 1.4,
 };
-
 
 const tablaPanel = {
   backgroundColor: "rgba(255,255,255,0.95)",
@@ -1659,7 +1751,6 @@ const tablaPanel = {
   marginBottom: "20px",
 };
 
-
 const accionesResumen = {
   display: "flex",
   gap: "12px",
@@ -1667,12 +1758,10 @@ const accionesResumen = {
   marginTop: "14px",
 };
 
-
 const cardsProductosMovil = {
   display: "grid",
   gap: "14px",
 };
-
 
 const cardProductoMovil = {
   background: "linear-gradient(180deg, #fffaf5 0%, #fff4ea 100%)",
@@ -1682,17 +1771,14 @@ const cardProductoMovil = {
   boxShadow: "0 10px 24px rgba(124,45,18,0.05)",
 };
 
-
 const cardProductoConCaptura = {
   background: "linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%)",
 };
-
 
 const cardProductoActiva = {
   border: "2px solid #ea580c",
   boxShadow: "0 0 0 3px rgba(234,88,12,0.12)",
 };
-
 
 const cardProductoTop = {
   display: "flex",
@@ -1701,13 +1787,11 @@ const cardProductoTop = {
   alignItems: "flex-start",
 };
 
-
 const cardCodigo = {
   fontSize: "12px",
   color: "#9a3412",
   fontWeight: "bold",
 };
-
 
 const cardNombre = {
   marginTop: "4px",
@@ -1717,13 +1801,11 @@ const cardNombre = {
   lineHeight: 1.35,
 };
 
-
 const cardContenido = {
   marginTop: "4px",
   fontSize: "12px",
   color: "#7c6f64",
 };
-
 
 const cardBadgeCategoria = {
   padding: "6px 10px",
@@ -1735,11 +1817,9 @@ const cardBadgeCategoria = {
   whiteSpace: "nowrap",
 };
 
-
 const cardInputRow = {
   marginTop: "14px",
 };
-
 
 const labelMini = {
   display: "block",
@@ -1748,7 +1828,6 @@ const labelMini = {
   fontWeight: "bold",
   color: "#7c2d12",
 };
-
 
 const inputCantidadMovil = {
   width: "100%",
@@ -1760,14 +1839,12 @@ const inputCantidadMovil = {
   boxSizing: "border-box",
 };
 
-
 const cardResumenGrid = {
   marginTop: "14px",
   display: "grid",
   gridTemplateColumns: "1fr 1fr",
   gap: "10px",
 };
-
 
 const miniDatoCard = {
   backgroundColor: "#ffffff",
@@ -1776,13 +1853,11 @@ const miniDatoCard = {
   padding: "10px",
 };
 
-
 const miniDatoLabel = {
   fontSize: "11px",
   color: "#7c6f64",
   marginBottom: "6px",
 };
-
 
 const miniDatoValor = {
   fontSize: "13px",
@@ -1791,14 +1866,12 @@ const miniDatoValor = {
   lineHeight: 1.35,
 };
 
-
 const tablaWrapper = {
   overflowX: "auto",
   marginTop: "6px",
   borderRadius: "18px",
   border: "1px solid #fde2cc",
 };
-
 
 const tabla = {
   width: "100%",
@@ -1808,36 +1881,29 @@ const tabla = {
   backgroundColor: "#ffffff",
 };
 
-
 const filaHeader = {
   background: "linear-gradient(180deg, #fff1e6 0%, #ffe4cf 100%)",
 };
-
 
 const filaPar = {
   backgroundColor: "#ffffff",
 };
 
-
 const filaImpar = {
   backgroundColor: "#fffaf5",
 };
-
 
 const filaConCaptura = {
   backgroundColor: "#fff3e8",
 };
 
-
 const filaActivaEstilo = {
   backgroundColor: "#fed7aa",
 };
 
-
 const filaTotal = {
   background: "linear-gradient(180deg, #fffaf5 0%, #fff1e6 100%)",
 };
-
 
 const estiloTh = {
   textAlign: "left",
@@ -1852,7 +1918,6 @@ const estiloTh = {
   zIndex: 1,
 };
 
-
 const estiloTd = {
   padding: "12px",
   borderBottom: "1px solid #fdf0e7",
@@ -1861,12 +1926,10 @@ const estiloTd = {
   whiteSpace: "nowrap",
 };
 
-
 const estiloTdProducto = {
   ...estiloTd,
   color: "#7c2d12",
 };
-
 
 const estiloTdTotal = {
   padding: "14px 12px",
@@ -1875,7 +1938,6 @@ const estiloTdTotal = {
   fontSize: "13px",
   whiteSpace: "nowrap",
 };
-
 
 const inputCantidad = {
   width: "84px",
@@ -1886,14 +1948,12 @@ const inputCantidad = {
   color: "#111827",
 };
 
-
 const gridInformacionUnaColumna = {
   display: "grid",
   gridTemplateColumns: "1fr",
   gap: "20px",
   marginBottom: "20px",
 };
-
 
 const infoPanel = {
   backgroundColor: "rgba(255,255,255,0.95)",
@@ -1903,7 +1963,6 @@ const infoPanel = {
   border: "1px solid #fde4d3",
 };
 
-
 const leyendasPanel = {
   background: "linear-gradient(180deg, #fff7ed 0%, #fff3e8 100%)",
   borderRadius: "28px",
@@ -1912,13 +1971,11 @@ const leyendasPanel = {
   border: "1px solid #fdc9a3",
 };
 
-
 const cardsInfoGrid = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
   gap: "14px",
 };
-
 
 const infoCard = {
   background: "linear-gradient(180deg, #fffaf5 0%, #fff4ea 100%)",
@@ -1927,13 +1984,11 @@ const infoCard = {
   padding: "18px",
 };
 
-
 const infoCardDestacado = {
   ...infoCard,
   background: "linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)",
   border: "1px solid #fdc9a3",
 };
-
 
 const miniBadge = {
   display: "inline-block",
@@ -1946,12 +2001,10 @@ const miniBadge = {
   marginBottom: "12px",
 };
 
-
 const infoCardTitulo = {
   margin: "0 0 10px 0",
   color: "#7c2d12",
 };
-
 
 const infoCardTexto = {
   margin: "6px 0",
@@ -1959,13 +2012,11 @@ const infoCardTexto = {
   lineHeight: 1.5,
 };
 
-
 const infoCardDato = {
   margin: "6px 0",
   color: "#c2410c",
   fontWeight: "bold",
 };
-
 
 const infoCardLink = {
   display: "inline-block",
@@ -1979,7 +2030,6 @@ const infoCardLink = {
   border: "1px solid #fdc9a3",
 };
 
-
 const leyendaItem = {
   padding: "12px 14px",
   borderRadius: "14px",
@@ -1990,7 +2040,6 @@ const leyendaItem = {
   marginBottom: "10px",
 };
 
-
 const documentosPanel = {
   backgroundColor: "rgba(255,255,255,0.95)",
   borderRadius: "28px",
@@ -2000,12 +2049,10 @@ const documentosPanel = {
   marginBottom: "20px",
 };
 
-
 const listaDocs = {
   display: "grid",
   gap: "12px",
 };
-
 
 const docCard = {
   background: "linear-gradient(180deg, #fffaf5 0%, #fff4ea 100%)",
@@ -2014,13 +2061,11 @@ const docCard = {
   border: "1px solid #fde4d3",
 };
 
-
 const docTitulo = {
   fontWeight: "bold",
   fontSize: "17px",
   color: "#7c2d12",
 };
-
 
 const docDescripcion = {
   marginTop: "8px",
@@ -2028,13 +2073,11 @@ const docDescripcion = {
   lineHeight: 1.5,
 };
 
-
 const docArchivo = {
   marginTop: "8px",
   color: "#ea580c",
   fontSize: "13px",
 };
-
 
 const accionesDoc = {
   display: "flex",
@@ -2042,7 +2085,6 @@ const accionesDoc = {
   flexWrap: "wrap",
   marginTop: "14px",
 };
-
 
 const botonDocumento = {
   padding: "10px 14px",
@@ -2054,7 +2096,6 @@ const botonDocumento = {
   fontWeight: "bold",
 };
 
-
 const linkDocumento = {
   padding: "10px 14px",
   borderRadius: "12px",
@@ -2065,7 +2106,6 @@ const linkDocumento = {
   fontWeight: "bold",
   display: "inline-block",
 };
-
 
 const resumenFlotante = {
   position: "fixed",
@@ -2079,67 +2119,79 @@ const resumenFlotante = {
   backdropFilter: "blur(10px)",
 };
 
+const resumenHeaderContraible = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "10px",
+};
+
+const resumenHeaderMiniDatos = {
+  display: "flex",
+  gap: "14px",
+  alignItems: "center",
+  flexWrap: "wrap",
+};
+
+const resumenHeaderDato = {
+  display: "flex",
+  flexDirection: "column",
+};
+
+const resumenHeaderLabel = {
+  fontSize: "11px",
+  marginBottom: "2px",
+};
+
+const resumenHeaderValor = {
+  fontSize: "18px",
+  fontWeight: "bold",
+};
+
+const resumenHeaderValorMoneda = {
+  fontSize: "13px",
+  fontWeight: "bold",
+};
+
+const botonContraerResumen = {
+  padding: "10px 14px",
+  borderRadius: "12px",
+  border: "1px solid rgba(255,255,255,0.18)",
+  backgroundColor: "rgba(255,255,255,0.55)",
+  color: "#7c2d12",
+  fontWeight: "bold",
+  cursor: "pointer",
+  whiteSpace: "nowrap",
+};
 
 const resumenFlotanteFila = {
   display: "grid",
   gridTemplateColumns: "1fr 1fr 1.2fr",
   gap: "10px",
+  marginTop: "10px",
   marginBottom: "10px",
 };
-
 
 const resumenFlotanteMini = {
   borderRadius: "14px",
   padding: "10px",
 };
 
-
 const resumenFlotanteLabel = {
   fontSize: "11px",
   marginBottom: "4px",
 };
-
 
 const resumenFlotanteValor = {
   fontSize: "20px",
   fontWeight: "bold",
 };
 
-
 const resumenFlotanteValorMoneda = {
   fontSize: "13px",
   fontWeight: "bold",
   lineHeight: 1.35,
 };
-
-
-const resumenFlotanteBotones = {
-  display: "flex",
-  gap: "10px",
-};
-
-
-const botonResumenFlotantePrimario = {
-  padding: "12px 14px",
-  borderRadius: "14px",
-  border: "1px solid #fdba74",
-  background: "linear-gradient(135deg, #fdba74 0%, #fb923c 100%)",
-  color: "#7c2d12",
-  fontWeight: "bold",
-  cursor: "pointer",
-};
-
-
-const botonResumenFlotanteSecundario = {
-  padding: "12px 14px",
-  borderRadius: "14px",
-  border: "1px solid rgba(255,255,255,0.18)",
-  backgroundColor: "rgba(255,255,255,0.28)",
-  color: "#7c2d12",
-  fontWeight: "bold",
-  cursor: "pointer",
-};
-
 
 const resumenFlotanteMensaje = {
   marginTop: "10px",
@@ -2151,13 +2203,21 @@ const resumenFlotanteMensaje = {
   lineHeight: 1.45,
 };
 
-
 const resumenFlotanteBotonesGrid = {
   display: "grid",
   gridTemplateColumns: "1fr 1fr",
   gap: "10px",
 };
 
+const botonResumenFlotantePrimario = {
+  padding: "12px 14px",
+  borderRadius: "14px",
+  border: "1px solid #fdba74",
+  background: "linear-gradient(135deg, #fdba74 0%, #fb923c 100%)",
+  color: "#7c2d12",
+  fontWeight: "bold",
+  cursor: "pointer",
+};
 
 const botonResumenFlotanteAccion = {
   padding: "12px 14px",
@@ -2169,5 +2229,14 @@ const botonResumenFlotanteAccion = {
   cursor: "pointer",
 };
 
+const botonResumenFlotanteSecundario = {
+  padding: "12px 14px",
+  borderRadius: "14px",
+  border: "1px solid rgba(255,255,255,0.18)",
+  backgroundColor: "rgba(255,255,255,0.28)",
+  color: "#7c2d12",
+  fontWeight: "bold",
+  cursor: "pointer",
+};
 
 export default App;
