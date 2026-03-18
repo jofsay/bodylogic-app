@@ -18,14 +18,11 @@ function App() {
     const manejarResize = () => {
       const movil = window.innerWidth <= 768;
       setEsMovil(movil);
-      if (movil && vistaMovil !== "cards" && vistaMovil !== "tabla") {
-        setVistaMovil("cards");
-      }
     };
 
     window.addEventListener("resize", manejarResize);
     return () => window.removeEventListener("resize", manejarResize);
-  }, [vistaMovil]);
+  }, []);
 
   const categorias = useMemo(() => {
     const unicas = [...new Set(productos.map((item) => item.categoria))];
@@ -62,6 +59,35 @@ function App() {
       [codigo]: numero >= 0 ? numero : 0,
     });
     setFilaActiva(codigo);
+  };
+
+  const incrementarProducto = (codigo) => {
+    const actual = cantidades[codigo] || 0;
+    setCantidades({
+      ...cantidades,
+      [codigo]: actual + 1,
+    });
+    setFilaActiva(codigo);
+  };
+
+  const decrementarProducto = (codigo) => {
+    const actual = cantidades[codigo] || 0;
+    const nuevo = actual - 1;
+    setCantidades({
+      ...cantidades,
+      [codigo]: nuevo >= 0 ? nuevo : 0,
+    });
+    setFilaActiva(codigo);
+  };
+
+  const eliminarProducto = (codigo) => {
+    setCantidades({
+      ...cantidades,
+      [codigo]: 0,
+    });
+    if (filaActiva === codigo) {
+      setFilaActiva("");
+    }
   };
 
   const limpiarCantidades = () => {
@@ -467,21 +493,6 @@ function App() {
                   para el apoyo de su comunidad empresarial BodyLogic.
                 </div>
               </div>
-
-              <div style={heroStats}>
-                <div style={statCard}>
-                  <div style={statNumero}>{filasCalculadas.length}</div>
-                  <div style={statLabel}>Productos visibles</div>
-                </div>
-                <div style={statCard}>
-                  <div style={statNumero}>{totalPuntos}</div>
-                  <div style={statLabel}>Puntos actuales</div>
-                </div>
-                <div style={statCard}>
-                  <div style={statNumero}>{totalUnidades}</div>
-                  <div style={statLabel}>Unidades capturadas</div>
-                </div>
-              </div>
             </div>
           </div>
         </header>
@@ -597,6 +608,68 @@ function App() {
             <div style={{ ...semaforoTitulo, color: estado.colorTexto }}>Semáforo de puntos</div>
             <div style={{ ...semaforoTexto, color: estado.colorTexto }}>{estado.texto}</div>
           </div>
+        </section>
+
+        <section style={pedidoActualPanel}>
+          <div style={panelTituloFila}>
+            <h2 style={panelTitulo}>Pedido actual</h2>
+            <p style={panelSubtitulo}>
+              Aquí aparecen únicamente los productos que ya capturaste.
+            </p>
+          </div>
+
+          {productosSeleccionados.length === 0 ? (
+            <div style={pedidoVacio}>
+              Aún no has agregado productos al pedido.
+            </div>
+          ) : (
+            <div style={pedidoActualGrid}>
+              {productosSeleccionados.map((item) => (
+                <div key={item.codigo} style={pedidoCard}>
+                  <div style={pedidoCardTop}>
+                    <div>
+                      <div style={pedidoCodigo}>{item.codigo}</div>
+                      <div style={pedidoNombre}>{item.producto}</div>
+                      <div style={pedidoContenido}>{item.contenido}</div>
+                    </div>
+
+                    <button
+                      onClick={() => eliminarProducto(item.codigo)}
+                      style={botonEliminarPedido}
+                    >
+                      Quitar
+                    </button>
+                  </div>
+
+                  <div style={pedidoControles}>
+                    <button onClick={() => decrementarProducto(item.codigo)} style={botonCantidad}>
+                      −
+                    </button>
+
+                    <input
+                      type="number"
+                      min="0"
+                      value={item.unidades}
+                      onChange={(e) => cambiarCantidad(item.codigo, e.target.value)}
+                      style={inputCantidadPedido}
+                    />
+
+                    <button onClick={() => incrementarProducto(item.codigo)} style={botonCantidad}>
+                      +
+                    </button>
+                  </div>
+
+                  <div style={pedidoTotalesGrid}>
+                    <MiniDato label="Subtotal puntos" valor={item.subtotalPuntos} />
+                    <MiniDato label="Público" valor={formatoMoneda(item.subtotalPrecioPublico)} />
+                    <MiniDato label="10%" valor={formatoMoneda(item.subtotalCP10)} />
+                    <MiniDato label="30%" valor={formatoMoneda(item.subtotal30)} />
+                    <MiniDato label="42%" valor={formatoMoneda(item.subtotal42)} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {esMovil && (
@@ -1025,34 +1098,6 @@ const fraseAutor = {
   backdropFilter: "blur(6px)",
 };
 
-const heroStats = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  gap: "14px",
-  marginTop: "24px",
-};
-
-const statCard = {
-  backgroundColor: "rgba(255,255,255,0.14)",
-  border: "1px solid rgba(255,255,255,0.20)",
-  borderRadius: "24px",
-  padding: "18px",
-  backdropFilter: "blur(10px)",
-  boxShadow: "0 14px 32px rgba(0,0,0,0.10)",
-};
-
-const statNumero = {
-  fontSize: "30px",
-  fontWeight: "bold",
-  color: "#ffffff",
-};
-
-const statLabel = {
-  marginTop: "6px",
-  fontSize: "14px",
-  color: "rgba(255,255,255,0.88)",
-};
-
 const panelControles = {
   backgroundColor: "rgba(255,255,255,0.93)",
   borderRadius: "28px",
@@ -1218,6 +1263,109 @@ const semaforoTitulo = {
 const semaforoTexto = {
   marginTop: "4px",
   lineHeight: 1.5,
+};
+
+const pedidoActualPanel = {
+  backgroundColor: "rgba(255,255,255,0.95)",
+  borderRadius: "28px",
+  padding: "24px",
+  boxShadow: "0 18px 42px rgba(124,45,18,0.08)",
+  border: "1px solid #fde4d3",
+  marginBottom: "20px",
+};
+
+const pedidoVacio = {
+  padding: "16px",
+  borderRadius: "16px",
+  backgroundColor: "#fffaf5",
+  border: "1px dashed #fdc9a3",
+  color: "#7c6f64",
+};
+
+const pedidoActualGrid = {
+  display: "grid",
+  gap: "14px",
+};
+
+const pedidoCard = {
+  background: "linear-gradient(180deg, #fffaf5 0%, #fff4ea 100%)",
+  border: "1px solid #fde2cc",
+  borderRadius: "20px",
+  padding: "16px",
+};
+
+const pedidoCardTop = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "12px",
+  alignItems: "flex-start",
+};
+
+const pedidoCodigo = {
+  fontSize: "12px",
+  color: "#9a3412",
+  fontWeight: "bold",
+};
+
+const pedidoNombre = {
+  marginTop: "4px",
+  fontSize: "16px",
+  fontWeight: "bold",
+  color: "#7c2d12",
+  lineHeight: 1.35,
+};
+
+const pedidoContenido = {
+  marginTop: "4px",
+  fontSize: "12px",
+  color: "#7c6f64",
+};
+
+const botonEliminarPedido = {
+  padding: "8px 12px",
+  borderRadius: "10px",
+  border: "1px solid #fecaca",
+  backgroundColor: "#fff1f2",
+  color: "#b91c1c",
+  cursor: "pointer",
+  fontWeight: "bold",
+};
+
+const pedidoControles = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  marginTop: "14px",
+};
+
+const botonCantidad = {
+  width: "40px",
+  height: "40px",
+  borderRadius: "12px",
+  border: "1px solid #fdc9a3",
+  backgroundColor: "#ffffff",
+  color: "#9a3412",
+  fontWeight: "bold",
+  fontSize: "22px",
+  cursor: "pointer",
+};
+
+const inputCantidadPedido = {
+  width: "90px",
+  padding: "10px 12px",
+  borderRadius: "12px",
+  border: "1px solid #f3c9a9",
+  backgroundColor: "#ffffff",
+  color: "#111827",
+  textAlign: "center",
+  fontWeight: "bold",
+};
+
+const pedidoTotalesGrid = {
+  marginTop: "14px",
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+  gap: "10px",
 };
 
 const resumenMovilPanel = {
