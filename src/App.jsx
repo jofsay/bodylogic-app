@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import FormularioMembresia from "./components/FormularioMembresia";
 import { productos } from "./data/productos";
 import jsPDF from "jspdf";
@@ -10,6 +10,22 @@ function App() {
   const [paqueteSeleccionado, setPaqueteSeleccionado] = useState(100);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState("TODAS");
   const [filaActiva, setFilaActiva] = useState("");
+  const [busqueda, setBusqueda] = useState("");
+  const [esMovil, setEsMovil] = useState(window.innerWidth <= 768);
+  const [vistaMovil, setVistaMovil] = useState(window.innerWidth <= 768 ? "cards" : "tabla");
+
+  useEffect(() => {
+    const manejarResize = () => {
+      const movil = window.innerWidth <= 768;
+      setEsMovil(movil);
+      if (movil && vistaMovil !== "cards" && vistaMovil !== "tabla") {
+        setVistaMovil("cards");
+      }
+    };
+
+    window.addEventListener("resize", manejarResize);
+    return () => window.removeEventListener("resize", manejarResize);
+  }, [vistaMovil]);
 
   const categorias = useMemo(() => {
     const unicas = [...new Set(productos.map((item) => item.categoria))];
@@ -53,10 +69,21 @@ function App() {
     setFilaActiva("");
   };
 
-  const productosFiltrados =
+  const productosFiltradosBase =
     categoriaSeleccionada === "TODAS"
       ? productos
       : productos.filter((item) => item.categoria === categoriaSeleccionada);
+
+  const textoBusqueda = busqueda.trim().toLowerCase();
+
+  const productosFiltrados = productosFiltradosBase.filter((item) => {
+    if (!textoBusqueda) return true;
+    return (
+      item.producto.toLowerCase().includes(textoBusqueda) ||
+      item.codigo.toLowerCase().includes(textoBusqueda) ||
+      item.categoria.toLowerCase().includes(textoBusqueda)
+    );
+  });
 
   const filasCalculadas = productosFiltrados.map((item) => {
     const unidades = cantidades[item.codigo] || 0;
@@ -514,6 +541,17 @@ function App() {
               </select>
             </div>
 
+            <div style={controlCard}>
+              <label style={labelControl}>Buscar producto o código</label>
+              <input
+                type="text"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                placeholder="Ej. Omega 3 o código"
+                style={inputBusqueda}
+              />
+            </div>
+
             <div style={controlInfoCard}>
               <div style={controlInfoNumero}>
                 {categoriaSeleccionada === "TODAS" ? "Todas" : categoriaSeleccionada}
@@ -521,6 +559,24 @@ function App() {
               <div style={controlInfoTexto}>Categoría visible</div>
             </div>
           </div>
+
+          {esMovil && (
+            <div style={switchVistaMovil}>
+              <button
+                onClick={() => setVistaMovil("cards")}
+                style={vistaMovil === "cards" ? botonPrimarioActivo : botonPrimario}
+              >
+                Vista móvil
+              </button>
+
+              <button
+                onClick={() => setVistaMovil("tabla")}
+                style={vistaMovil === "tabla" ? botonPrimarioActivo : botonPrimario}
+              >
+                Vista tabla
+              </button>
+            </div>
+          )}
         </section>
 
         <section
@@ -542,6 +598,29 @@ function App() {
             <div style={{ ...semaforoTexto, color: estado.colorTexto }}>{estado.texto}</div>
           </div>
         </section>
+
+        {esMovil && (
+          <section style={resumenMovilPanel}>
+            <div style={resumenMovilGrid}>
+              <div style={resumenMiniCard}>
+                <div style={resumenMiniLabel}>Unidades</div>
+                <div style={resumenMiniValor}>{totalUnidades}</div>
+              </div>
+              <div style={resumenMiniCard}>
+                <div style={resumenMiniLabel}>Puntos</div>
+                <div style={resumenMiniValor}>{totalPuntos}</div>
+              </div>
+              <div style={resumenMiniCard}>
+                <div style={resumenMiniLabel}>Público</div>
+                <div style={resumenMiniValorPeque}>{formatoMoneda(totalPrecioPublico)}</div>
+              </div>
+              <div style={resumenMiniCard}>
+                <div style={resumenMiniLabel}>42%</div>
+                <div style={resumenMiniValorPeque}>{formatoMoneda(total42)}</div>
+              </div>
+            </div>
+          </section>
+        )}
 
         <section style={tablaPanel}>
           <div style={panelTituloFila}>
@@ -566,137 +645,188 @@ function App() {
             </div>
           </div>
 
-          <div style={tablaWrapper}>
-            <table style={tabla}>
-              <thead>
-                <tr style={filaHeader}>
-                  <th style={estiloTh}>Categoría</th>
-                  <th style={estiloTh}>Código</th>
-                  <th style={estiloTh}>Producto</th>
-                  <th style={estiloTh}>Contenido</th>
-                  <th style={estiloTh}>Unidades</th>
-                  <th style={estiloTh}>Puntos</th>
-                  <th style={estiloTh}>Subtotal puntos</th>
-                  <th style={estiloTh}>Precio público</th>
-                  <th style={estiloTh}>Subtotal precio público</th>
-                  <th style={estiloTh}>Valor comisionable</th>
-                  <th style={estiloTh}>Subtotal valor comisionable</th>
-                  <th style={estiloTh}>CP -10%</th>
-                  <th style={estiloTh}>Subtotal CP -10%</th>
-                  <th style={estiloTh}>-20%</th>
-                  <th style={estiloTh}>Subtotal -20%</th>
-                  <th style={estiloTh}>-30%</th>
-                  <th style={estiloTh}>Subtotal -30%</th>
-                  <th style={estiloTh}>-33%</th>
-                  <th style={estiloTh}>Subtotal -33%</th>
-                  <th style={estiloTh}>-35%</th>
-                  <th style={estiloTh}>Subtotal -35%</th>
-                  <th style={estiloTh}>-37%</th>
-                  <th style={estiloTh}>Subtotal -37%</th>
-                  <th style={estiloTh}>-40%</th>
-                  <th style={estiloTh}>Subtotal -40%</th>
-                  <th style={estiloTh}>-42%</th>
-                  <th style={estiloTh}>Subtotal -42%</th>
-                </tr>
-              </thead>
+          {esMovil && vistaMovil === "cards" ? (
+            <div style={cardsProductosMovil}>
+              {filasCalculadas.map((item) => {
+                const activa = filaActiva === item.codigo;
+                const cardStyle = activa
+                  ? { ...cardProductoMovil, ...cardProductoActiva }
+                  : item.unidades > 0
+                  ? { ...cardProductoMovil, ...cardProductoConCaptura }
+                  : cardProductoMovil;
 
-              <tbody>
-                {filasCalculadas.map((item, index) => {
-                  const activa = filaActiva === item.codigo;
-                  const base = index % 2 === 0 ? filaPar : filaImpar;
-                  const estiloFila = activa
-                    ? filaActivaEstilo
-                    : item.unidades > 0
-                    ? filaConCaptura
-                    : base;
-
-                  return (
-                    <tr key={item.codigo} onClick={() => setFilaActiva(item.codigo)} style={estiloFila}>
-                      <td style={estiloTd}>{item.categoria}</td>
-                      <td style={estiloTd}>{item.codigo}</td>
-                      <td style={{ ...estiloTdProducto, cursor: "pointer" }}>
-                        <strong>{item.producto}</strong>
-                      </td>
-                      <td style={estiloTd}>{item.contenido}</td>
-                      <td style={estiloTd}>
-                        <input
-                          type="number"
-                          min="0"
-                          value={item.unidades}
-                          onChange={(e) => cambiarCantidad(item.codigo, e.target.value)}
-                          onFocus={() => setFilaActiva(item.codigo)}
-                          style={inputCantidad}
-                        />
-                      </td>
-                      <td style={estiloTd}>{item.puntos}</td>
-                      <td style={estiloTd}>{item.subtotalPuntos}</td>
-                      <td style={estiloTd}>{formatoMoneda(item.precioPublico)}</td>
-                      <td style={estiloTd}>{formatoMoneda(item.subtotalPrecioPublico)}</td>
-                      <td style={estiloTd}>{formatoMoneda(item.valorComisionable)}</td>
-                      <td style={estiloTd}>{formatoMoneda(item.subtotalValorComisionable)}</td>
-                      <td style={estiloTd}>{formatoMoneda(item.precioCP10)}</td>
-                      <td style={estiloTd}>{formatoMoneda(item.subtotalCP10)}</td>
-                      <td style={estiloTd}>{formatoMoneda(item.precio20)}</td>
-                      <td style={estiloTd}>{formatoMoneda(item.subtotal20)}</td>
-                      <td style={estiloTd}>{formatoMoneda(item.precio30)}</td>
-                      <td style={estiloTd}>{formatoMoneda(item.subtotal30)}</td>
-                      <td style={estiloTd}>{formatoMoneda(item.precio33)}</td>
-                      <td style={estiloTd}>{formatoMoneda(item.subtotal33)}</td>
-                      <td style={estiloTd}>{formatoMoneda(item.precio35)}</td>
-                      <td style={estiloTd}>{formatoMoneda(item.subtotal35)}</td>
-                      <td style={estiloTd}>{formatoMoneda(item.precio37)}</td>
-                      <td style={estiloTd}>{formatoMoneda(item.subtotal37)}</td>
-                      <td style={estiloTd}>{formatoMoneda(item.precio40)}</td>
-                      <td style={estiloTd}>{formatoMoneda(item.subtotal40)}</td>
-                      <td style={estiloTd}>{formatoMoneda(item.precio42)}</td>
-                      <td style={estiloTd}>{formatoMoneda(item.subtotal42)}</td>
-                    </tr>
-                  );
-                })}
-
-                <tr style={filaTotal}>
-                  <td style={estiloTdTotal}></td>
-                  <td style={estiloTdTotal}></td>
-                  <td style={estiloTdTotal}><strong>TOTAL GENERAL</strong></td>
-                  <td style={estiloTdTotal}></td>
-                  <td style={estiloTdTotal}><strong>{totalUnidades}</strong></td>
-                  <td style={estiloTdTotal}></td>
-                  <td
-                    style={{
-                      ...estiloTdTotal,
-                      backgroundColor: estado.colorFondo,
-                      color: estado.colorTexto,
-                      border: `2px solid ${estado.colorBorde}`,
-                      borderRadius: "10px",
-                      fontWeight: "bold",
-                    }}
+                return (
+                  <div
+                    key={item.codigo}
+                    style={cardStyle}
+                    onClick={() => setFilaActiva(item.codigo)}
                   >
-                    {totalPuntos}
-                  </td>
-                  <td style={estiloTdTotal}></td>
-                  <td style={estiloTdTotal}><strong>{formatoMoneda(totalPrecioPublico)}</strong></td>
-                  <td style={estiloTdTotal}></td>
-                  <td style={estiloTdTotal}><strong>{formatoMoneda(totalValorComisionable)}</strong></td>
-                  <td style={estiloTdTotal}></td>
-                  <td style={estiloTdTotal}><strong>{formatoMoneda(totalCP10)}</strong></td>
-                  <td style={estiloTdTotal}></td>
-                  <td style={estiloTdTotal}><strong>{formatoMoneda(total20)}</strong></td>
-                  <td style={estiloTdTotal}></td>
-                  <td style={estiloTdTotal}><strong>{formatoMoneda(total30)}</strong></td>
-                  <td style={estiloTdTotal}></td>
-                  <td style={estiloTdTotal}><strong>{formatoMoneda(total33)}</strong></td>
-                  <td style={estiloTdTotal}></td>
-                  <td style={estiloTdTotal}><strong>{formatoMoneda(total35)}</strong></td>
-                  <td style={estiloTdTotal}></td>
-                  <td style={estiloTdTotal}><strong>{formatoMoneda(total37)}</strong></td>
-                  <td style={estiloTdTotal}></td>
-                  <td style={estiloTdTotal}><strong>{formatoMoneda(total40)}</strong></td>
-                  <td style={estiloTdTotal}></td>
-                  <td style={estiloTdTotal}><strong>{formatoMoneda(total42)}</strong></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                    <div style={cardProductoTop}>
+                      <div>
+                        <div style={cardCodigo}>{item.codigo}</div>
+                        <div style={cardNombre}>{item.producto}</div>
+                        <div style={cardContenido}>{item.contenido}</div>
+                      </div>
+                      <div style={cardBadgeCategoria}>{item.categoria}</div>
+                    </div>
+
+                    <div style={cardInputRow}>
+                      <label style={labelMini}>Unidades</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={item.unidades}
+                        onChange={(e) => cambiarCantidad(item.codigo, e.target.value)}
+                        onFocus={() => setFilaActiva(item.codigo)}
+                        style={inputCantidadMovil}
+                      />
+                    </div>
+
+                    <div style={cardResumenGrid}>
+                      <MiniDato label="Puntos unit." valor={item.puntos} />
+                      <MiniDato label="Subtotal puntos" valor={item.subtotalPuntos} />
+                      <MiniDato label="Público" valor={formatoMoneda(item.subtotalPrecioPublico)} />
+                      <MiniDato label="10%" valor={formatoMoneda(item.subtotalCP10)} />
+                      <MiniDato label="30%" valor={formatoMoneda(item.subtotal30)} />
+                      <MiniDato label="42%" valor={formatoMoneda(item.subtotal42)} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={tablaWrapper}>
+              <table style={tabla}>
+                <thead>
+                  <tr style={filaHeader}>
+                    <th style={estiloTh}>Categoría</th>
+                    <th style={estiloTh}>Código</th>
+                    <th style={estiloTh}>Producto</th>
+                    <th style={estiloTh}>Contenido</th>
+                    <th style={estiloTh}>Unidades</th>
+                    <th style={estiloTh}>Puntos</th>
+                    <th style={estiloTh}>Subtotal puntos</th>
+                    <th style={estiloTh}>Precio público</th>
+                    <th style={estiloTh}>Subtotal precio público</th>
+                    <th style={estiloTh}>Valor comisionable</th>
+                    <th style={estiloTh}>Subtotal valor comisionable</th>
+                    <th style={estiloTh}>CP -10%</th>
+                    <th style={estiloTh}>Subtotal CP -10%</th>
+                    <th style={estiloTh}>-20%</th>
+                    <th style={estiloTh}>Subtotal -20%</th>
+                    <th style={estiloTh}>-30%</th>
+                    <th style={estiloTh}>Subtotal -30%</th>
+                    <th style={estiloTh}>-33%</th>
+                    <th style={estiloTh}>Subtotal -33%</th>
+                    <th style={estiloTh}>-35%</th>
+                    <th style={estiloTh}>Subtotal -35%</th>
+                    <th style={estiloTh}>-37%</th>
+                    <th style={estiloTh}>Subtotal -37%</th>
+                    <th style={estiloTh}>-40%</th>
+                    <th style={estiloTh}>Subtotal -40%</th>
+                    <th style={estiloTh}>-42%</th>
+                    <th style={estiloTh}>Subtotal -42%</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {filasCalculadas.map((item, index) => {
+                    const activa = filaActiva === item.codigo;
+                    const base = index % 2 === 0 ? filaPar : filaImpar;
+                    const estiloFila = activa
+                      ? filaActivaEstilo
+                      : item.unidades > 0
+                      ? filaConCaptura
+                      : base;
+
+                    return (
+                      <tr key={item.codigo} onClick={() => setFilaActiva(item.codigo)} style={estiloFila}>
+                        <td style={estiloTd}>{item.categoria}</td>
+                        <td style={estiloTd}>{item.codigo}</td>
+                        <td style={{ ...estiloTdProducto, cursor: "pointer" }}>
+                          <strong>{item.producto}</strong>
+                        </td>
+                        <td style={estiloTd}>{item.contenido}</td>
+                        <td style={estiloTd}>
+                          <input
+                            type="number"
+                            min="0"
+                            value={item.unidades}
+                            onChange={(e) => cambiarCantidad(item.codigo, e.target.value)}
+                            onFocus={() => setFilaActiva(item.codigo)}
+                            style={inputCantidad}
+                          />
+                        </td>
+                        <td style={estiloTd}>{item.puntos}</td>
+                        <td style={estiloTd}>{item.subtotalPuntos}</td>
+                        <td style={estiloTd}>{formatoMoneda(item.precioPublico)}</td>
+                        <td style={estiloTd}>{formatoMoneda(item.subtotalPrecioPublico)}</td>
+                        <td style={estiloTd}>{formatoMoneda(item.valorComisionable)}</td>
+                        <td style={estiloTd}>{formatoMoneda(item.subtotalValorComisionable)}</td>
+                        <td style={estiloTd}>{formatoMoneda(item.precioCP10)}</td>
+                        <td style={estiloTd}>{formatoMoneda(item.subtotalCP10)}</td>
+                        <td style={estiloTd}>{formatoMoneda(item.precio20)}</td>
+                        <td style={estiloTd}>{formatoMoneda(item.subtotal20)}</td>
+                        <td style={estiloTd}>{formatoMoneda(item.precio30)}</td>
+                        <td style={estiloTd}>{formatoMoneda(item.subtotal30)}</td>
+                        <td style={estiloTd}>{formatoMoneda(item.precio33)}</td>
+                        <td style={estiloTd}>{formatoMoneda(item.subtotal33)}</td>
+                        <td style={estiloTd}>{formatoMoneda(item.precio35)}</td>
+                        <td style={estiloTd}>{formatoMoneda(item.subtotal35)}</td>
+                        <td style={estiloTd}>{formatoMoneda(item.precio37)}</td>
+                        <td style={estiloTd}>{formatoMoneda(item.subtotal37)}</td>
+                        <td style={estiloTd}>{formatoMoneda(item.precio40)}</td>
+                        <td style={estiloTd}>{formatoMoneda(item.subtotal40)}</td>
+                        <td style={estiloTd}>{formatoMoneda(item.precio42)}</td>
+                        <td style={estiloTd}>{formatoMoneda(item.subtotal42)}</td>
+                      </tr>
+                    );
+                  })}
+
+                  <tr style={filaTotal}>
+                    <td style={estiloTdTotal}></td>
+                    <td style={estiloTdTotal}></td>
+                    <td style={estiloTdTotal}><strong>TOTAL GENERAL</strong></td>
+                    <td style={estiloTdTotal}></td>
+                    <td style={estiloTdTotal}><strong>{totalUnidades}</strong></td>
+                    <td style={estiloTdTotal}></td>
+                    <td
+                      style={{
+                        ...estiloTdTotal,
+                        backgroundColor: estado.colorFondo,
+                        color: estado.colorTexto,
+                        border: `2px solid ${estado.colorBorde}`,
+                        borderRadius: "10px",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {totalPuntos}
+                    </td>
+                    <td style={estiloTdTotal}></td>
+                    <td style={estiloTdTotal}><strong>{formatoMoneda(totalPrecioPublico)}</strong></td>
+                    <td style={estiloTdTotal}></td>
+                    <td style={estiloTdTotal}><strong>{formatoMoneda(totalValorComisionable)}</strong></td>
+                    <td style={estiloTdTotal}></td>
+                    <td style={estiloTdTotal}><strong>{formatoMoneda(totalCP10)}</strong></td>
+                    <td style={estiloTdTotal}></td>
+                    <td style={estiloTdTotal}><strong>{formatoMoneda(total20)}</strong></td>
+                    <td style={estiloTdTotal}></td>
+                    <td style={estiloTdTotal}><strong>{formatoMoneda(total30)}</strong></td>
+                    <td style={estiloTdTotal}></td>
+                    <td style={estiloTdTotal}><strong>{formatoMoneda(total33)}</strong></td>
+                    <td style={estiloTdTotal}></td>
+                    <td style={estiloTdTotal}><strong>{formatoMoneda(total35)}</strong></td>
+                    <td style={estiloTdTotal}></td>
+                    <td style={estiloTdTotal}><strong>{formatoMoneda(total37)}</strong></td>
+                    <td style={estiloTdTotal}></td>
+                    <td style={estiloTdTotal}><strong>{formatoMoneda(total40)}</strong></td>
+                    <td style={estiloTdTotal}></td>
+                    <td style={estiloTdTotal}><strong>{formatoMoneda(total42)}</strong></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
 
         <section style={gridInformacionUnaColumna}>
@@ -779,6 +909,15 @@ function App() {
   );
 }
 
+function MiniDato({ label, valor }) {
+  return (
+    <div style={miniDatoCard}>
+      <div style={miniDatoLabel}>{label}</div>
+      <div style={miniDatoValor}>{valor}</div>
+    </div>
+  );
+}
+
 const pagina = {
   minHeight: "100vh",
   background:
@@ -825,7 +964,6 @@ const hero = {
     "linear-gradient(135deg, #5f250f 0%, #8f3412 20%, #c2410c 44%, #ea580c 72%, #fb923c 100%)",
   boxShadow: "0 30px 80px rgba(194,65,12,0.32)",
   marginBottom: "24px",
-  position: "relative",
 };
 
 const heroOverlay = {
@@ -922,7 +1060,6 @@ const panelControles = {
   boxShadow: "0 18px 42px rgba(124,45,18,0.08)",
   border: "1px solid #fde4d3",
   marginBottom: "20px",
-  backdropFilter: "blur(6px)",
 };
 
 const panelTituloFila = {
@@ -1039,6 +1176,23 @@ const selectEstilo = {
   boxSizing: "border-box",
 };
 
+const inputBusqueda = {
+  width: "100%",
+  padding: "12px 14px",
+  borderRadius: "12px",
+  border: "1px solid #f3c9a9",
+  backgroundColor: "#ffffff",
+  color: "#111827",
+  boxSizing: "border-box",
+};
+
+const switchVistaMovil = {
+  display: "flex",
+  gap: "10px",
+  flexWrap: "wrap",
+  marginTop: "16px",
+};
+
 const semaforoCard = {
   display: "flex",
   gap: "18px",
@@ -1066,6 +1220,47 @@ const semaforoTexto = {
   lineHeight: 1.5,
 };
 
+const resumenMovilPanel = {
+  backgroundColor: "rgba(255,255,255,0.95)",
+  borderRadius: "24px",
+  padding: "16px",
+  boxShadow: "0 12px 30px rgba(124,45,18,0.08)",
+  border: "1px solid #fde4d3",
+  marginBottom: "20px",
+};
+
+const resumenMovilGrid = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "10px",
+};
+
+const resumenMiniCard = {
+  background: "linear-gradient(180deg, #fffaf5 0%, #fff4ea 100%)",
+  border: "1px solid #fde2cc",
+  borderRadius: "16px",
+  padding: "12px",
+};
+
+const resumenMiniLabel = {
+  fontSize: "12px",
+  color: "#7c6f64",
+  marginBottom: "6px",
+};
+
+const resumenMiniValor = {
+  fontSize: "22px",
+  fontWeight: "bold",
+  color: "#7c2d12",
+};
+
+const resumenMiniValorPeque = {
+  fontSize: "14px",
+  fontWeight: "bold",
+  color: "#7c2d12",
+  lineHeight: 1.4,
+};
+
 const tablaPanel = {
   backgroundColor: "rgba(255,255,255,0.95)",
   borderRadius: "28px",
@@ -1080,6 +1275,114 @@ const accionesResumen = {
   gap: "12px",
   flexWrap: "wrap",
   marginTop: "14px",
+};
+
+const cardsProductosMovil = {
+  display: "grid",
+  gap: "14px",
+};
+
+const cardProductoMovil = {
+  background: "linear-gradient(180deg, #fffaf5 0%, #fff4ea 100%)",
+  border: "1px solid #fde2cc",
+  borderRadius: "20px",
+  padding: "16px",
+  boxShadow: "0 10px 24px rgba(124,45,18,0.05)",
+};
+
+const cardProductoConCaptura = {
+  background: "linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%)",
+};
+
+const cardProductoActiva = {
+  border: "2px solid #ea580c",
+  boxShadow: "0 0 0 3px rgba(234,88,12,0.12)",
+};
+
+const cardProductoTop = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "10px",
+  alignItems: "flex-start",
+};
+
+const cardCodigo = {
+  fontSize: "12px",
+  color: "#9a3412",
+  fontWeight: "bold",
+};
+
+const cardNombre = {
+  marginTop: "4px",
+  fontSize: "16px",
+  fontWeight: "bold",
+  color: "#7c2d12",
+  lineHeight: 1.35,
+};
+
+const cardContenido = {
+  marginTop: "4px",
+  fontSize: "12px",
+  color: "#7c6f64",
+};
+
+const cardBadgeCategoria = {
+  padding: "6px 10px",
+  borderRadius: "999px",
+  backgroundColor: "#fed7aa",
+  color: "#9a3412",
+  fontSize: "11px",
+  fontWeight: "bold",
+  whiteSpace: "nowrap",
+};
+
+const cardInputRow = {
+  marginTop: "14px",
+};
+
+const labelMini = {
+  display: "block",
+  marginBottom: "8px",
+  fontSize: "12px",
+  fontWeight: "bold",
+  color: "#7c2d12",
+};
+
+const inputCantidadMovil = {
+  width: "100%",
+  padding: "12px 14px",
+  borderRadius: "12px",
+  border: "1px solid #f3c9a9",
+  backgroundColor: "#ffffff",
+  color: "#111827",
+  boxSizing: "border-box",
+};
+
+const cardResumenGrid = {
+  marginTop: "14px",
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "10px",
+};
+
+const miniDatoCard = {
+  backgroundColor: "#ffffff",
+  border: "1px solid #fde2cc",
+  borderRadius: "14px",
+  padding: "10px",
+};
+
+const miniDatoLabel = {
+  fontSize: "11px",
+  color: "#7c6f64",
+  marginBottom: "6px",
+};
+
+const miniDatoValor = {
+  fontSize: "13px",
+  fontWeight: "bold",
+  color: "#7c2d12",
+  lineHeight: 1.35,
 };
 
 const tablaWrapper = {
