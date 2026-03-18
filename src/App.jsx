@@ -1,13 +1,15 @@
 import { useMemo, useState } from "react";
 import FormularioMembresia from "./components/FormularioMembresia";
 import { productos } from "./data/productos";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 function App() {
   const [cantidades, setCantidades] = useState({});
   const [modo, setModo] = useState("compraInicial");
   const [paqueteSeleccionado, setPaqueteSeleccionado] = useState(100);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState("TODAS");
-  const [documentoActivo, setDocumentoActivo] = useState("CATALOGO-BODYLOGIC-2026.pdf");
+  const [filaActiva, setFilaActiva] = useState("");
 
   const categorias = useMemo(() => {
     const unicas = [...new Set(productos.map((item) => item.categoria))];
@@ -43,10 +45,12 @@ function App() {
       ...cantidades,
       [codigo]: numero >= 0 ? numero : 0,
     });
+    setFilaActiva(codigo);
   };
 
   const limpiarCantidades = () => {
     setCantidades({});
+    setFilaActiva("");
   };
 
   const productosFiltrados =
@@ -86,18 +90,52 @@ function App() {
     };
   });
 
-  const totalUnidades = filasCalculadas.reduce((acc, item) => acc + item.unidades, 0);
-  const totalPuntos = filasCalculadas.reduce((acc, item) => acc + item.subtotalPuntos, 0);
-  const totalPrecioPublico = filasCalculadas.reduce((acc, item) => acc + item.subtotalPrecioPublico, 0);
-  const totalValorComisionable = filasCalculadas.reduce((acc, item) => acc + item.subtotalValorComisionable, 0);
-  const totalCP10 = filasCalculadas.reduce((acc, item) => acc + item.subtotalCP10, 0);
-  const total20 = filasCalculadas.reduce((acc, item) => acc + item.subtotal20, 0);
-  const total30 = filasCalculadas.reduce((acc, item) => acc + item.subtotal30, 0);
-  const total33 = filasCalculadas.reduce((acc, item) => acc + item.subtotal33, 0);
-  const total35 = filasCalculadas.reduce((acc, item) => acc + item.subtotal35, 0);
-  const total37 = filasCalculadas.reduce((acc, item) => acc + item.subtotal37, 0);
-  const total40 = filasCalculadas.reduce((acc, item) => acc + item.subtotal40, 0);
-  const total42 = filasCalculadas.reduce((acc, item) => acc + item.subtotal42, 0);
+  const filasTotales = productos.map((item) => {
+    const unidades = cantidades[item.codigo] || 0;
+
+    const subtotalPuntos = unidades * item.puntos;
+    const subtotalPrecioPublico = unidades * item.precioPublico;
+    const subtotalValorComisionable = unidades * item.valorComisionable;
+    const subtotalCP10 = unidades * item.precioCP10;
+    const subtotal20 = unidades * item.precio20;
+    const subtotal30 = unidades * item.precio30;
+    const subtotal33 = unidades * item.precio33;
+    const subtotal35 = unidades * item.precio35;
+    const subtotal37 = unidades * item.precio37;
+    const subtotal40 = unidades * item.precio40;
+    const subtotal42 = unidades * item.precio42;
+
+    return {
+      ...item,
+      unidades,
+      subtotalPuntos,
+      subtotalPrecioPublico,
+      subtotalValorComisionable,
+      subtotalCP10,
+      subtotal20,
+      subtotal30,
+      subtotal33,
+      subtotal35,
+      subtotal37,
+      subtotal40,
+      subtotal42,
+    };
+  });
+
+  const productosSeleccionados = filasTotales.filter((item) => item.unidades > 0);
+
+  const totalUnidades = filasTotales.reduce((acc, item) => acc + item.unidades, 0);
+  const totalPuntos = filasTotales.reduce((acc, item) => acc + item.subtotalPuntos, 0);
+  const totalPrecioPublico = filasTotales.reduce((acc, item) => acc + item.subtotalPrecioPublico, 0);
+  const totalValorComisionable = filasTotales.reduce((acc, item) => acc + item.subtotalValorComisionable, 0);
+  const totalCP10 = filasTotales.reduce((acc, item) => acc + item.subtotalCP10, 0);
+  const total20 = filasTotales.reduce((acc, item) => acc + item.subtotal20, 0);
+  const total30 = filasTotales.reduce((acc, item) => acc + item.subtotal30, 0);
+  const total33 = filasTotales.reduce((acc, item) => acc + item.subtotal33, 0);
+  const total35 = filasTotales.reduce((acc, item) => acc + item.subtotal35, 0);
+  const total37 = filasTotales.reduce((acc, item) => acc + item.subtotal37, 0);
+  const total40 = filasTotales.reduce((acc, item) => acc + item.subtotal40, 0);
+  const total42 = filasTotales.reduce((acc, item) => acc + item.subtotal42, 0);
 
   const obtenerEstadoPuntos = () => {
     if (modo === "compraInicial") {
@@ -158,7 +196,227 @@ function App() {
     });
   };
 
-  const rutaDocumentoActivo = `/archivos/${documentoActivo}`;
+  const descargarPDFPedido = () => {
+    if (productosSeleccionados.length === 0) {
+      alert("Primero captura al menos un producto con unidades mayores a 0.");
+      return;
+    }
+
+    const doc = new jsPDF({
+      orientation: "landscape",
+      unit: "pt",
+      format: "a4",
+    });
+
+    const fechaActual = new Date().toLocaleString("es-MX");
+
+    doc.setFillColor(234, 88, 12);
+    doc.rect(0, 0, 842, 84, "F");
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(24);
+    doc.text("BodyLogic - Resumen de pedido", 40, 38);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text(
+      modo === "compraInicial"
+        ? `Compra inicial | Paquete elegido: ${paqueteSeleccionado} puntos`
+        : "Recompra mensual",
+      40,
+      60
+    );
+
+    doc.setTextColor(80, 80, 80);
+    doc.setFontSize(10);
+    doc.text(`Fecha: ${fechaActual}`, 40, 108);
+    doc.text(`Estado del pedido: ${estado.texto}`, 40, 124);
+
+    const body = productosSeleccionados.map((item) => [
+      item.producto,
+      String(item.unidades),
+      String(item.subtotalPuntos),
+      formatoMoneda(item.subtotalPrecioPublico),
+      formatoMoneda(item.subtotalCP10),
+      formatoMoneda(item.subtotal30),
+      formatoMoneda(item.subtotal42),
+    ]);
+
+    autoTable(doc, {
+      startY: 145,
+      head: [[
+        "Producto",
+        "Unidades",
+        "Subtotal puntos",
+        "Subtotal precio público",
+        "Subtotal 10%",
+        "Subtotal 30%",
+        "Subtotal 42%"
+      ]],
+      body,
+      theme: "grid",
+      headStyles: {
+        fillColor: [234, 88, 12],
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+        halign: "center",
+      },
+      styles: {
+        fontSize: 9,
+        cellPadding: 6,
+        textColor: [40, 40, 40],
+        valign: "middle",
+      },
+      columnStyles: {
+        0: { cellWidth: 220 },
+        1: { cellWidth: 65, halign: "center" },
+        2: { cellWidth: 85, halign: "center" },
+        3: { cellWidth: 110, halign: "right" },
+        4: { cellWidth: 100, halign: "right" },
+        5: { cellWidth: 100, halign: "right" },
+        6: { cellWidth: 100, halign: "right" },
+      },
+      alternateRowStyles: {
+        fillColor: [255, 250, 245],
+      },
+      margin: { left: 40, right: 40 },
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 22;
+
+    doc.setDrawColor(234, 88, 12);
+    doc.setLineWidth(1);
+    doc.line(40, finalY, 802, finalY);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(124, 45, 18);
+    doc.text(`Total de unidades: ${totalUnidades}`, 40, finalY + 22);
+    doc.text(`Total de puntos: ${totalPuntos}`, 190, finalY + 22);
+    doc.text(`Total precio público: ${formatoMoneda(totalPrecioPublico)}`, 330, finalY + 22);
+    doc.text(`Total 10%: ${formatoMoneda(totalCP10)}`, 570, finalY + 22);
+
+    doc.text(`Total 30%: ${formatoMoneda(total30)}`, 40, finalY + 44);
+    doc.text(`Total 42%: ${formatoMoneda(total42)}`, 220, finalY + 44);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(90, 90, 90);
+    doc.text(
+      "Este material ha sido creado por el líder Jorge Francisco Sánchez Yerenas para el apoyo de su comunidad empresarial BodyLogic.",
+      40,
+      finalY + 70
+    );
+
+    doc.save("Resumen-Pedido-BodyLogic.pdf");
+  };
+
+  const imprimirFormulario = () => {
+    if (productosSeleccionados.length === 0) {
+      alert("Primero captura al menos un producto con unidades mayores a 0.");
+      return;
+    }
+
+    const filasHTML = productosSeleccionados
+      .map(
+        (item) => `
+          <tr>
+            <td>${item.producto}</td>
+            <td style="text-align:center;">${item.unidades}</td>
+            <td style="text-align:center;">${item.subtotalPuntos}</td>
+            <td style="text-align:right;">${formatoMoneda(item.subtotalPrecioPublico)}</td>
+            <td style="text-align:right;">${formatoMoneda(item.subtotalCP10)}</td>
+            <td style="text-align:right;">${formatoMoneda(item.subtotal30)}</td>
+            <td style="text-align:right;">${formatoMoneda(item.subtotal42)}</td>
+          </tr>
+        `
+      )
+      .join("");
+
+    const ventana = window.open("", "_blank", "width=1200,height=900");
+
+    if (!ventana) {
+      alert("Tu navegador bloqueó la ventana de impresión. Permite pop-ups e inténtalo de nuevo.");
+      return;
+    }
+
+    ventana.document.write(`
+      <html>
+        <head>
+          <title>Formulario de compra BodyLogic</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 30px; color: #222; }
+            .encabezado { background: linear-gradient(135deg, #c2410c, #fb923c); color: white; padding: 18px 22px; border-radius: 16px; margin-bottom: 24px; }
+            h1 { margin: 0 0 6px 0; font-size: 26px; }
+            .sub { font-size: 13px; opacity: 0.95; }
+            .meta { margin: 14px 0 20px 0; font-size: 13px; line-height: 1.7; }
+            table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+            th { background: #ea580c; color: white; padding: 10px; border: 1px solid #d6d3d1; font-size: 13px; }
+            td { border: 1px solid #e5e7eb; padding: 10px; font-size: 13px; }
+            tr:nth-child(even) { background: #fffaf5; }
+            .totales { margin-top: 24px; padding: 16px; border: 1px solid #fdba74; border-radius: 14px; background: #fff7ed; line-height: 1.8; font-size: 14px; }
+            .firma { margin-top: 40px; font-size: 12px; color: #666; }
+          </style>
+        </head>
+        <body>
+          <div class="encabezado">
+            <h1>BodyLogic - Formulario de compra</h1>
+            <div class="sub">
+              ${
+                modo === "compraInicial"
+                  ? `Compra inicial | Paquete elegido: ${paqueteSeleccionado} puntos`
+                  : "Recompra mensual"
+              }
+            </div>
+          </div>
+
+          <div class="meta">
+            <div><strong>Fecha:</strong> ${new Date().toLocaleString("es-MX")}</div>
+            <div><strong>Estado del pedido:</strong> ${estado.texto}</div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Unidades</th>
+                <th>Subtotal puntos</th>
+                <th>Subtotal precio público</th>
+                <th>Subtotal 10%</th>
+                <th>Subtotal 30%</th>
+                <th>Subtotal 42%</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filasHTML}
+            </tbody>
+          </table>
+
+          <div class="totales">
+            <div><strong>Total de unidades:</strong> ${totalUnidades}</div>
+            <div><strong>Total de puntos:</strong> ${totalPuntos}</div>
+            <div><strong>Total precio público:</strong> ${formatoMoneda(totalPrecioPublico)}</div>
+            <div><strong>Total 10%:</strong> ${formatoMoneda(totalCP10)}</div>
+            <div><strong>Total 30%:</strong> ${formatoMoneda(total30)}</div>
+            <div><strong>Total 42%:</strong> ${formatoMoneda(total42)}</div>
+          </div>
+
+          <div class="firma">
+            Este material ha sido creado por el líder Jorge Francisco Sánchez Yerenas para el apoyo de su comunidad empresarial BodyLogic.
+          </div>
+
+          <script>
+            window.onload = function() {
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `);
+
+    ventana.document.close();
+  };
 
   return (
     <div style={pagina}>
@@ -170,9 +428,7 @@ function App() {
           <div style={heroOverlay}>
             <div style={heroContent}>
               <div style={badgeSuperior}>Plataforma de Apoyo Comercial</div>
-
               <h1 style={heroTitulo}>BodyLogic</h1>
-
               <p style={heroTexto}>
                 Centro avanzado de cálculo de puntos, validación comercial, documentos oficiales
                 y gestión operativa para asociados.
@@ -212,17 +468,11 @@ function App() {
           </div>
 
           <div style={filaBotones}>
-            <button
-              onClick={() => setModo("compraInicial")}
-              style={modo === "compraInicial" ? botonPrimarioActivo : botonPrimario}
-            >
+            <button onClick={() => setModo("compraInicial")} style={modo === "compraInicial" ? botonPrimarioActivo : botonPrimario}>
               Compra inicial
             </button>
 
-            <button
-              onClick={() => setModo("recompraMensual")}
-              style={modo === "recompraMensual" ? botonPrimarioActivo : botonPrimario}
-            >
+            <button onClick={() => setModo("recompraMensual")} style={modo === "recompraMensual" ? botonPrimarioActivo : botonPrimario}>
               Recompra mensual
             </button>
 
@@ -304,6 +554,16 @@ function App() {
                   : " en todas las categorías."}
               </p>
             </div>
+
+            <div style={accionesResumen}>
+              <button onClick={descargarPDFPedido} style={botonDocumento}>
+                Descargar PDF del pedido
+              </button>
+
+              <button onClick={imprimirFormulario} style={botonSecundarioPremium}>
+                Imprimir formulario
+              </button>
+            </div>
           </div>
 
           <div style={tablaWrapper}>
@@ -341,47 +601,58 @@ function App() {
               </thead>
 
               <tbody>
-                {filasCalculadas.map((item, index) => (
-                  <tr key={item.codigo} style={index % 2 === 0 ? filaPar : filaImpar}>
-                    <td style={estiloTd}>{item.categoria}</td>
-                    <td style={estiloTd}>{item.codigo}</td>
-                    <td style={estiloTdProducto}>
-                      <strong>{item.producto}</strong>
-                    </td>
-                    <td style={estiloTd}>{item.contenido}</td>
-                    <td style={estiloTd}>
-                      <input
-                        type="number"
-                        min="0"
-                        value={item.unidades}
-                        onChange={(e) => cambiarCantidad(item.codigo, e.target.value)}
-                        style={inputCantidad}
-                      />
-                    </td>
-                    <td style={estiloTd}>{item.puntos}</td>
-                    <td style={estiloTd}>{item.subtotalPuntos}</td>
-                    <td style={estiloTd}>{formatoMoneda(item.precioPublico)}</td>
-                    <td style={estiloTd}>{formatoMoneda(item.subtotalPrecioPublico)}</td>
-                    <td style={estiloTd}>{formatoMoneda(item.valorComisionable)}</td>
-                    <td style={estiloTd}>{formatoMoneda(item.subtotalValorComisionable)}</td>
-                    <td style={estiloTd}>{formatoMoneda(item.precioCP10)}</td>
-                    <td style={estiloTd}>{formatoMoneda(item.subtotalCP10)}</td>
-                    <td style={estiloTd}>{formatoMoneda(item.precio20)}</td>
-                    <td style={estiloTd}>{formatoMoneda(item.subtotal20)}</td>
-                    <td style={estiloTd}>{formatoMoneda(item.precio30)}</td>
-                    <td style={estiloTd}>{formatoMoneda(item.subtotal30)}</td>
-                    <td style={estiloTd}>{formatoMoneda(item.precio33)}</td>
-                    <td style={estiloTd}>{formatoMoneda(item.subtotal33)}</td>
-                    <td style={estiloTd}>{formatoMoneda(item.precio35)}</td>
-                    <td style={estiloTd}>{formatoMoneda(item.subtotal35)}</td>
-                    <td style={estiloTd}>{formatoMoneda(item.precio37)}</td>
-                    <td style={estiloTd}>{formatoMoneda(item.subtotal37)}</td>
-                    <td style={estiloTd}>{formatoMoneda(item.precio40)}</td>
-                    <td style={estiloTd}>{formatoMoneda(item.subtotal40)}</td>
-                    <td style={estiloTd}>{formatoMoneda(item.precio42)}</td>
-                    <td style={estiloTd}>{formatoMoneda(item.subtotal42)}</td>
-                  </tr>
-                ))}
+                {filasCalculadas.map((item, index) => {
+                  const activa = filaActiva === item.codigo;
+                  const base = index % 2 === 0 ? filaPar : filaImpar;
+                  const estiloFila = activa
+                    ? filaActivaEstilo
+                    : item.unidades > 0
+                    ? filaConCaptura
+                    : base;
+
+                  return (
+                    <tr key={item.codigo} onClick={() => setFilaActiva(item.codigo)} style={estiloFila}>
+                      <td style={estiloTd}>{item.categoria}</td>
+                      <td style={estiloTd}>{item.codigo}</td>
+                      <td style={{ ...estiloTdProducto, cursor: "pointer" }}>
+                        <strong>{item.producto}</strong>
+                      </td>
+                      <td style={estiloTd}>{item.contenido}</td>
+                      <td style={estiloTd}>
+                        <input
+                          type="number"
+                          min="0"
+                          value={item.unidades}
+                          onChange={(e) => cambiarCantidad(item.codigo, e.target.value)}
+                          onFocus={() => setFilaActiva(item.codigo)}
+                          style={inputCantidad}
+                        />
+                      </td>
+                      <td style={estiloTd}>{item.puntos}</td>
+                      <td style={estiloTd}>{item.subtotalPuntos}</td>
+                      <td style={estiloTd}>{formatoMoneda(item.precioPublico)}</td>
+                      <td style={estiloTd}>{formatoMoneda(item.subtotalPrecioPublico)}</td>
+                      <td style={estiloTd}>{formatoMoneda(item.valorComisionable)}</td>
+                      <td style={estiloTd}>{formatoMoneda(item.subtotalValorComisionable)}</td>
+                      <td style={estiloTd}>{formatoMoneda(item.precioCP10)}</td>
+                      <td style={estiloTd}>{formatoMoneda(item.subtotalCP10)}</td>
+                      <td style={estiloTd}>{formatoMoneda(item.precio20)}</td>
+                      <td style={estiloTd}>{formatoMoneda(item.subtotal20)}</td>
+                      <td style={estiloTd}>{formatoMoneda(item.precio30)}</td>
+                      <td style={estiloTd}>{formatoMoneda(item.subtotal30)}</td>
+                      <td style={estiloTd}>{formatoMoneda(item.precio33)}</td>
+                      <td style={estiloTd}>{formatoMoneda(item.subtotal33)}</td>
+                      <td style={estiloTd}>{formatoMoneda(item.precio35)}</td>
+                      <td style={estiloTd}>{formatoMoneda(item.subtotal35)}</td>
+                      <td style={estiloTd}>{formatoMoneda(item.precio37)}</td>
+                      <td style={estiloTd}>{formatoMoneda(item.subtotal37)}</td>
+                      <td style={estiloTd}>{formatoMoneda(item.precio40)}</td>
+                      <td style={estiloTd}>{formatoMoneda(item.subtotal40)}</td>
+                      <td style={estiloTd}>{formatoMoneda(item.precio42)}</td>
+                      <td style={estiloTd}>{formatoMoneda(item.subtotal42)}</td>
+                    </tr>
+                  );
+                })}
 
                 <tr style={filaTotal}>
                   <td style={estiloTdTotal}></td>
@@ -428,7 +699,7 @@ function App() {
           </div>
         </section>
 
-        <section style={gridInformacion}>
+        <section style={gridInformacionUnaColumna}>
           <div style={infoPanel}>
             <h2 style={panelTitulo}>3 formas de adquirir producto</h2>
             <div style={cardsInfoGrid}>
@@ -436,14 +707,8 @@ function App() {
                 <div style={miniBadge}>Web</div>
                 <h3 style={infoCardTitulo}>Sitio web</h3>
                 <p style={infoCardTexto}>Ingresa directamente a:</p>
-
-                <a
-                  href="https://www.bodylogicglobal.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  style={infoCardLink}
-                >
-                  www.bodylogicglobal.com
+                <a href="https://www.bodylogicglobal.com" target="_blank" rel="noreferrer" style={infoCardLink}>
+                  www.bodylogicglobal.com ↗
                 </a>
               </div>
 
@@ -482,55 +747,29 @@ function App() {
             </div>
           </div>
 
-          <div style={documentosGrid}>
-            <div style={listaDocs}>
-              {documentos.map((doc) => {
-                const ruta = `/archivos/${doc.archivo}`;
-                const activo = documentoActivo === doc.archivo;
-
-                return (
-                  <div
-                    key={doc.archivo}
-                    style={{
-                      ...docCard,
-                      border: activo ? "2px solid #f97316" : "1px solid #fde4d3",
-                      boxShadow: activo ? "0 14px 30px rgba(249,115,22,0.14)" : "none",
-                    }}
-                  >
-                    <div>
-                      <div style={docTitulo}>{doc.nombre}</div>
-                      <div style={docDescripcion}>{doc.descripcion}</div>
-                      <div style={docArchivo}>{doc.archivo}</div>
-                    </div>
-
-                    <div style={accionesDoc}>
-                      <button onClick={() => setDocumentoActivo(doc.archivo)} style={botonDocumento}>
-                        Ver aquí
-                      </button>
-
-                      <a href={ruta} target="_blank" rel="noreferrer" style={linkDocumento}>
-                        Abrir PDF
-                      </a>
-
-                      <a href={ruta} download style={linkDocumento}>
-                        Descargar
-                      </a>
-                    </div>
+          <div style={listaDocs}>
+            {documentos.map((doc) => {
+              const ruta = `/archivos/${doc.archivo}`;
+              return (
+                <div key={doc.archivo} style={docCard}>
+                  <div>
+                    <div style={docTitulo}>{doc.nombre}</div>
+                    <div style={docDescripcion}>{doc.descripcion}</div>
+                    <div style={docArchivo}>{doc.archivo}</div>
                   </div>
-                );
-              })}
-            </div>
 
-            <div style={visorPanel}>
-              <div style={visorHeader}>Vista previa del documento</div>
-              <iframe
-                src={rutaDocumentoActivo}
-                title="Vista previa de PDF"
-                width="100%"
-                height="760"
-                style={visorIframe}
-              />
-            </div>
+                  <div style={accionesDoc}>
+                    <a href={ruta} target="_blank" rel="noreferrer" style={linkDocumento}>
+                      Abrir PDF
+                    </a>
+
+                    <a href={ruta} download style={linkDocumento}>
+                      Descargar
+                    </a>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
 
@@ -711,37 +950,41 @@ const filaBotones = {
 };
 
 const botonPrimario = {
- padding: "12px 18px",
- borderRadius: "14px",
- border: "1px solid #f3d2b7",
- backgroundColor: "#fffaf5",
- color: "#7c2d12",
- cursor: "pointer",
- fontWeight: "bold",
- boxShadow: "0 4px 14px rgba(124,45,18,0.04)",
- transition: "all 0.2s ease",
- appearance: "none",
- WebkitAppearance: "none",
+  padding: "12px 18px",
+  borderRadius: "14px",
+  border: "1px solid #f3d2b7",
+  backgroundColor: "#fffaf5",
+  color: "#7c2d12",
+  cursor: "pointer",
+  fontWeight: "bold",
 };
 
 const botonPrimarioActivo = {
- ...botonPrimario,
- background: "linear-gradient(135deg, #fdba74 0%, #fb923c 100%)",
- border: "2px solid #ea580c",
- color: "#ffffff",
- boxShadow: "0 10px 24px rgba(249,115,22,0.20)",
+  ...botonPrimario,
+  background: "linear-gradient(135deg, #fdba74 0%, #fb923c 100%)",
+  border: "2px solid #ea580c",
+  color: "#ffffff",
+  boxShadow: "0 10px 24px rgba(249,115,22,0.20)",
 };
 
 const botonSecundario = {
- padding: "12px 18px",
- borderRadius: "14px",
- border: "1px solid #f3d2b7",
- backgroundColor: "#fffaf5",
- color: "#7c2d12",
- cursor: "pointer",
- fontWeight: "bold",
- appearance: "none",
- WebkitAppearance: "none",
+  padding: "12px 18px",
+  borderRadius: "14px",
+  border: "1px solid #f3d2b7",
+  backgroundColor: "#fffaf5",
+  color: "#7c2d12",
+  cursor: "pointer",
+  fontWeight: "bold",
+};
+
+const botonSecundarioPremium = {
+  padding: "10px 16px",
+  borderRadius: "12px",
+  border: "1px solid #f3d2b7",
+  backgroundColor: "#fffaf5",
+  color: "#7c2d12",
+  cursor: "pointer",
+  fontWeight: "bold",
 };
 
 const gridControles = {
@@ -765,7 +1008,6 @@ const controlInfoCard = {
   display: "flex",
   flexDirection: "column",
   justifyContent: "center",
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.45)",
 };
 
 const controlInfoNumero = {
@@ -833,12 +1075,18 @@ const tablaPanel = {
   marginBottom: "20px",
 };
 
+const accionesResumen = {
+  display: "flex",
+  gap: "12px",
+  flexWrap: "wrap",
+  marginTop: "14px",
+};
+
 const tablaWrapper = {
   overflowX: "auto",
   marginTop: "6px",
   borderRadius: "18px",
   border: "1px solid #fde2cc",
-  boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.60)",
 };
 
 const tabla = {
@@ -859,6 +1107,14 @@ const filaPar = {
 
 const filaImpar = {
   backgroundColor: "#fffaf5",
+};
+
+const filaConCaptura = {
+  backgroundColor: "#fff3e8",
+};
+
+const filaActivaEstilo = {
+  backgroundColor: "#fed7aa",
 };
 
 const filaTotal = {
@@ -900,20 +1156,17 @@ const estiloTdTotal = {
 };
 
 const inputCantidad = {
- width: "84px",
- padding: "9px 10px",
- borderRadius: "10px",
- border: "1px solid #f3c9a9",
- backgroundColor: "#ffffff",
- color: "#111827",
- WebkitTextFillColor: "#111827",
- appearance: "none",
- WebkitAppearance: "none",
+  width: "84px",
+  padding: "9px 10px",
+  borderRadius: "10px",
+  border: "1px solid #f3c9a9",
+  backgroundColor: "#ffffff",
+  color: "#111827",
 };
 
-const gridInformacion = {
+const gridInformacionUnaColumna = {
   display: "grid",
-  gridTemplateColumns: "1.2fr 0.8fr",
+  gridTemplateColumns: "1fr",
   gap: "20px",
   marginBottom: "20px",
 };
@@ -945,14 +1198,12 @@ const infoCard = {
   border: "1px solid #fde2cc",
   borderRadius: "22px",
   padding: "18px",
-  boxShadow: "0 12px 24px rgba(124,45,18,0.04)",
 };
 
 const infoCardDestacado = {
   ...infoCard,
   background: "linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)",
   border: "1px solid #fdc9a3",
-  boxShadow: "0 14px 28px rgba(249,115,22,0.10)",
 };
 
 const miniBadge = {
@@ -993,10 +1244,7 @@ const infoCardLink = {
   borderRadius: "12px",
   backgroundColor: "#ffffff",
   border: "1px solid #fdc9a3",
-  boxShadow: "0 8px 18px rgba(249,115,22,0.08)",
-  cursor: "pointer",
 };
-
 
 const leyendaItem = {
   padding: "12px 14px",
@@ -1017,12 +1265,6 @@ const documentosPanel = {
   marginBottom: "20px",
 };
 
-const documentosGrid = {
-  display: "grid",
-  gridTemplateColumns: "0.95fr 1.05fr",
-  gap: "20px",
-};
-
 const listaDocs = {
   display: "grid",
   gap: "12px",
@@ -1032,6 +1274,7 @@ const docCard = {
   background: "linear-gradient(180deg, #fffaf5 0%, #fff4ea 100%)",
   borderRadius: "20px",
   padding: "16px",
+  border: "1px solid #fde4d3",
 };
 
 const docTitulo = {
@@ -1067,7 +1310,6 @@ const botonDocumento = {
   color: "#7c2d12",
   cursor: "pointer",
   fontWeight: "bold",
-  boxShadow: "0 8px 18px rgba(249,115,22,0.10)",
 };
 
 const linkDocumento = {
@@ -1079,29 +1321,6 @@ const linkDocumento = {
   textDecoration: "none",
   fontWeight: "bold",
   display: "inline-block",
-};
-
-const visorPanel = {
-  background: "linear-gradient(180deg, #fffaf5 0%, #fff4ea 100%)",
-  border: "1px solid #fde2cc",
-  borderRadius: "24px",
-  overflow: "hidden",
-  minHeight: "100%",
-  boxShadow: "0 12px 30px rgba(124,45,18,0.05)",
-};
-
-const visorHeader = {
-  padding: "14px 18px",
-  background: "linear-gradient(180deg, #fed7aa 0%, #fdba74 100%)",
-  color: "#7c2d12",
-  fontWeight: "bold",
-  borderBottom: "1px solid #f4c49c",
-};
-
-const visorIframe = {
-  border: "none",
-  display: "block",
-  backgroundColor: "#ffffff",
 };
 
 export default App;
