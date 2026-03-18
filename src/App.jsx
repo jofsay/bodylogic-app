@@ -1047,6 +1047,20 @@ function App() {
 
                 <div style={resumenVisibleDato}>
                   <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
+                    30%
+                  </span>
+                  <span
+                    style={{
+                      ...resumenVisibleValorMoneda,
+                      color: estado.colorTexto,
+                    }}
+                  >
+                    {formatoMoneda(total30)}
+                  </span>
+                </div>
+
+                <div style={resumenVisibleDato}>
+                  <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
                     42%
                   </span>
                   <span
@@ -1118,6 +1132,31 @@ function App() {
                       }}
                     >
                       {totalUnidades}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      ...resumenFlotanteMini,
+                      border: `1px solid ${estado.colorBorde}`,
+                      backgroundColor: "rgba(255,255,255,0.55)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        ...resumenFlotanteLabel,
+                        color: estado.colorTexto,
+                      }}
+                    >
+                      30%
+                    </div>
+                    <div
+                      style={{
+                        ...resumenFlotanteValorMoneda,
+                        color: estado.colorTexto,
+                      }}
+                    >
+                      {formatoMoneda(total30)}
                     </div>
                   </div>
 
@@ -2015,7 +2054,7 @@ const botonToggleResumen = {
 
 const resumenFlotanteFila = {
   display: "grid",
-  gridTemplateColumns: "1fr 1fr 1.2fr",
+  gridTemplateColumns: "1fr 1fr 1fr 1fr",
   gap: "10px",
   marginTop: "10px",
   marginBottom: "10px",
@@ -2080,6 +2119,7 @@ const botonResumenFlotanteAccion = {
 
 const botonResumenFlotanteSecundario = {
   padding: "12px 14px",
+  borderRadius: "14px",
   border: "1px solid rgba(255,255,255,0.18)",
   backgroundColor: "rgba(255,255,255,0.28)",
   color: "#7c2d12",
