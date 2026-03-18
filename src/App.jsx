@@ -2080,7 +2080,6 @@ const botonResumenFlotanteAccion = {
 
 const botonResumenFlotanteSecundario = {
   padding: "12px 14px",
-  borderRadius: "14px",
   border: "1px solid rgba(255,255,255,0.18)",
   backgroundColor: "rgba(255,255,255,0.28)",
   color: "#7c2d12",
