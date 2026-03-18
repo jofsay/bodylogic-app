@@ -365,6 +365,17 @@ function App() {
     doc.save("Resumen-Pedido-BodyLogic.pdf");
   };
 
+const irAPedidoActual = () => {
+  const seccion = document.getElementById("pedido-actual");
+  if (seccion) {
+    seccion.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+};
+
+const irArriba = () => {
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
   const imprimirFormulario = () => {
     if (productosSeleccionados.length === 0) {
       alert("Primero captura al menos un producto con unidades mayores a 0.");
@@ -610,7 +621,7 @@ function App() {
           </div>
         </section>
 
-        <section style={pedidoActualPanel}>
+        <section id="pedido-actual" style={pedidoActualPanel}>
           <div style={panelTituloFila}>
             <h2 style={panelTitulo}>Pedido actual</h2>
             <p style={panelSubtitulo}>
@@ -976,6 +987,37 @@ function App() {
           </div>
         </section>
 
+{esMovil && (
+  <div style={resumenFlotante}>
+    <div style={resumenFlotanteFila}>
+      <div style={resumenFlotanteMini}>
+        <div style={resumenFlotanteLabel}>Puntos</div>
+        <div style={resumenFlotanteValor}>{totalPuntos}</div>
+      </div>
+
+      <div style={resumenFlotanteMini}>
+        <div style={resumenFlotanteLabel}>Unidades</div>
+        <div style={resumenFlotanteValor}>{totalUnidades}</div>
+      </div>
+
+      <div style={resumenFlotanteMini}>
+        <div style={resumenFlotanteLabel}>42%</div>
+        <div style={resumenFlotanteValorMoneda}>{formatoMoneda(total42)}</div>
+      </div>
+    </div>
+
+    <div style={resumenFlotanteBotones}>
+      <button onClick={irAPedidoActual} style={botonResumenFlotantePrimario}>
+        Ver pedido
+      </button>
+
+      <button onClick={irArriba} style={botonResumenFlotanteSecundario}>
+        Subir
+      </button>
+    </div>
+  </div>
+)}
+
         <FormularioMembresia />
       </div>
     </div>
@@ -996,6 +1038,7 @@ const pagina = {
   background:
     "radial-gradient(circle at top, rgba(255,237,213,0.92) 0%, rgba(255,247,237,0.90) 16%, #fffaf5 40%, #fffdf9 100%)",
   padding: "28px",
+  paddingBottom: "120px",
   fontFamily: "Arial, sans-serif",
   position: "relative",
   overflow: "hidden",
@@ -1772,6 +1815,81 @@ const linkDocumento = {
   textDecoration: "none",
   fontWeight: "bold",
   display: "inline-block",
+};
+
+const resumenFlotante = {
+  position: "fixed",
+  left: "12px",
+  right: "12px",
+  bottom: "12px",
+  zIndex: 999,
+  background: "rgba(124,45,18,0.96)",
+  color: "#ffffff",
+  borderRadius: "20px",
+  padding: "12px",
+  boxShadow: "0 18px 40px rgba(0,0,0,0.22)",
+  backdropFilter: "blur(10px)",
+  border: "1px solid rgba(255,255,255,0.10)",
+};
+
+const resumenFlotanteFila = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr 1.2fr",
+  gap: "10px",
+  marginBottom: "10px",
+};
+
+const resumenFlotanteMini = {
+  backgroundColor: "rgba(255,255,255,0.10)",
+  border: "1px solid rgba(255,255,255,0.10)",
+  borderRadius: "14px",
+  padding: "10px",
+};
+
+const resumenFlotanteLabel = {
+  fontSize: "11px",
+  color: "rgba(255,255,255,0.78)",
+  marginBottom: "4px",
+};
+
+const resumenFlotanteValor = {
+  fontSize: "20px",
+  fontWeight: "bold",
+  color: "#ffffff",
+};
+
+const resumenFlotanteValorMoneda = {
+  fontSize: "13px",
+  fontWeight: "bold",
+  color: "#ffffff",
+  lineHeight: 1.35,
+};
+
+const resumenFlotanteBotones = {
+  display: "flex",
+  gap: "10px",
+};
+
+const botonResumenFlotantePrimario = {
+  flex: 1,
+  padding: "12px 14px",
+  borderRadius: "14px",
+  border: "1px solid #fdba74",
+  background: "linear-gradient(135deg, #fdba74 0%, #fb923c 100%)",
+  color: "#7c2d12",
+  fontWeight: "bold",
+  cursor: "pointer",
+};
+
+const botonResumenFlotanteSecundario = {
+  flex: 1,
+  padding: "12px 14px",
+  borderRadius: "14px",
+  border: "1px solid rgba(255,255,255,0.18)",
+  backgroundColor: "rgba(255,255,255,0.10)",
+  color: "#ffffff",
+  fontWeight: "bold",
+  cursor: "pointer",
 };
 
 export default App;
