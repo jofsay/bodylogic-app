@@ -136,13 +136,7 @@ function App() {
     const subtotalPuntos = unidades * item.puntos;
     const subtotalPrecioPublico = unidades * item.precioPublico;
     const subtotalValorComisionable = unidades * item.valorComisionable;
-    const subtotalCP10 = unidades * item.precioCP10;
-    const subtotal20 = unidades * item.precio20;
     const subtotal30 = unidades * item.precio30;
-    const subtotal33 = unidades * item.precio33;
-    const subtotal35 = unidades * item.precio35;
-    const subtotal37 = unidades * item.precio37;
-    const subtotal40 = unidades * item.precio40;
     const subtotal42 = unidades * item.precio42;
 
     return {
@@ -151,13 +145,7 @@ function App() {
       subtotalPuntos,
       subtotalPrecioPublico,
       subtotalValorComisionable,
-      subtotalCP10,
-      subtotal20,
       subtotal30,
-      subtotal33,
-      subtotal35,
-      subtotal37,
-      subtotal40,
       subtotal42,
     };
   });
@@ -168,13 +156,7 @@ function App() {
     const subtotalPuntos = unidades * item.puntos;
     const subtotalPrecioPublico = unidades * item.precioPublico;
     const subtotalValorComisionable = unidades * item.valorComisionable;
-    const subtotalCP10 = unidades * item.precioCP10;
-    const subtotal20 = unidades * item.precio20;
     const subtotal30 = unidades * item.precio30;
-    const subtotal33 = unidades * item.precio33;
-    const subtotal35 = unidades * item.precio35;
-    const subtotal37 = unidades * item.precio37;
-    const subtotal40 = unidades * item.precio40;
     const subtotal42 = unidades * item.precio42;
 
     return {
@@ -183,13 +165,7 @@ function App() {
       subtotalPuntos,
       subtotalPrecioPublico,
       subtotalValorComisionable,
-      subtotalCP10,
-      subtotal20,
       subtotal30,
-      subtotal33,
-      subtotal35,
-      subtotal37,
-      subtotal40,
       subtotal42,
     };
   });
@@ -211,13 +187,7 @@ function App() {
     (acc, item) => acc + item.subtotalValorComisionable,
     0
   );
-  const totalCP10 = filasTotales.reduce((acc, item) => acc + item.subtotalCP10, 0);
-  const total20 = filasTotales.reduce((acc, item) => acc + item.subtotal20, 0);
   const total30 = filasTotales.reduce((acc, item) => acc + item.subtotal30, 0);
-  const total33 = filasTotales.reduce((acc, item) => acc + item.subtotal33, 0);
-  const total35 = filasTotales.reduce((acc, item) => acc + item.subtotal35, 0);
-  const total37 = filasTotales.reduce((acc, item) => acc + item.subtotal37, 0);
-  const total40 = filasTotales.reduce((acc, item) => acc + item.subtotal40, 0);
   const total42 = filasTotales.reduce((acc, item) => acc + item.subtotal42, 0);
 
   const obtenerEstadoPuntos = () => {
@@ -321,7 +291,7 @@ function App() {
       String(item.unidades),
       String(item.subtotalPuntos),
       formatoMoneda(item.subtotalPrecioPublico),
-      formatoMoneda(item.subtotalCP10),
+      formatoMoneda(item.subtotalValorComisionable),
       formatoMoneda(item.subtotal30),
       formatoMoneda(item.subtotal42),
     ]);
@@ -333,7 +303,7 @@ function App() {
         "Unidades",
         "Subtotal puntos",
         "Subtotal precio público",
-        "Subtotal 10%",
+        "Subtotal valor comisionable",
         "Subtotal 30%",
         "Subtotal 42%",
       ]],
@@ -352,13 +322,13 @@ function App() {
         valign: "middle",
       },
       columnStyles: {
-        0: { cellWidth: 220 },
-        1: { cellWidth: 65, halign: "center" },
-        2: { cellWidth: 85, halign: "center" },
+        0: { cellWidth: 210 },
+        1: { cellWidth: 60, halign: "center" },
+        2: { cellWidth: 80, halign: "center" },
         3: { cellWidth: 110, halign: "right" },
-        4: { cellWidth: 100, halign: "right" },
-        5: { cellWidth: 100, halign: "right" },
-        6: { cellWidth: 100, halign: "right" },
+        4: { cellWidth: 120, halign: "right" },
+        5: { cellWidth: 90, halign: "right" },
+        6: { cellWidth: 90, halign: "right" },
       },
       alternateRowStyles: {
         fillColor: [255, 250, 245],
@@ -382,10 +352,14 @@ function App() {
       330,
       finalY + 22
     );
-    doc.text(`Total 10%: ${formatoMoneda(totalCP10)}`, 570, finalY + 22);
 
-    doc.text(`Total 30%: ${formatoMoneda(total30)}`, 40, finalY + 44);
-    doc.text(`Total 42%: ${formatoMoneda(total42)}`, 220, finalY + 44);
+    doc.text(
+      `Total valor comisionable: ${formatoMoneda(totalValorComisionable)}`,
+      40,
+      finalY + 44
+    );
+    doc.text(`Total 30%: ${formatoMoneda(total30)}`, 330, finalY + 44);
+    doc.text(`Total 42%: ${formatoMoneda(total42)}`, 540, finalY + 44);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
@@ -413,7 +387,7 @@ function App() {
             <td style="text-align:center;">${item.unidades}</td>
             <td style="text-align:center;">${item.subtotalPuntos}</td>
             <td style="text-align:right;">${formatoMoneda(item.subtotalPrecioPublico)}</td>
-            <td style="text-align:right;">${formatoMoneda(item.subtotalCP10)}</td>
+            <td style="text-align:right;">${formatoMoneda(item.subtotalValorComisionable)}</td>
             <td style="text-align:right;">${formatoMoneda(item.subtotal30)}</td>
             <td style="text-align:right;">${formatoMoneda(item.subtotal42)}</td>
           </tr>
@@ -470,7 +444,7 @@ function App() {
                 <th>Unidades</th>
                 <th>Subtotal puntos</th>
                 <th>Subtotal precio público</th>
-                <th>Subtotal 10%</th>
+                <th>Subtotal valor comisionable</th>
                 <th>Subtotal 30%</th>
                 <th>Subtotal 42%</th>
               </tr>
@@ -484,7 +458,7 @@ function App() {
             <div><strong>Total de unidades:</strong> ${totalUnidades}</div>
             <div><strong>Total de puntos:</strong> ${totalPuntos}</div>
             <div><strong>Total precio público:</strong> ${formatoMoneda(totalPrecioPublico)}</div>
-            <div><strong>Total 10%:</strong> ${formatoMoneda(totalCP10)}</div>
+            <div><strong>Total valor comisionable:</strong> ${formatoMoneda(totalValorComisionable)}</div>
             <div><strong>Total 30%:</strong> ${formatoMoneda(total30)}</div>
             <div><strong>Total 42%:</strong> ${formatoMoneda(total42)}</div>
           </div>
@@ -727,8 +701,8 @@ function App() {
                       valor={formatoMoneda(item.subtotalPrecioPublico)}
                     />
                     <MiniDato
-                      label="10%"
-                      valor={formatoMoneda(item.subtotalCP10)}
+                      label="Comisionable"
+                      valor={formatoMoneda(item.subtotalValorComisionable)}
                     />
                     <MiniDato
                       label="30%"
@@ -744,33 +718,6 @@ function App() {
             </div>
           )}
         </section>
-
-        {esMovil && (
-          <section style={resumenMovilPanel}>
-            <div style={resumenMovilGrid}>
-              <div style={resumenMiniCard}>
-                <div style={resumenMiniLabel}>Unidades</div>
-                <div style={resumenMiniValor}>{totalUnidades}</div>
-              </div>
-              <div style={resumenMiniCard}>
-                <div style={resumenMiniLabel}>Puntos</div>
-                <div style={resumenMiniValor}>{totalPuntos}</div>
-              </div>
-              <div style={resumenMiniCard}>
-                <div style={resumenMiniLabel}>Público</div>
-                <div style={resumenMiniValorPeque}>
-                  {formatoMoneda(totalPrecioPublico)}
-                </div>
-              </div>
-              <div style={resumenMiniCard}>
-                <div style={resumenMiniLabel}>42%</div>
-                <div style={resumenMiniValorPeque}>
-                  {formatoMoneda(total42)}
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
 
         <section style={tablaPanel}>
           <div style={panelTituloFila}>
@@ -840,8 +787,8 @@ function App() {
                         valor={formatoMoneda(item.subtotalPrecioPublico)}
                       />
                       <MiniDato
-                        label="10%"
-                        valor={formatoMoneda(item.subtotalCP10)}
+                        label="Comisionable"
+                        valor={formatoMoneda(item.subtotalValorComisionable)}
                       />
                       <MiniDato
                         label="30%"
@@ -872,20 +819,8 @@ function App() {
                     <th style={estiloTh}>Subtotal precio público</th>
                     <th style={estiloTh}>Valor comisionable</th>
                     <th style={estiloTh}>Subtotal valor comisionable</th>
-                    <th style={estiloTh}>CP -10%</th>
-                    <th style={estiloTh}>Subtotal CP -10%</th>
-                    <th style={estiloTh}>-20%</th>
-                    <th style={estiloTh}>Subtotal -20%</th>
                     <th style={estiloTh}>-30%</th>
                     <th style={estiloTh}>Subtotal -30%</th>
-                    <th style={estiloTh}>-33%</th>
-                    <th style={estiloTh}>Subtotal -33%</th>
-                    <th style={estiloTh}>-35%</th>
-                    <th style={estiloTh}>Subtotal -35%</th>
-                    <th style={estiloTh}>-37%</th>
-                    <th style={estiloTh}>Subtotal -37%</th>
-                    <th style={estiloTh}>-40%</th>
-                    <th style={estiloTh}>Subtotal -40%</th>
                     <th style={estiloTh}>-42%</th>
                     <th style={estiloTh}>Subtotal -42%</th>
                   </tr>
@@ -925,9 +860,7 @@ function App() {
                         </td>
                         <td style={estiloTd}>{item.puntos}</td>
                         <td style={estiloTd}>{item.subtotalPuntos}</td>
-                        <td style={estiloTd}>
-                          {formatoMoneda(item.precioPublico)}
-                        </td>
+                        <td style={estiloTd}>{formatoMoneda(item.precioPublico)}</td>
                         <td style={estiloTd}>
                           {formatoMoneda(item.subtotalPrecioPublico)}
                         </td>
@@ -937,22 +870,8 @@ function App() {
                         <td style={estiloTd}>
                           {formatoMoneda(item.subtotalValorComisionable)}
                         </td>
-                        <td style={estiloTd}>{formatoMoneda(item.precioCP10)}</td>
-                        <td style={estiloTd}>
-                          {formatoMoneda(item.subtotalCP10)}
-                        </td>
-                        <td style={estiloTd}>{formatoMoneda(item.precio20)}</td>
-                        <td style={estiloTd}>{formatoMoneda(item.subtotal20)}</td>
                         <td style={estiloTd}>{formatoMoneda(item.precio30)}</td>
                         <td style={estiloTd}>{formatoMoneda(item.subtotal30)}</td>
-                        <td style={estiloTd}>{formatoMoneda(item.precio33)}</td>
-                        <td style={estiloTd}>{formatoMoneda(item.subtotal33)}</td>
-                        <td style={estiloTd}>{formatoMoneda(item.precio35)}</td>
-                        <td style={estiloTd}>{formatoMoneda(item.subtotal35)}</td>
-                        <td style={estiloTd}>{formatoMoneda(item.precio37)}</td>
-                        <td style={estiloTd}>{formatoMoneda(item.subtotal37)}</td>
-                        <td style={estiloTd}>{formatoMoneda(item.precio40)}</td>
-                        <td style={estiloTd}>{formatoMoneda(item.subtotal40)}</td>
                         <td style={estiloTd}>{formatoMoneda(item.precio42)}</td>
                         <td style={estiloTd}>{formatoMoneda(item.subtotal42)}</td>
                       </tr>
@@ -992,31 +911,7 @@ function App() {
                     </td>
                     <td style={estiloTdTotal}></td>
                     <td style={estiloTdTotal}>
-                      <strong>{formatoMoneda(totalCP10)}</strong>
-                    </td>
-                    <td style={estiloTdTotal}></td>
-                    <td style={estiloTdTotal}>
-                      <strong>{formatoMoneda(total20)}</strong>
-                    </td>
-                    <td style={estiloTdTotal}></td>
-                    <td style={estiloTdTotal}>
                       <strong>{formatoMoneda(total30)}</strong>
-                    </td>
-                    <td style={estiloTdTotal}></td>
-                    <td style={estiloTdTotal}>
-                      <strong>{formatoMoneda(total33)}</strong>
-                    </td>
-                    <td style={estiloTdTotal}></td>
-                    <td style={estiloTdTotal}>
-                      <strong>{formatoMoneda(total35)}</strong>
-                    </td>
-                    <td style={estiloTdTotal}></td>
-                    <td style={estiloTdTotal}>
-                      <strong>{formatoMoneda(total37)}</strong>
-                    </td>
-                    <td style={estiloTdTotal}></td>
-                    <td style={estiloTdTotal}>
-                      <strong>{formatoMoneda(total40)}</strong>
                     </td>
                     <td style={estiloTdTotal}></td>
                     <td style={estiloTdTotal}>
@@ -1139,30 +1034,24 @@ function App() {
               boxShadow: `0 18px 40px rgba(0,0,0,0.18)`,
             }}
           >
-            <div style={resumenHeaderContraible}>
-              <div style={resumenHeaderMiniDatos}>
-                <div style={resumenHeaderDato}>
-                  <span
-                    style={{ ...resumenHeaderLabel, color: estado.colorTexto }}
-                  >
+            <div style={resumenVisibleSiempre}>
+              <div style={resumenVisibleMiniDatos}>
+                <div style={resumenVisibleDato}>
+                  <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
                     Puntos
                   </span>
-                  <span
-                    style={{ ...resumenHeaderValor, color: estado.colorTexto }}
-                  >
+                  <span style={{ ...resumenVisibleValor, color: estado.colorTexto }}>
                     {totalPuntos}
                   </span>
                 </div>
 
-                <div style={resumenHeaderDato}>
-                  <span
-                    style={{ ...resumenHeaderLabel, color: estado.colorTexto }}
-                  >
+                <div style={resumenVisibleDato}>
+                  <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
                     42%
                   </span>
                   <span
                     style={{
-                      ...resumenHeaderValorMoneda,
+                      ...resumenVisibleValorMoneda,
                       color: estado.colorTexto,
                     }}
                   >
@@ -1173,9 +1062,9 @@ function App() {
 
               <button
                 onClick={() => setResumenContraido(!resumenContraido)}
-                style={botonContraerResumen}
+                style={botonToggleResumen}
               >
-                {resumenContraido ? "Abrir" : "Ocultar"}
+                {resumenContraido ? "▼ Mostrar" : "▲ Ocultar"}
               </button>
             </div>
 
@@ -1318,7 +1207,7 @@ const pagina = {
   background:
     "radial-gradient(circle at top, rgba(255,237,213,0.92) 0%, rgba(255,247,237,0.90) 16%, #fffaf5 40%, #fffdf9 100%)",
   padding: "28px",
-  paddingBottom: "140px",
+  paddingBottom: "150px",
   fontFamily: "Arial, sans-serif",
   position: "relative",
   overflow: "hidden",
@@ -1701,47 +1590,6 @@ const pedidoTotalesGrid = {
   gap: "10px",
 };
 
-const resumenMovilPanel = {
-  backgroundColor: "rgba(255,255,255,0.95)",
-  borderRadius: "24px",
-  padding: "16px",
-  boxShadow: "0 12px 30px rgba(124,45,18,0.08)",
-  border: "1px solid #fde4d3",
-  marginBottom: "20px",
-};
-
-const resumenMovilGrid = {
-  display: "grid",
-  gridTemplateColumns: "1fr 1fr",
-  gap: "10px",
-};
-
-const resumenMiniCard = {
-  background: "linear-gradient(180deg, #fffaf5 0%, #fff4ea 100%)",
-  border: "1px solid #fde2cc",
-  borderRadius: "16px",
-  padding: "12px",
-};
-
-const resumenMiniLabel = {
-  fontSize: "12px",
-  color: "#7c6f64",
-  marginBottom: "6px",
-};
-
-const resumenMiniValor = {
-  fontSize: "22px",
-  fontWeight: "bold",
-  color: "#7c2d12",
-};
-
-const resumenMiniValorPeque = {
-  fontSize: "14px",
-  fontWeight: "bold",
-  color: "#7c2d12",
-  lineHeight: 1.4,
-};
-
 const tablaPanel = {
   backgroundColor: "rgba(255,255,255,0.95)",
   borderRadius: "28px",
@@ -1877,7 +1725,7 @@ const tabla = {
   width: "100%",
   borderCollapse: "separate",
   borderSpacing: 0,
-  minWidth: "3200px",
+  minWidth: "2400px",
   backgroundColor: "#ffffff",
 };
 
@@ -2119,49 +1967,50 @@ const resumenFlotante = {
   backdropFilter: "blur(10px)",
 };
 
-const resumenHeaderContraible = {
+const resumenVisibleSiempre = {
   display: "flex",
-  alignItems: "center",
   justifyContent: "space-between",
-  gap: "10px",
+  alignItems: "center",
+  gap: "12px",
 };
 
-const resumenHeaderMiniDatos = {
+const resumenVisibleMiniDatos = {
   display: "flex",
   gap: "14px",
   alignItems: "center",
   flexWrap: "wrap",
 };
 
-const resumenHeaderDato = {
+const resumenVisibleDato = {
   display: "flex",
   flexDirection: "column",
 };
 
-const resumenHeaderLabel = {
+const resumenVisibleLabel = {
   fontSize: "11px",
   marginBottom: "2px",
 };
 
-const resumenHeaderValor = {
+const resumenVisibleValor = {
   fontSize: "18px",
   fontWeight: "bold",
 };
 
-const resumenHeaderValorMoneda = {
+const resumenVisibleValorMoneda = {
   fontSize: "13px",
   fontWeight: "bold",
 };
 
-const botonContraerResumen = {
-  padding: "10px 14px",
+const botonToggleResumen = {
+  padding: "12px 14px",
   borderRadius: "12px",
   border: "1px solid rgba(255,255,255,0.18)",
-  backgroundColor: "rgba(255,255,255,0.55)",
+  backgroundColor: "rgba(255,255,255,0.68)",
   color: "#7c2d12",
   fontWeight: "bold",
   cursor: "pointer",
   whiteSpace: "nowrap",
+  fontSize: "14px",
 };
 
 const resumenFlotanteFila = {
