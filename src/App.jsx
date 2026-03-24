@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import FormularioMembresia from "./components/FormularioMembresia";
 import { productos } from "./data/productos";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -51,7 +50,7 @@ function App() {
     {
       nombre: "Solicitud de Membresía",
       archivo: "SOLICITUD-DE-MEMBRESIA.pdf",
-      descripcion: "Formato oficial para alta de nuevos asociados.",
+      descripcion: "Formato oficial editable para alta de nuevos asociados.",
     },
   ];
 
@@ -997,6 +996,8 @@ function App() {
           <div style={listaDocs}>
             {documentos.map((doc) => {
               const ruta = `/archivos/${doc.archivo}`;
+              const esMembresia = doc.archivo === "SOLICITUD-DE-MEMBRESIA.pdf";
+
               return (
                 <div key={doc.archivo} style={docCard}>
                   <div>
@@ -1012,7 +1013,7 @@ function App() {
                       rel="noreferrer"
                       style={linkDocumento}
                     >
-                      Abrir PDF
+                      {esMembresia ? "Abrir y rellenar" : "Abrir PDF"}
                     </a>
 
                     <a href={ruta} download style={linkDocumento}>
@@ -1225,8 +1226,6 @@ function App() {
             )}
           </div>
         )}
-
-        <FormularioMembresia />
       </div>
     </div>
   );
