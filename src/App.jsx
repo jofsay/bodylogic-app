@@ -15,6 +15,7 @@ function App() {
     window.innerWidth <= 768 ? "cards" : "tabla"
   );
   const [resumenContraido, setResumenContraido] = useState(false);
+  const [descargandoArchivo, setDescargandoArchivo] = useState("");
 
   useEffect(() => {
     const manejarResize = () => {
@@ -36,23 +37,63 @@ function App() {
       nombre: "Catálogo Bodylogic 2026",
       archivo: "CATALOGO-BODYLOGIC-2026.pdf",
       descripcion: "Consulta visual del catálogo general.",
+      tipo: "normal",
     },
     {
       nombre: "Lista de Precios CP Marzo 26",
       archivo: "LISTA-PRECIOS-CP-MARZO-26.pdf",
       descripcion: "Precios para Cliente Preferente.",
+      tipo: "normal",
     },
     {
       nombre: "Lista de Precios DI Marzo 26",
       archivo: "LISTA-PRECIOS-DI-MARZO-26.pdf",
       descripcion: "Precios para Distribuidor Independiente.",
+      tipo: "normal",
     },
     {
       nombre: "Solicitud de Membresía",
       archivo: "SOLICITUD-DE-MEMBRESIA.pdf",
       descripcion: "Formato oficial editable para alta de nuevos asociados.",
+      tipo: "membresia",
     },
   ];
+
+  const descargarArchivoRobusto = async (archivo, nombreVisible) => {
+    const ruta = `/archivos/${archivo}`;
+    setDescargandoArchivo(archivo);
+
+    try {
+      const respuesta = await fetch(ruta, { cache: "no-store" });
+
+      if (!respuesta.ok) {
+        throw new Error(`No se pudo descargar el archivo: ${respuesta.status}`);
+      }
+
+      const blob = await respuesta.blob();
+      const urlBlob = window.URL.createObjectURL(blob);
+
+      const enlace = document.createElement("a");
+      enlace.href = urlBlob;
+      enlace.download = archivo;
+      enlace.style.display = "none";
+      document.body.appendChild(enlace);
+      enlace.click();
+      document.body.removeChild(enlace);
+
+      setTimeout(() => {
+        window.URL.revokeObjectURL(urlBlob);
+      }, 1500);
+    } catch (error) {
+      console.error("Error al descargar archivo:", error);
+      alert(
+        `No se pudo descargar automáticamente "${nombreVisible}". Se intentará abrir el archivo directamente.`
+      );
+      window.open(ruta, "_blank", "noopener,noreferrer");
+    } finally {
+      setDescargandoArchivo("");
+    }
+  };
 
   const cambiarCantidad = (codigo, valor) => {
     const numero = Number(valor);
@@ -987,16 +1028,15 @@ function App() {
             <div>
               <h2 style={panelTitulo}>Documentos importantes</h2>
               <p style={panelSubtitulo}>
-                Consulta, abre o descarga los archivos oficiales desde la misma
-                plataforma.
+                Descarga los archivos oficiales desde la misma plataforma.
               </p>
             </div>
           </div>
 
           <div style={listaDocs}>
             {documentos.map((doc) => {
-              const ruta = `/archivos/${doc.archivo}`;
-              const esMembresia = doc.archivo === "SOLICITUD-DE-MEMBRESIA.pdf";
+              const esMembresia = doc.tipo === "membresia";
+              const estaDescargando = descargandoArchivo === doc.archivo;
 
               return (
                 <div key={doc.archivo} style={docCard}>
@@ -1007,18 +1047,19 @@ function App() {
                   </div>
 
                   <div style={accionesDoc}>
-                    <a
-                      href={ruta}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={linkDocumento}
+                    <button
+                      onClick={() =>
+                        descargarArchivoRobusto(doc.archivo, doc.nombre)
+                      }
+                      style={botonDocumento}
+                      disabled={estaDescargando}
                     >
-                      {esMembresia ? "Abrir y rellenar" : "Abrir PDF"}
-                    </a>
-
-                    <a href={ruta} download style={linkDocumento}>
-                      Descargar
-                    </a>
+                      {estaDescargando
+                        ? "Descargando..."
+                        : esMembresia
+                          ? "Descargar y rellenar"
+                          : "Descargar PDF"}
+                    </button>
                   </div>
                 </div>
               );
@@ -1980,17 +2021,6 @@ const botonDocumento = {
   color: "#7c2d12",
   cursor: "pointer",
   fontWeight: "bold",
-};
-
-const linkDocumento = {
-  padding: "10px 14px",
-  borderRadius: "12px",
-  border: "1px solid #fde2cc",
-  backgroundColor: "#ffffff",
-  color: "#7c2d12",
-  textDecoration: "none",
-  fontWeight: "bold",
-  display: "inline-block",
 };
 
 const resumenFlotante = {
