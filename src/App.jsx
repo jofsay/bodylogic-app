@@ -15,7 +15,10 @@ function App() {
   );
   const [resumenContraido, setResumenContraido] = useState(false);
   const [descargandoArchivo, setDescargandoArchivo] = useState("");
-  const [descuentoRecompraActual, setDescuentoRecompraActual] = useState(30);
+
+  const [programaRecompra, setProgramaRecompra] = useState("lealtad");
+  const [mesLealtad, setMesLealtad] = useState(1);
+  const [dentroPrimeros15, setDentroPrimeros15] = useState(true);
 
   useEffect(() => {
     const manejarResize = () => {
@@ -338,7 +341,7 @@ function App() {
         colorTexto: "#3f6212",
         colorBorde: "#84cc16",
         colorSemaforo: "#65a30d",
-        siguienteMensaje: "¡Felicidades, ya cubriste los puntos para el paquete más alto de compra inicial!",
+        siguienteMensaje: "Ya estás en el paquete más alto de compra inicial.",
       };
     }
 
@@ -354,8 +357,19 @@ function App() {
     };
   };
 
-  const totalSegunDescuentoRecompra = (() => {
-    switch (descuentoRecompraActual) {
+  const obtenerDescuentoLealtad = (mes) => {
+    if (mes <= 1) return 30;
+    if (mes <= 3) return 33;
+    if (mes <= 5) return 35;
+    if (mes <= 11) return 37;
+    if (mes <= 17) return 40;
+    return 42;
+  };
+
+  const descuentoLealtadActual = obtenerDescuentoLealtad(mesLealtad);
+
+  const totalSegunDescuentoLealtad = (() => {
+    switch (descuentoLealtadActual) {
       case 30:
         return total30;
       case 33:
@@ -373,88 +387,112 @@ function App() {
     }
   })();
 
-  const obtenerMensajeRecompra = () => {
-    const faltan100 = Math.max(100 - totalPuntos, 0);
-    const faltan200 = Math.max(200 - totalPuntos, 0);
-
-    const mensaje100 =
-      totalPuntos >= 100
-        ? "¡Felicidades, has cubierto tu calificación de 100 puntos y tienes derecho a recibir comisiones!"
-        : `Te faltan ${faltan100} puntos para calificar y tener derecho a recibir comisiones.`;
-
-    const usa42 = descuentoRecompraActual === 42;
-
-    let mensaje200 = "";
-    if (usa42) {
-      mensaje200 =
-        totalPuntos >= 200
-          ? "¡Felicidades, has cubierto tu calificación de 200 puntos y mantienes el descuento del 42%!"
-          : `Te faltan ${faltan200} puntos para mantener el 42% de descuento.`;
-    }
-
-    if (totalPuntos < 100) {
+  const obtenerSiguienteEscalonLealtad = (mes) => {
+    if (mes < 2) {
       return {
-        texto: mensaje100,
+        etiqueta: "33%",
+        mesesFaltantes: 2 - mes,
+      };
+    }
+    if (mes < 4) {
+      return {
+        etiqueta: "35%",
+        mesesFaltantes: 4 - mes,
+      };
+    }
+    if (mes < 6) {
+      return {
+        etiqueta: "37%",
+        mesesFaltantes: 6 - mes,
+      };
+    }
+    if (mes < 12) {
+      return {
+        etiqueta: "40%",
+        mesesFaltantes: 12 - mes,
+      };
+    }
+    if (mes < 18) {
+      return {
+        etiqueta: "42%",
+        mesesFaltantes: 18 - mes,
+      };
+    }
+    return null;
+  };
+
+  const siguienteEscalonLealtad = obtenerSiguienteEscalonLealtad(mesLealtad);
+
+  const obtenerMensajeLealtad = () => {
+    const califica100 = totalPuntos >= 100;
+
+    if (!dentroPrimeros15) {
+      return {
+        texto: "Esta compra no sostiene tu avance en el programa de lealtad y reinicia tu secuencia.",
         colorFondo: "#fee2e2",
         colorTexto: "#991b1b",
         colorBorde: "#ef4444",
         colorSemaforo: "#dc2626",
-        mensaje100,
-        mensaje200,
-        califica100: false,
-        califica200: totalPuntos >= 200,
-        usa42,
+        mensajePrincipal:
+          "Esta compra no sostiene tu avance en el programa de lealtad y reinicia tu secuencia.",
+        mensajeSecundario:
+          totalPuntos >= 100
+            ? "Aunque cubriste 100 puntos, al no comprar dentro de los primeros 15 días no conservas continuidad."
+            : `Además, te faltan ${100 - totalPuntos} puntos para cubrir tu calificación de 100 puntos.`,
+        califica100,
+        continuidad: false,
       };
     }
 
-    if (usa42) {
-      if (totalPuntos < 200) {
-        return {
-          texto: mensaje100,
-          colorFondo: "#fef3c7",
-          colorTexto: "#92400e",
-          colorBorde: "#f59e0b",
-          colorSemaforo: "#d97706",
-          mensaje100,
-          mensaje200,
-          califica100: true,
-          califica200: false,
-          usa42,
-        };
-      }
-
+    if (!califica100) {
       return {
-        texto: mensaje200,
+        texto: `Te faltan ${100 - totalPuntos} puntos para cubrir tu calificación de 100 puntos.`,
+        colorFondo: "#fee2e2",
+        colorTexto: "#991b1b",
+        colorBorde: "#ef4444",
+        colorSemaforo: "#dc2626",
+        mensajePrincipal: `Te faltan ${100 - totalPuntos} puntos para cubrir tu calificación de 100 puntos.`,
+        mensajeSecundario:
+          "Necesitas mínimo 100 puntos personales en los primeros 15 días para sostener tu avance en Lealtad.",
+        califica100: false,
+        continuidad: false,
+      };
+    }
+
+    if (siguienteEscalonLealtad) {
+      const plural = siguienteEscalonLealtad.mesesFaltantes === 1 ? "mes" : "meses";
+      return {
+        texto: `¡Felicidades! Ya sostienes tu mes ${mesLealtad} en Lealtad con ${descuentoLealtadActual}% de descuento.`,
         colorFondo: "#ecfccb",
         colorTexto: "#3f6212",
         colorBorde: "#84cc16",
         colorSemaforo: "#65a30d",
-        mensaje100,
-        mensaje200,
+        mensajePrincipal: `¡Felicidades! Ya sostienes tu calificación de 100 puntos dentro del Programa de Lealtad.`,
+        mensajeSecundario: `Te faltan ${siguienteEscalonLealtad.mesesFaltantes} ${plural} consecutivos para llegar al ${siguienteEscalonLealtad.etiqueta}.`,
         califica100: true,
-        califica200: true,
-        usa42,
+        continuidad: true,
       };
     }
 
     return {
-      texto: mensaje100,
+      texto: `¡Felicidades! Ya estás en el tramo máximo del Programa de Lealtad con ${descuentoLealtadActual}% de descuento.`,
       colorFondo: "#ecfccb",
       colorTexto: "#3f6212",
       colorBorde: "#84cc16",
       colorSemaforo: "#65a30d",
-      mensaje100,
-      mensaje200,
+      mensajePrincipal:
+        "¡Felicidades! Ya sostienes tu calificación de 100 puntos dentro del Programa de Lealtad.",
+      mensajeSecundario:
+        "Ya te encuentras en el tramo más alto del Programa de Lealtad.",
       califica100: true,
-      califica200: false,
-      usa42,
+      continuidad: true,
     };
   };
 
   const estado =
     modo === "compraInicial"
       ? obtenerMensajeCompraInicial()
-      : obtenerMensajeRecompra();
+      : obtenerMensajeLealtad();
 
   const formatoMoneda = (numero) => {
     return Number(numero || 0).toLocaleString("es-MX", {
@@ -477,7 +515,7 @@ function App() {
       }
     }
 
-    switch (descuentoRecompraActual) {
+    switch (descuentoLealtadActual) {
       case 30:
         return item.subtotal30;
       case 33:
@@ -523,7 +561,7 @@ function App() {
     const textoModo =
       modo === "compraInicial"
         ? `Compra inicial | ${paqueteActual.nombre} | ${paqueteActual.descuento}%`
-        : `Recompra mensual | Descuento vigente: ${descuentoRecompraActual}%`;
+        : `Recompra mensual | Programa de Lealtad | Mes ${mesLealtad} | ${descuentoLealtadActual}%`;
 
     doc.text(textoModo, 40, 60);
 
@@ -549,7 +587,7 @@ function App() {
         "Subtotal puntos",
         "Subtotal precio público",
         "Subtotal valor comisionable",
-        `Subtotal ${modo === "compraInicial" ? paqueteActual.descuento : descuentoRecompraActual}%`,
+        `Subtotal ${modo === "compraInicial" ? paqueteActual.descuento : descuentoLealtadActual}%`,
       ]],
       body,
       theme: "grid",
@@ -597,7 +635,7 @@ function App() {
       `Total con descuento: ${formatoMoneda(
         modo === "compraInicial"
           ? paqueteActual.totalConDescuento
-          : totalSegunDescuentoRecompra
+          : totalSegunDescuentoLealtad
       )}`,
       330,
       finalY + 44
@@ -668,7 +706,7 @@ function App() {
               ${
                 modo === "compraInicial"
                   ? `Compra inicial | ${paqueteActual.nombre} | ${paqueteActual.descuento}%`
-                  : `Recompra mensual | Descuento vigente: ${descuentoRecompraActual}%`
+                  : `Recompra mensual | Programa de Lealtad | Mes ${mesLealtad} | ${descuentoLealtadActual}%`
               }
             </div>
           </div>
@@ -702,7 +740,7 @@ function App() {
             <div><strong>Total con descuento:</strong> ${formatoMoneda(
               modo === "compraInicial"
                 ? paqueteActual.totalConDescuento
-                : totalSegunDescuentoRecompra
+                : totalSegunDescuentoLealtad
             )}</div>
           </div>
 
@@ -814,23 +852,47 @@ function App() {
                 </div>
               </div>
             ) : (
-              <div style={controlCard}>
-                <label style={labelControl}>Descuento actual en recompra</label>
-                <select
-                  value={descuentoRecompraActual}
-                  onChange={(e) =>
-                    setDescuentoRecompraActual(Number(e.target.value))
-                  }
-                  style={selectEstilo}
-                >
-                  <option value={30}>30%</option>
-                  <option value={33}>33%</option>
-                  <option value={35}>35%</option>
-                  <option value={37}>37%</option>
-                  <option value={40}>40%</option>
-                  <option value={42}>42%</option>
-                </select>
-              </div>
+              <>
+                <div style={controlCard}>
+                  <label style={labelControl}>Programa de recompra</label>
+                  <select
+                    value={programaRecompra}
+                    onChange={(e) => setProgramaRecompra(e.target.value)}
+                    style={selectEstilo}
+                  >
+                    <option value="lealtad">Programa de Lealtad</option>
+                  </select>
+                </div>
+
+                <div style={controlCard}>
+                  <label style={labelControl}>Mes actual del programa</label>
+                  <select
+                    value={mesLealtad}
+                    onChange={(e) => setMesLealtad(Number(e.target.value))}
+                    style={selectEstilo}
+                  >
+                    {Array.from({ length: 18 }, (_, i) => i + 1).map((mes) => (
+                      <option key={mes} value={mes}>
+                        {mes === 18 ? "Mes 18 o más" : `Mes ${mes}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={controlCard}>
+                  <label style={labelControl}>
+                    ¿Compras dentro de los primeros 15 días?
+                  </label>
+                  <select
+                    value={dentroPrimeros15 ? "si" : "no"}
+                    onChange={(e) => setDentroPrimeros15(e.target.value === "si")}
+                    style={selectEstilo}
+                  >
+                    <option value="si">Sí</option>
+                    <option value="no">No</option>
+                  </select>
+                </div>
+              </>
             )}
           </div>
 
@@ -952,7 +1014,7 @@ function App() {
                       label={`Con ${
                         modo === "compraInicial"
                           ? paqueteActual.descuento
-                          : descuentoRecompraActual
+                          : descuentoLealtadActual
                       }%`}
                       valor={formatoMoneda(obtenerTotalPedidoActual(item))}
                     />
@@ -1452,10 +1514,24 @@ function App() {
                   <div style={resumenVisibleMiniDatos}>
                     <div style={resumenVisibleDato}>
                       <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
-                        Puntos
+                        Programa
+                      </span>
+                      <span
+                        style={{
+                          ...resumenVisibleValorMoneda,
+                          color: estado.colorTexto,
+                        }}
+                      >
+                        Lealtad
+                      </span>
+                    </div>
+
+                    <div style={resumenVisibleDato}>
+                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
+                        Mes
                       </span>
                       <span style={{ ...resumenVisibleValor, color: estado.colorTexto }}>
-                        {totalPuntos}
+                        {mesLealtad}
                       </span>
                     </div>
 
@@ -1469,21 +1545,7 @@ function App() {
                           color: estado.colorTexto,
                         }}
                       >
-                        {descuentoRecompraActual}%
-                      </span>
-                    </div>
-
-                    <div style={resumenVisibleDato}>
-                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
-                        Público
-                      </span>
-                      <span
-                        style={{
-                          ...resumenVisibleValorMoneda,
-                          color: estado.colorTexto,
-                        }}
-                      >
-                        {formatoMoneda(totalPrecioPublico)}
+                        {descuentoLealtadActual}%
                       </span>
                     </div>
                   </div>
@@ -1505,7 +1567,9 @@ function App() {
                           color: estado.colorTexto,
                         }}
                       >
-                        {estado.califica100 ? "Ya calificas" : "Aún no calificas"}
+                        {estado.continuidad
+                          ? "Lealtad sostenida"
+                          : "Secuencia comprometida"}
                       </div>
                       <div
                         style={{
@@ -1513,7 +1577,7 @@ function App() {
                           color: estado.colorTexto,
                         }}
                       >
-                        Descuento actual: {descuentoRecompraActual}%
+                        Descuento actual: {descuentoLealtadActual}%
                       </div>
                     </div>
 
@@ -1531,7 +1595,7 @@ function App() {
                             color: estado.colorTexto,
                           }}
                         >
-                          Puntos
+                          Puntos personales
                         </div>
                         <div
                           style={{
@@ -1581,7 +1645,7 @@ function App() {
                             color: estado.colorTexto,
                           }}
                         >
-                          Total con {descuentoRecompraActual}%
+                          Total con {descuentoLealtadActual}%
                         </div>
                         <div
                           style={{
@@ -1589,20 +1653,24 @@ function App() {
                             color: estado.colorTexto,
                           }}
                         >
-                          {formatoMoneda(totalSegunDescuentoRecompra)}
+                          {formatoMoneda(totalSegunDescuentoLealtad)}
                         </div>
                       </div>
                     </div>
 
                     <div style={resumenFlotanteMensaje}>
                       <div style={{ color: estado.colorTexto, fontWeight: "bold" }}>
-                        {estado.mensaje100}
+                        {estado.mensajePrincipal}
                       </div>
-                      {estado.usa42 && (
-                        <div style={{ color: estado.colorTexto, fontWeight: "bold", marginTop: "8px" }}>
-                          {estado.mensaje200}
-                        </div>
-                      )}
+                      <div
+                        style={{
+                          color: estado.colorTexto,
+                          fontWeight: "bold",
+                          marginTop: "8px",
+                        }}
+                      >
+                        {estado.mensajeSecundario}
+                      </div>
                     </div>
 
                     <div style={resumenFlotanteBotonesGrid}>
