@@ -15,6 +15,7 @@ function App() {
   );
   const [resumenContraido, setResumenContraido] = useState(false);
   const [descargandoArchivo, setDescargandoArchivo] = useState("");
+  const [descuentoRecompraActual, setDescuentoRecompraActual] = useState(30);
 
   useEffect(() => {
     const manejarResize = () => {
@@ -177,6 +178,9 @@ function App() {
     const subtotalValorComisionable = unidades * item.valorComisionable;
     const subtotal30 = unidades * item.precio30;
     const subtotal33 = unidades * item.precio33;
+    const subtotal35 = unidades * item.precio35;
+    const subtotal37 = unidades * item.precio37;
+    const subtotal40 = unidades * item.precio40;
     const subtotal42 = unidades * item.precio42;
 
     return {
@@ -187,6 +191,9 @@ function App() {
       subtotalValorComisionable,
       subtotal30,
       subtotal33,
+      subtotal35,
+      subtotal37,
+      subtotal40,
       subtotal42,
     };
   });
@@ -199,6 +206,9 @@ function App() {
     const subtotalValorComisionable = unidades * item.valorComisionable;
     const subtotal30 = unidades * item.precio30;
     const subtotal33 = unidades * item.precio33;
+    const subtotal35 = unidades * item.precio35;
+    const subtotal37 = unidades * item.precio37;
+    const subtotal40 = unidades * item.precio40;
     const subtotal42 = unidades * item.precio42;
 
     return {
@@ -209,6 +219,9 @@ function App() {
       subtotalValorComisionable,
       subtotal30,
       subtotal33,
+      subtotal35,
+      subtotal37,
+      subtotal40,
       subtotal42,
     };
   });
@@ -232,6 +245,9 @@ function App() {
   );
   const total30 = filasTotales.reduce((acc, item) => acc + item.subtotal30, 0);
   const total33 = filasTotales.reduce((acc, item) => acc + item.subtotal33, 0);
+  const total35 = filasTotales.reduce((acc, item) => acc + item.subtotal35, 0);
+  const total37 = filasTotales.reduce((acc, item) => acc + item.subtotal37, 0);
+  const total40 = filasTotales.reduce((acc, item) => acc + item.subtotal40, 0);
   const total42 = filasTotales.reduce((acc, item) => acc + item.subtotal42, 0);
 
   const obtenerPaqueteCompraInicial = (puntos) => {
@@ -338,46 +354,112 @@ function App() {
     };
   };
 
-  const obtenerEstadoRecompra = () => {
+  const totalSegunDescuentoRecompra = (() => {
+    switch (descuentoRecompraActual) {
+      case 30:
+        return total30;
+      case 33:
+        return total33;
+      case 35:
+        return total35;
+      case 37:
+        return total37;
+      case 40:
+        return total40;
+      case 42:
+        return total42;
+      default:
+        return total30;
+    }
+  })();
+
+  const obtenerMensajeRecompra = () => {
+    const faltan100 = Math.max(100 - totalPuntos, 0);
+    const faltan200 = Math.max(200 - totalPuntos, 0);
+
     if (totalPuntos < 100) {
       return {
-        texto: "Esta recompra aún no te califica para recibir comisiones. Necesitas mínimo 100 puntos para calificar.",
+        texto: `Aún no calificas para comisiones. Te faltan ${faltan100} puntos para llegar a 100, y ${faltan200} puntos para llegar a 200.`,
         colorFondo: "#fee2e2",
         colorTexto: "#991b1b",
         colorBorde: "#ef4444",
         colorSemaforo: "#dc2626",
+        mensaje100: `Te faltan ${faltan100} puntos para calificar con 100 puntos y tener derecho a comisiones.`,
+        mensaje200: `Te faltan ${faltan200} puntos para llegar a 200 puntos.`,
+        califica100: false,
+        califica200: false,
       };
     }
 
     if (totalPuntos >= 100 && totalPuntos < 200) {
       return {
-        texto: "Esta recompra te califica para recibir comisiones, pero todavía no logras el 42% de descuento.",
+        texto: `Ya calificas con 100 puntos para comisiones. Te faltan ${faltan200} puntos para llegar a 200.`,
         colorFondo: "#fef3c7",
         colorTexto: "#92400e",
         colorBorde: "#f59e0b",
         colorSemaforo: "#d97706",
+        mensaje100: "Ya calificas con 100 puntos para recibir comisiones.",
+        mensaje200: `Te faltan ${faltan200} puntos para llegar a 200 puntos.`,
+        califica100: true,
+        califica200: false,
       };
     }
 
     return {
-      texto: "Esta recompra te califica para recibir comisiones y te permite mantener el 42% de descuento en recompras durante este mes. ¡MUCHAS FELICIDADES!",
+      texto: "Ya calificas con 100 puntos para comisiones y también alcanzas 200 puntos.",
       colorFondo: "#ecfccb",
       colorTexto: "#3f6212",
       colorBorde: "#84cc16",
       colorSemaforo: "#65a30d",
+      mensaje100: "Ya calificas con 100 puntos para recibir comisiones.",
+      mensaje200: "Ya alcanzaste 200 puntos.",
+      califica100: true,
+      califica200: true,
     };
   };
 
   const estado =
     modo === "compraInicial"
       ? obtenerMensajeCompraInicial()
-      : obtenerEstadoRecompra();
+      : obtenerMensajeRecompra();
 
   const formatoMoneda = (numero) => {
     return Number(numero || 0).toLocaleString("es-MX", {
       style: "currency",
       currency: "MXN",
     });
+  };
+
+  const obtenerTotalPedidoActual = (item) => {
+    if (modo === "compraInicial") {
+      switch (paqueteActual.descuento) {
+        case 30:
+          return item.subtotal30;
+        case 33:
+          return item.subtotal33;
+        case 42:
+          return item.subtotal42;
+        default:
+          return 0;
+      }
+    }
+
+    switch (descuentoRecompraActual) {
+      case 30:
+        return item.subtotal30;
+      case 33:
+        return item.subtotal33;
+      case 35:
+        return item.subtotal35;
+      case 37:
+        return item.subtotal37;
+      case 40:
+        return item.subtotal40;
+      case 42:
+        return item.subtotal42;
+      default:
+        return item.subtotal30;
+    }
   };
 
   const descargarPDFPedido = () => {
@@ -408,7 +490,7 @@ function App() {
     const textoModo =
       modo === "compraInicial"
         ? `Compra inicial | ${paqueteActual.nombre} | ${paqueteActual.descuento}%`
-        : "Recompra mensual";
+        : `Recompra mensual | Descuento vigente: ${descuentoRecompraActual}%`;
 
     doc.text(textoModo, 40, 60);
 
@@ -423,9 +505,7 @@ function App() {
       String(item.subtotalPuntos),
       formatoMoneda(item.subtotalPrecioPublico),
       formatoMoneda(item.subtotalValorComisionable),
-      formatoMoneda(item.subtotal30),
-      formatoMoneda(item.subtotal33),
-      formatoMoneda(item.subtotal42),
+      formatoMoneda(obtenerTotalPedidoActual(item)),
     ]);
 
     autoTable(doc, {
@@ -436,9 +516,7 @@ function App() {
         "Subtotal puntos",
         "Subtotal precio público",
         "Subtotal valor comisionable",
-        "Subtotal 30%",
-        "Subtotal 33%",
-        "Subtotal 42%",
+        `Subtotal ${modo === "compraInicial" ? paqueteActual.descuento : descuentoRecompraActual}%`,
       ]],
       body,
       theme: "grid",
@@ -482,9 +560,15 @@ function App() {
       40,
       finalY + 44
     );
-    doc.text(`Total 30%: ${formatoMoneda(total30)}`, 330, finalY + 44);
-    doc.text(`Total 33%: ${formatoMoneda(total33)}`, 520, finalY + 44);
-    doc.text(`Total 42%: ${formatoMoneda(total42)}`, 680, finalY + 44);
+    doc.text(
+      `Total con descuento: ${formatoMoneda(
+        modo === "compraInicial"
+          ? paqueteActual.totalConDescuento
+          : totalSegunDescuentoRecompra
+      )}`,
+      330,
+      finalY + 44
+    );
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
@@ -513,9 +597,7 @@ function App() {
             <td style="text-align:center;">${item.subtotalPuntos}</td>
             <td style="text-align:right;">${formatoMoneda(item.subtotalPrecioPublico)}</td>
             <td style="text-align:right;">${formatoMoneda(item.subtotalValorComisionable)}</td>
-            <td style="text-align:right;">${formatoMoneda(item.subtotal30)}</td>
-            <td style="text-align:right;">${formatoMoneda(item.subtotal33)}</td>
-            <td style="text-align:right;">${formatoMoneda(item.subtotal42)}</td>
+            <td style="text-align:right;">${formatoMoneda(obtenerTotalPedidoActual(item))}</td>
           </tr>
         `
       )
@@ -553,7 +635,7 @@ function App() {
               ${
                 modo === "compraInicial"
                   ? `Compra inicial | ${paqueteActual.nombre} | ${paqueteActual.descuento}%`
-                  : "Recompra mensual"
+                  : `Recompra mensual | Descuento vigente: ${descuentoRecompraActual}%`
               }
             </div>
           </div>
@@ -571,9 +653,7 @@ function App() {
                 <th>Subtotal puntos</th>
                 <th>Subtotal precio público</th>
                 <th>Subtotal valor comisionable</th>
-                <th>Subtotal 30%</th>
-                <th>Subtotal 33%</th>
-                <th>Subtotal 42%</th>
+                <th>Subtotal con descuento</th>
               </tr>
             </thead>
             <tbody>
@@ -586,9 +666,11 @@ function App() {
             <div><strong>Total de puntos:</strong> ${totalPuntos}</div>
             <div><strong>Total precio público:</strong> ${formatoMoneda(totalPrecioPublico)}</div>
             <div><strong>Total valor comisionable:</strong> ${formatoMoneda(totalValorComisionable)}</div>
-            <div><strong>Total 30%:</strong> ${formatoMoneda(total30)}</div>
-            <div><strong>Total 33%:</strong> ${formatoMoneda(total33)}</div>
-            <div><strong>Total 42%:</strong> ${formatoMoneda(total42)}</div>
+            <div><strong>Total con descuento:</strong> ${formatoMoneda(
+              modo === "compraInicial"
+                ? paqueteActual.totalConDescuento
+                : totalSegunDescuentoRecompra
+            )}</div>
           </div>
 
           <div class="firma">
@@ -691,20 +773,32 @@ function App() {
               />
             </div>
 
-            <div style={controlInfoCard}>
-              <div style={controlInfoNumero}>
-                {modo === "compraInicial"
-                  ? paqueteActual.nombre
-                  : categoriaSeleccionada === "TODAS"
-                    ? "Todas"
-                    : categoriaSeleccionada}
+            {modo === "compraInicial" ? (
+              <div style={controlInfoCard}>
+                <div style={controlInfoNumero}>{paqueteActual.nombre}</div>
+                <div style={controlInfoTexto}>
+                  Paquete detectado automáticamente
+                </div>
               </div>
-              <div style={controlInfoTexto}>
-                {modo === "compraInicial"
-                  ? "Paquete detectado automáticamente"
-                  : "Categoría visible"}
+            ) : (
+              <div style={controlCard}>
+                <label style={labelControl}>Descuento actual en recompra</label>
+                <select
+                  value={descuentoRecompraActual}
+                  onChange={(e) =>
+                    setDescuentoRecompraActual(Number(e.target.value))
+                  }
+                  style={selectEstilo}
+                >
+                  <option value={30}>30%</option>
+                  <option value={33}>33%</option>
+                  <option value={35}>35%</option>
+                  <option value={37}>37%</option>
+                  <option value={40}>40%</option>
+                  <option value={42}>42%</option>
+                </select>
               </div>
-            </div>
+            )}
           </div>
 
           {esMovil && (
@@ -744,7 +838,7 @@ function App() {
             <div style={{ ...semaforoTitulo, color: estado.colorTexto }}>
               {modo === "compraInicial"
                 ? "Lectura automática de compra inicial"
-                : "Semáforo de puntos"}
+                : "Lectura de recompra mensual"}
             </div>
             <div style={{ ...semaforoTexto, color: estado.colorTexto }}>
               {estado.texto}
@@ -822,20 +916,12 @@ function App() {
                       valor={formatoMoneda(item.subtotalPrecioPublico)}
                     />
                     <MiniDato
-                      label="Comisionable"
-                      valor={formatoMoneda(item.subtotalValorComisionable)}
-                    />
-                    <MiniDato
-                      label="30%"
-                      valor={formatoMoneda(item.subtotal30)}
-                    />
-                    <MiniDato
-                      label="33%"
-                      valor={formatoMoneda(item.subtotal33)}
-                    />
-                    <MiniDato
-                      label="42%"
-                      valor={formatoMoneda(item.subtotal42)}
+                      label={`Con ${
+                        modo === "compraInicial"
+                          ? paqueteActual.descuento
+                          : descuentoRecompraActual
+                      }%`}
+                      valor={formatoMoneda(obtenerTotalPedidoActual(item))}
                     />
                   </div>
                 </div>
@@ -915,18 +1001,6 @@ function App() {
                         label="Comisionable"
                         valor={formatoMoneda(item.subtotalValorComisionable)}
                       />
-                      <MiniDato
-                        label="30%"
-                        valor={formatoMoneda(item.subtotal30)}
-                      />
-                      <MiniDato
-                        label="33%"
-                        valor={formatoMoneda(item.subtotal33)}
-                      />
-                      <MiniDato
-                        label="42%"
-                        valor={formatoMoneda(item.subtotal42)}
-                      />
                     </div>
                   </div>
                 );
@@ -948,10 +1022,6 @@ function App() {
                     <th style={estiloTh}>Subtotal precio público</th>
                     <th style={estiloTh}>Valor comisionable</th>
                     <th style={estiloTh}>Subtotal valor comisionable</th>
-                    <th style={estiloTh}>-30%</th>
-                    <th style={estiloTh}>Subtotal -30%</th>
-                    <th style={estiloTh}>-42%</th>
-                    <th style={estiloTh}>Subtotal -42%</th>
                   </tr>
                 </thead>
 
@@ -999,10 +1069,6 @@ function App() {
                         <td style={estiloTd}>
                           {formatoMoneda(item.subtotalValorComisionable)}
                         </td>
-                        <td style={estiloTd}>{formatoMoneda(item.precio30)}</td>
-                        <td style={estiloTd}>{formatoMoneda(item.subtotal30)}</td>
-                        <td style={estiloTd}>{formatoMoneda(item.precio42)}</td>
-                        <td style={estiloTd}>{formatoMoneda(item.subtotal42)}</td>
                       </tr>
                     );
                   })}
@@ -1037,14 +1103,6 @@ function App() {
                     <td style={estiloTdTotal}></td>
                     <td style={estiloTdTotal}>
                       <strong>{formatoMoneda(totalValorComisionable)}</strong>
-                    </td>
-                    <td style={estiloTdTotal}></td>
-                    <td style={estiloTdTotal}>
-                      <strong>{formatoMoneda(total30)}</strong>
-                    </td>
-                    <td style={estiloTdTotal}></td>
-                    <td style={estiloTdTotal}>
-                      <strong>{formatoMoneda(total42)}</strong>
                     </td>
                   </tr>
                 </tbody>
@@ -1370,7 +1428,7 @@ function App() {
 
                     <div style={resumenVisibleDato}>
                       <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
-                        30%
+                        Descuento
                       </span>
                       <span
                         style={{
@@ -1378,13 +1436,13 @@ function App() {
                           color: estado.colorTexto,
                         }}
                       >
-                        {formatoMoneda(total30)}
+                        {descuentoRecompraActual}%
                       </span>
                     </div>
 
                     <div style={resumenVisibleDato}>
                       <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
-                        42%
+                        Público
                       </span>
                       <span
                         style={{
@@ -1392,7 +1450,7 @@ function App() {
                           color: estado.colorTexto,
                         }}
                       >
-                        {formatoMoneda(total42)}
+                        {formatoMoneda(totalPrecioPublico)}
                       </span>
                     </div>
                   </div>
@@ -1407,7 +1465,30 @@ function App() {
 
                 {!resumenContraido && (
                   <>
-                    <div style={resumenFlotanteFila}>
+                    <div style={resumenCompraInicialGrande}>
+                      <div
+                        style={{
+                          ...resumenCompraInicialTitulo,
+                          color: estado.colorTexto,
+                        }}
+                      >
+                        {estado.califica200
+                          ? "Ya calificas con 200 puntos"
+                          : estado.califica100
+                            ? "Ya calificas con 100 puntos"
+                            : "Aún no calificas"}
+                      </div>
+                      <div
+                        style={{
+                          ...resumenCompraInicialSubtitulo,
+                          color: estado.colorTexto,
+                        }}
+                      >
+                        Descuento actual: {descuentoRecompraActual}%
+                      </div>
+                    </div>
+
+                    <div style={resumenFlotanteFilaCompraInicial}>
                       <div
                         style={{
                           ...resumenFlotanteMini,
@@ -1446,15 +1527,15 @@ function App() {
                             color: estado.colorTexto,
                           }}
                         >
-                          Unidades
+                          Precio público
                         </div>
                         <div
                           style={{
-                            ...resumenFlotanteValor,
+                            ...resumenFlotanteValorMoneda,
                             color: estado.colorTexto,
                           }}
                         >
-                          {totalUnidades}
+                          {formatoMoneda(totalPrecioPublico)}
                         </div>
                       </div>
 
@@ -1471,7 +1552,7 @@ function App() {
                             color: estado.colorTexto,
                           }}
                         >
-                          30%
+                          Total con {descuentoRecompraActual}%
                         </div>
                         <div
                           style={{
@@ -1479,40 +1560,18 @@ function App() {
                             color: estado.colorTexto,
                           }}
                         >
-                          {formatoMoneda(total30)}
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          ...resumenFlotanteMini,
-                          border: `1px solid ${estado.colorBorde}`,
-                          backgroundColor: "rgba(255,255,255,0.55)",
-                        }}
-                      >
-                        <div
-                          style={{
-                            ...resumenFlotanteLabel,
-                            color: estado.colorTexto,
-                          }}
-                        >
-                          42%
-                        </div>
-                        <div
-                          style={{
-                            ...resumenFlotanteValorMoneda,
-                            color: estado.colorTexto,
-                          }}
-                        >
-                          {formatoMoneda(total42)}
+                          {formatoMoneda(totalSegunDescuentoRecompra)}
                         </div>
                       </div>
                     </div>
 
                     <div style={resumenFlotanteMensaje}>
-                      <span style={{ color: estado.colorTexto, fontWeight: "bold" }}>
-                        {estado.texto}
-                      </span>
+                      <div style={{ color: estado.colorTexto, fontWeight: "bold", marginBottom: "6px" }}>
+                        {estado.mensaje100}
+                      </div>
+                      <div style={{ color: estado.colorTexto, fontWeight: "bold" }}>
+                        {estado.mensaje200}
+                      </div>
                     </div>
 
                     <div style={resumenFlotanteBotonesGrid}>
@@ -2087,7 +2146,7 @@ const tabla = {
   width: "100%",
   borderCollapse: "separate",
   borderSpacing: 0,
-  minWidth: "2400px",
+  minWidth: "1900px",
   backgroundColor: "#ffffff",
 };
 
@@ -2220,13 +2279,6 @@ const infoCardTexto = {
   margin: "6px 0",
   color: "#7c6f64",
   lineHeight: 1.5,
-};
-
-const infoCardDato = {
-  display: "block",
-  margin: "6px 0",
-  color: "#c2410c",
-  fontWeight: "bold",
 };
 
 const infoCardLink = {
@@ -2372,14 +2424,6 @@ const botonToggleResumen = {
   cursor: "pointer",
   whiteSpace: "nowrap",
   fontSize: "14px",
-};
-
-const resumenFlotanteFila = {
-  display: "grid",
-  gridTemplateColumns: "1fr 1fr 1fr 1fr",
-  gap: "10px",
-  marginTop: "10px",
-  marginBottom: "10px",
 };
 
 const resumenFlotanteFilaCompraInicial = {
