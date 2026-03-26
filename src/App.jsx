@@ -398,7 +398,7 @@ function App() {
         colorTexto: "#92400e",
         colorBorde: "#f59e0b",
         colorSemaforo: "#d97706",
-        mensaje100: "Ya calificas con 100 puntos para tener derecho a recibir comisiones.",
+        mensaje100: "Ya calificas con 100 puntos y tienes derecho a recibir comisiones.",
         mensaje200: `Te faltan ${faltan200} puntos para mantener tu descuento del 42%.`,
         califica100: true,
         califica200: false,
