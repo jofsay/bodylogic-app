@@ -22,7 +22,7 @@ function App() {
   const [mesLealtad, setMesLealtad] = useState(1);
   const [dentroPrimeros15, setDentroPrimeros15] = useState(true);
 
-  // Lealtad acelerado
+  // Lealtad Acelerado
   const [puntosPersonalesAcelerado, setPuntosPersonalesAcelerado] = useState(0);
   const [puntosGrupalesAcelerado, setPuntosGrupalesAcelerado] = useState(0);
   const [acumuladoPrevioAcelerado, setAcumuladoPrevioAcelerado] = useState(0);
@@ -33,7 +33,9 @@ function App() {
 
   useEffect(() => {
     const manejarResize = () => {
-      setEsMovil(window.innerWidth <= 768);
+      const movil = window.innerWidth <= 768;
+      setEsMovil(movil);
+      if (!movil) setVistaMovil("tabla");
     };
 
     window.addEventListener("resize", manejarResize);
@@ -72,17 +74,24 @@ function App() {
     },
   ];
 
+  const documentosVisibles =
+    perfilUsuario === "clientePreferente"
+      ? documentos.filter(
+          (doc) =>
+            doc.archivo !== "LISTA-PRECIOS-DI-MARZO-26.pdf" &&
+            doc.archivo !== "SOLICITUD-DE-MEMBRESIA.pdf"
+        )
+      : documentos;
+
   const descargarArchivoRobusto = async (archivo, nombreVisible) => {
     const ruta = `/archivos/${archivo}`;
     setDescargandoArchivo(archivo);
 
     try {
       const respuesta = await fetch(ruta, { cache: "no-store" });
-
       if (!respuesta.ok) {
         throw new Error(`No se pudo descargar el archivo: ${respuesta.status}`);
       }
-
       const blob = await respuesta.blob();
       const urlBlob = window.URL.createObjectURL(blob);
 
@@ -110,40 +119,35 @@ function App() {
 
   const cambiarCantidad = (codigo, valor) => {
     const numero = Number(valor);
-    setCantidades({
-      ...cantidades,
+    setCantidades((prev) => ({
+      ...prev,
       [codigo]: numero >= 0 ? numero : 0,
-    });
+    }));
     setFilaActiva(codigo);
   };
 
   const incrementarProducto = (codigo) => {
-    const actual = cantidades[codigo] || 0;
-    setCantidades({
-      ...cantidades,
-      [codigo]: actual + 1,
-    });
+    setCantidades((prev) => ({
+      ...prev,
+      [codigo]: (prev[codigo] || 0) + 1,
+    }));
     setFilaActiva(codigo);
   };
 
   const decrementarProducto = (codigo) => {
-    const actual = cantidades[codigo] || 0;
-    const nuevo = actual - 1;
-    setCantidades({
-      ...cantidades,
-      [codigo]: nuevo >= 0 ? nuevo : 0,
-    });
+    setCantidades((prev) => ({
+      ...prev,
+      [codigo]: Math.max((prev[codigo] || 0) - 1, 0),
+    }));
     setFilaActiva(codigo);
   };
 
   const eliminarProducto = (codigo) => {
-    setCantidades({
-      ...cantidades,
+    setCantidades((prev) => ({
+      ...prev,
       [codigo]: 0,
-    });
-    if (filaActiva === codigo) {
-      setFilaActiva("");
-    }
+    }));
+    if (filaActiva === codigo) setFilaActiva("");
   };
 
   const limpiarCantidades = () => {
@@ -173,10 +177,8 @@ function App() {
       : productos.filter((item) => item.categoria === categoriaSeleccionada);
 
   const textoBusqueda = busqueda.trim().toLowerCase();
-
   const productosFiltrados = productosFiltradosBase.filter((item) => {
     if (!textoBusqueda) return true;
-
     return (
       item.producto.toLowerCase().includes(textoBusqueda) ||
       item.codigo.toLowerCase().includes(textoBusqueda) ||
@@ -184,9 +186,8 @@ function App() {
     );
   });
 
-  const filasCalculadas = productosFiltrados.map((item) => {
+  const mapearFila = (item) => {
     const unidades = Number(cantidades[item.codigo] || 0);
-
     const subtotalPuntos = unidades * item.puntos;
     const subtotalPrecioPublico = unidades * item.precioPublico;
     const subtotalValorComisionable = unidades * item.valorComisionable;
@@ -222,48 +223,10 @@ function App() {
       subtotal40,
       subtotal42,
     };
-  });
+  };
 
-  const filasTotales = productos.map((item) => {
-    const unidades = Number(cantidades[item.codigo] || 0);
-
-    const subtotalPuntos = unidades * item.puntos;
-    const subtotalPrecioPublico = unidades * item.precioPublico;
-    const subtotalValorComisionable = unidades * item.valorComisionable;
-    const subtotal10 =
-      item.precioCP10 !== undefined
-        ? unidades * item.precioCP10
-        : unidades * item.precioPublico * 0.9;
-    const subtotal15 = unidades * item.precioPublico * 0.85;
-    const subtotal20 =
-      item.precio20 !== undefined
-        ? unidades * item.precio20
-        : unidades * item.precioPublico * 0.8;
-    const subtotal30 = unidades * item.precio30;
-    const subtotal33 = unidades * item.precio33;
-    const subtotal35 = unidades * item.precio35;
-    const subtotal37 = unidades * item.precio37;
-    const subtotal40 = unidades * item.precio40;
-    const subtotal42 = unidades * item.precio42;
-
-    return {
-      ...item,
-      unidades,
-      subtotalPuntos,
-      subtotalPrecioPublico,
-      subtotalValorComisionable,
-      subtotal10,
-      subtotal15,
-      subtotal20,
-      subtotal30,
-      subtotal33,
-      subtotal35,
-      subtotal37,
-      subtotal40,
-      subtotal42,
-    };
-  });
-
+  const filasCalculadas = productosFiltrados.map(mapearFila);
+  const filasTotales = productos.map(mapearFila);
   const productosSeleccionados = filasTotales.filter((item) => item.unidades > 0);
 
   const totalUnidades = filasTotales.reduce((acc, item) => acc + item.unidades, 0);
@@ -290,61 +253,50 @@ function App() {
     if (puntos >= 500) {
       return {
         nombre: "Paquete 500",
-        puntosBase: 500,
         descuento: 42,
         totalConDescuento: total42,
         siguientePaquete: null,
         siguienteObjetivo: null,
       };
     }
-
     if (puntos >= 400) {
       return {
         nombre: "Paquete 400",
-        puntosBase: 400,
         descuento: 33,
         totalConDescuento: total33,
         siguientePaquete: "Paquete 500",
         siguienteObjetivo: 500,
       };
     }
-
     if (puntos >= 300) {
       return {
         nombre: "Paquete 300",
-        puntosBase: 300,
         descuento: 33,
         totalConDescuento: total33,
         siguientePaquete: "Paquete 400",
         siguienteObjetivo: 400,
       };
     }
-
     if (puntos >= 200) {
       return {
         nombre: "Paquete 200",
-        puntosBase: 200,
         descuento: 33,
         totalConDescuento: total33,
         siguientePaquete: "Paquete 300",
         siguienteObjetivo: 300,
       };
     }
-
     if (puntos >= 100) {
       return {
         nombre: "Paquete 100",
-        puntosBase: 100,
         descuento: 30,
         totalConDescuento: total30,
         siguientePaquete: "Paquete 200",
         siguienteObjetivo: 200,
       };
     }
-
     return {
       nombre: "Aún no calificas",
-      puntosBase: 0,
       descuento: 0,
       totalConDescuento: 0,
       siguientePaquete: "Paquete 100",
@@ -366,7 +318,6 @@ function App() {
         siguienteMensaje: `Te faltan ${faltan} puntos para iniciar (${paqueteActual.siguientePaquete}).`,
       };
     }
-
     if (totalPuntos >= 500) {
       return {
         texto: `Ya alcanzaste el paquete de 500 puntos y el 42% de descuento. ¡Estás en el nivel más alto de compra inicial!`,
@@ -377,9 +328,7 @@ function App() {
         siguienteMensaje: "Ya estás en el paquete más alto de compra inicial.",
       };
     }
-
     const faltan = paqueteActual.siguienteObjetivo - totalPuntos;
-
     return {
       texto: `Ya estás dentro del ${paqueteActual.nombre} con ${paqueteActual.descuento}% de descuento. Te faltan ${faltan} puntos para alcanzar ${paqueteActual.siguientePaquete}.`,
       colorFondo: "#fef3c7",
@@ -400,25 +349,18 @@ function App() {
   };
 
   const descuentoLealtadActual = obtenerDescuentoLealtad(mesLealtad);
-
-  const totalSegunDescuentoLealtad = (() => {
-    switch (descuentoLealtadActual) {
-      case 30:
-        return total30;
-      case 33:
-        return total33;
-      case 35:
-        return total35;
-      case 37:
-        return total37;
-      case 40:
-        return total40;
-      case 42:
-        return total42;
-      default:
-        return total30;
-    }
-  })();
+  const totalSegunDescuentoLealtad =
+    descuentoLealtadActual === 30
+      ? total30
+      : descuentoLealtadActual === 33
+        ? total33
+        : descuentoLealtadActual === 35
+          ? total35
+          : descuentoLealtadActual === 37
+            ? total37
+            : descuentoLealtadActual === 40
+              ? total40
+              : total42;
 
   const obtenerSiguienteEscalonLealtad = (mes) => {
     if (mes < 2) return { etiqueta: "33%", mesesFaltantes: 2 - mes };
@@ -447,7 +389,6 @@ function App() {
         mensajeSecundario: califica100
           ? "Aunque cubriste 100 puntos, al no comprar dentro de los primeros 15 días no conservas continuidad."
           : `Además, te faltan ${100 - totalPuntos} puntos para cubrir tu calificación de 100 puntos.`,
-        califica100,
         continuidad: false,
       };
     }
@@ -462,7 +403,6 @@ function App() {
         mensajePrincipal: `Te faltan ${100 - totalPuntos} puntos para cubrir tu calificación de 100 puntos.`,
         mensajeSecundario:
           "Necesitas mínimo 100 puntos personales en los primeros 15 días para sostener tu avance en Lealtad.",
-        califica100: false,
         continuidad: false,
       };
     }
@@ -478,7 +418,6 @@ function App() {
         mensajePrincipal:
           "¡Felicidades! Ya sostienes tu calificación de 100 puntos dentro del Programa de Lealtad.",
         mensajeSecundario: `Te faltan ${siguienteEscalonLealtad.mesesFaltantes} ${plural} consecutivos para llegar al ${siguienteEscalonLealtad.etiqueta}.`,
-        califica100: true,
         continuidad: true,
       };
     }
@@ -493,7 +432,6 @@ function App() {
         "¡Felicidades! Ya sostienes tu calificación de 100 puntos dentro del Programa de Lealtad.",
       mensajeSecundario:
         "Ya te encuentras en el tramo más alto del Programa de Lealtad.",
-      califica100: true,
       continuidad: true,
     };
   };
@@ -512,21 +450,16 @@ function App() {
   };
 
   const descuentoAceleradoActual = obtenerDescuentoAcelerado(totalAcumuladoAcelerado);
-
-  const totalSegunDescuentoAcelerado = (() => {
-    switch (descuentoAceleradoActual) {
-      case 30:
-        return total30;
-      case 35:
-        return total35;
-      case 40:
-        return total40;
-      case 42:
-        return total42;
-      default:
-        return 0;
-    }
-  })();
+  const totalSegunDescuentoAcelerado =
+    descuentoAceleradoActual === 30
+      ? total30
+      : descuentoAceleradoActual === 35
+        ? total35
+        : descuentoAceleradoActual === 40
+          ? total40
+          : descuentoAceleradoActual === 42
+            ? total42
+            : 0;
 
   const obtenerSiguienteEscalonAcelerado = (acumulado) => {
     if (acumulado < 501) return { meta: 501, etiqueta: "35%" };
@@ -535,9 +468,8 @@ function App() {
     return null;
   };
 
-  const siguienteEscalonAcelerado = obtenerSiguienteEscalonAcelerado(
-    totalAcumuladoAcelerado
-  );
+  const siguienteEscalonAcelerado =
+    obtenerSiguienteEscalonAcelerado(totalAcumuladoAcelerado);
 
   const obtenerMensajeAcelerado = () => {
     if (totalAcumuladoAcelerado <= 0) {
@@ -593,18 +525,21 @@ function App() {
     puntosAcumuladosClientePreferente
   );
 
-  const totalSegunDescuentoClientePreferente = (() => {
-    switch (descuentoClientePreferenteActual) {
-      case 10:
-        return total10;
-      case 15:
-        return total15;
-      case 20:
-        return total20;
-      default:
-        return total10;
-    }
-  })();
+  const totalSegunDescuentoClientePreferente =
+    descuentoClientePreferenteActual === 10
+      ? total10
+      : descuentoClientePreferenteActual === 15
+        ? total15
+        : total20;
+
+  const obtenerSiguienteNivelClientePreferente = (puntos) => {
+    if (puntos < 150) return { meta: 150, etiqueta: "15%" };
+    if (puntos < 650) return { meta: 650, etiqueta: "20%" };
+    return null;
+  };
+
+  const siguienteNivelClientePreferente =
+    obtenerSiguienteNivelClientePreferente(puntosAcumuladosClientePreferente);
 
   const obtenerMensajeClientePreferente = () => {
     if (puntosAcumuladosClientePreferente < 150) {
@@ -615,8 +550,7 @@ function App() {
         colorTexto: "#991b1b",
         colorBorde: "#ef4444",
         colorSemaforo: "#dc2626",
-        mensajePrincipal:
-          "Tu descuento actual como Cliente Preferente es 10%.",
+        mensajePrincipal: "Tu descuento actual como Cliente Preferente es 10%.",
         mensajeSecundario: `Te faltan ${faltan} puntos acumulados para llegar al 15%.`,
       };
     }
@@ -629,23 +563,19 @@ function App() {
         colorTexto: "#92400e",
         colorBorde: "#f59e0b",
         colorSemaforo: "#d97706",
-        mensajePrincipal:
-          "Tu descuento actual como Cliente Preferente es 15%.",
+        mensajePrincipal: "Tu descuento actual como Cliente Preferente es 15%.",
         mensajeSecundario: `Te faltan ${faltan} puntos acumulados para llegar al 20%.`,
       };
     }
 
     return {
-      texto:
-        "¡Felicidades! Ya alcanzaste el 20% de descuento como Cliente Preferente.",
+      texto: "¡Felicidades! Ya alcanzaste el 20% de descuento como Cliente Preferente.",
       colorFondo: "#ecfccb",
       colorTexto: "#3f6212",
       colorBorde: "#84cc16",
       colorSemaforo: "#65a30d",
-      mensajePrincipal:
-        "Tu descuento actual como Cliente Preferente es 20%.",
-      mensajeSecundario:
-        "Ya estás en el nivel máximo de Cliente Preferente.",
+      mensajePrincipal: "Tu descuento actual como Cliente Preferente es 20%.",
+      mensajeSecundario: "Ya estás en el nivel máximo de Cliente Preferente.",
     };
   };
 
@@ -658,102 +588,89 @@ function App() {
           ? obtenerMensajeLealtad()
           : obtenerMensajeAcelerado();
 
-  const formatoMoneda = (numero) => {
-    return Number(numero || 0).toLocaleString("es-MX", {
+  const formatoMoneda = (numero) =>
+    Number(numero || 0).toLocaleString("es-MX", {
       style: "currency",
       currency: "MXN",
     });
+
+  const obtenerPrecioActualPorPerfil = (item) => {
+    if (perfilUsuario === "clientePreferente") {
+      if (descuentoClientePreferenteActual === 10) {
+        return item.precioCP10 !== undefined
+          ? item.precioCP10
+          : item.precioPublico * 0.9;
+      }
+      if (descuentoClientePreferenteActual === 15) {
+        return item.precioPublico * 0.85;
+      }
+      return item.precio20 !== undefined ? item.precio20 : item.precioPublico * 0.8;
+    }
+
+    if (modo === "compraInicial") {
+      if (paqueteActual.descuento === 30) return item.precio30;
+      if (paqueteActual.descuento === 33) return item.precio33;
+      if (paqueteActual.descuento === 42) return item.precio42;
+      return item.precioPublico;
+    }
+
+    if (programaRecompra === "lealtad") {
+      if (descuentoLealtadActual === 30) return item.precio30;
+      if (descuentoLealtadActual === 33) return item.precio33;
+      if (descuentoLealtadActual === 35) return item.precio35;
+      if (descuentoLealtadActual === 37) return item.precio37;
+      if (descuentoLealtadActual === 40) return item.precio40;
+      return item.precio42;
+    }
+
+    if (descuentoAceleradoActual === 30) return item.precio30;
+    if (descuentoAceleradoActual === 35) return item.precio35;
+    if (descuentoAceleradoActual === 40) return item.precio40;
+    if (descuentoAceleradoActual === 42) return item.precio42;
+    return item.precioPublico;
   };
 
   const obtenerTotalPedidoActual = (item) => {
     if (perfilUsuario === "clientePreferente") {
-      switch (descuentoClientePreferenteActual) {
-        case 10:
-          return item.subtotal10;
-        case 15:
-          return item.subtotal15;
-        case 20:
-          return item.subtotal20;
-        default:
-          return item.subtotal10;
-      }
+      if (descuentoClientePreferenteActual === 10) return item.subtotal10;
+      if (descuentoClientePreferenteActual === 15) return item.subtotal15;
+      return item.subtotal20;
     }
 
     if (modo === "compraInicial") {
-      switch (paqueteActual.descuento) {
-        case 30:
-          return item.subtotal30;
-        case 33:
-          return item.subtotal33;
-        case 42:
-          return item.subtotal42;
-        default:
-          return 0;
-      }
+      if (paqueteActual.descuento === 30) return item.subtotal30;
+      if (paqueteActual.descuento === 33) return item.subtotal33;
+      if (paqueteActual.descuento === 42) return item.subtotal42;
+      return 0;
     }
 
     if (programaRecompra === "lealtad") {
-      switch (descuentoLealtadActual) {
-        case 30:
-          return item.subtotal30;
-        case 33:
-          return item.subtotal33;
-        case 35:
-          return item.subtotal35;
-        case 37:
-          return item.subtotal37;
-        case 40:
-          return item.subtotal40;
-        case 42:
-          return item.subtotal42;
-        default:
-          return item.subtotal30;
-      }
+      if (descuentoLealtadActual === 30) return item.subtotal30;
+      if (descuentoLealtadActual === 33) return item.subtotal33;
+      if (descuentoLealtadActual === 35) return item.subtotal35;
+      if (descuentoLealtadActual === 37) return item.subtotal37;
+      if (descuentoLealtadActual === 40) return item.subtotal40;
+      return item.subtotal42;
     }
 
-    switch (descuentoAceleradoActual) {
-      case 30:
-        return item.subtotal30;
-      case 35:
-        return item.subtotal35;
-      case 40:
-        return item.subtotal40;
-      case 42:
-        return item.subtotal42;
-      default:
-        return 0;
-    }
+    if (descuentoAceleradoActual === 30) return item.subtotal30;
+    if (descuentoAceleradoActual === 35) return item.subtotal35;
+    if (descuentoAceleradoActual === 40) return item.subtotal40;
+    if (descuentoAceleradoActual === 42) return item.subtotal42;
+    return 0;
   };
 
   const obtenerDescuentoActualGeneral = () => {
-    if (perfilUsuario === "clientePreferente") {
-      return descuentoClientePreferenteActual;
-    }
-
-    if (modo === "compraInicial") {
-      return paqueteActual.descuento;
-    }
-
-    if (programaRecompra === "lealtad") {
-      return descuentoLealtadActual;
-    }
-
+    if (perfilUsuario === "clientePreferente") return descuentoClientePreferenteActual;
+    if (modo === "compraInicial") return paqueteActual.descuento;
+    if (programaRecompra === "lealtad") return descuentoLealtadActual;
     return descuentoAceleradoActual;
   };
 
   const obtenerTotalConDescuentoGeneral = () => {
-    if (perfilUsuario === "clientePreferente") {
-      return totalSegunDescuentoClientePreferente;
-    }
-
-    if (modo === "compraInicial") {
-      return paqueteActual.totalConDescuento;
-    }
-
-    if (programaRecompra === "lealtad") {
-      return totalSegunDescuentoLealtad;
-    }
-
+    if (perfilUsuario === "clientePreferente") return totalSegunDescuentoClientePreferente;
+    if (modo === "compraInicial") return paqueteActual.totalConDescuento;
+    if (programaRecompra === "lealtad") return totalSegunDescuentoLealtad;
     return totalSegunDescuentoAcelerado;
   };
 
@@ -763,22 +680,15 @@ function App() {
       return;
     }
 
-    const doc = new jsPDF({
-      orientation: "landscape",
-      unit: "pt",
-      format: "a4",
-    });
-
+    const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
     const fechaActual = new Date().toLocaleString("es-MX");
 
     doc.setFillColor(234, 88, 12);
     doc.rect(0, 0, 842, 84, "F");
-
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(24);
     doc.text("BodyLogic - Resumen de pedido", 40, 38);
-
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
 
@@ -794,20 +704,16 @@ function App() {
     }
 
     doc.text(textoModo, 40, 60);
-
     doc.setTextColor(80, 80, 80);
-    doc.setFontSize(10);
     doc.text(`Fecha: ${fechaActual}`, 40, 108);
     doc.text(`Estado del pedido: ${estado.texto}`, 40, 124);
 
     const descuentoActualPDF = obtenerDescuentoActualGeneral();
-
     const body = productosSeleccionados.map((item) => [
       item.producto,
       String(item.unidades),
       String(item.subtotalPuntos),
       formatoMoneda(item.subtotalPrecioPublico),
-      formatoMoneda(item.subtotalValorComisionable),
       formatoMoneda(obtenerTotalPedidoActual(item)),
     ]);
 
@@ -818,7 +724,6 @@ function App() {
         "Unidades",
         "Subtotal puntos",
         "Subtotal precio público",
-        "Subtotal valor comisionable",
         `Subtotal ${descuentoActualPDF}%`,
       ]],
       body,
@@ -835,14 +740,11 @@ function App() {
         textColor: [40, 40, 40],
         valign: "middle",
       },
-      alternateRowStyles: {
-        fillColor: [255, 250, 245],
-      },
+      alternateRowStyles: { fillColor: [255, 250, 245] },
       margin: { left: 40, right: 40 },
     });
 
     const finalY = doc.lastAutoTable.finalY + 22;
-
     doc.setDrawColor(234, 88, 12);
     doc.setLineWidth(1);
     doc.line(40, finalY, 802, finalY);
@@ -852,22 +754,8 @@ function App() {
     doc.setTextColor(124, 45, 18);
     doc.text(`Total de unidades: ${totalUnidades}`, 40, finalY + 22);
     doc.text(`Total de puntos: ${totalPuntos}`, 190, finalY + 22);
-    doc.text(
-      `Total precio público: ${formatoMoneda(totalPrecioPublico)}`,
-      330,
-      finalY + 22
-    );
-
-    doc.text(
-      `Total valor comisionable: ${formatoMoneda(totalValorComisionable)}`,
-      40,
-      finalY + 44
-    );
-    doc.text(
-      `Total con descuento: ${formatoMoneda(obtenerTotalConDescuentoGeneral())}`,
-      330,
-      finalY + 44
-    );
+    doc.text(`Total precio público: ${formatoMoneda(totalPrecioPublico)}`, 330, finalY + 22);
+    doc.text(`Total con descuento: ${formatoMoneda(obtenerTotalConDescuentoGeneral())}`, 40, finalY + 44);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
@@ -895,7 +783,6 @@ function App() {
             <td style="text-align:center;">${item.unidades}</td>
             <td style="text-align:center;">${item.subtotalPuntos}</td>
             <td style="text-align:right;">${formatoMoneda(item.subtotalPrecioPublico)}</td>
-            <td style="text-align:right;">${formatoMoneda(item.subtotalValorComisionable)}</td>
             <td style="text-align:right;">${formatoMoneda(obtenerTotalPedidoActual(item))}</td>
           </tr>
         `
@@ -903,11 +790,8 @@ function App() {
       .join("");
 
     const ventana = window.open("", "_blank", "width=1200,height=900");
-
     if (!ventana) {
-      alert(
-        "Tu navegador bloqueó la ventana de impresión. Permite pop-ups e inténtalo de nuevo."
-      );
+      alert("Tu navegador bloqueó la ventana de impresión. Permite pop-ups e inténtalo de nuevo.");
       return;
     }
 
@@ -960,7 +844,6 @@ function App() {
                 <th>Unidades</th>
                 <th>Subtotal puntos</th>
                 <th>Subtotal precio público</th>
-                <th>Subtotal valor comisionable</th>
                 <th>Subtotal con ${descuentoActualImpresion}%</th>
               </tr>
             </thead>
@@ -973,7 +856,6 @@ function App() {
             <div><strong>Total de unidades:</strong> ${totalUnidades}</div>
             <div><strong>Total de puntos:</strong> ${totalPuntos}</div>
             <div><strong>Total precio público:</strong> ${formatoMoneda(totalPrecioPublico)}</div>
-            <div><strong>Total valor comisionable:</strong> ${formatoMoneda(totalValorComisionable)}</div>
             <div><strong>Total con descuento:</strong> ${formatoMoneda(obtenerTotalConDescuentoGeneral())}</div>
           </div>
 
@@ -982,9 +864,7 @@ function App() {
           </div>
 
           <script>
-            window.onload = function() {
-              window.print();
-            };
+            window.onload = function() { window.print(); };
           </script>
         </body>
       </html>
@@ -1071,16 +951,12 @@ function App() {
             {perfilUsuario === "distribuidor" ? (
               <div style={controlInfoCard}>
                 <div style={controlInfoNumero}>Distribuidor</div>
-                <div style={controlInfoTexto}>
-                  Flujo completo de ingreso y recompra
-                </div>
+                <div style={controlInfoTexto}>Flujo completo de ingreso y recompra</div>
               </div>
             ) : (
               <div style={controlInfoCard}>
                 <div style={controlInfoNumero}>Cliente Preferente</div>
-                <div style={controlInfoTexto}>
-                  Flujo simplificado con descuento progresivo
-                </div>
+                <div style={controlInfoTexto}>Flujo simplificado con descuento progresivo</div>
               </div>
             )}
           </div>
@@ -1111,9 +987,7 @@ function App() {
                 {modo === "compraInicial" ? (
                   <div style={controlInfoCard}>
                     <div style={controlInfoNumero}>{paqueteActual.nombre}</div>
-                    <div style={controlInfoTexto}>
-                      Paquete detectado automáticamente
-                    </div>
+                    <div style={controlInfoTexto}>Paquete detectado automáticamente</div>
                   </div>
                 ) : (
                   <>
@@ -1230,14 +1104,25 @@ function App() {
 
                 <div style={controlInfoCard}>
                   <div style={controlInfoNumero}>{descuentoClientePreferenteActual}%</div>
-                  <div style={controlInfoTexto}>
-                    Descuento actual de Cliente Preferente
-                  </div>
+                  <div style={controlInfoTexto}>Descuento actual de Cliente Preferente</div>
                 </div>
 
                 <div style={controlInfoCard}>
                   <div style={controlInfoNumero}>{puntosAcumuladosClientePreferente}</div>
                   <div style={controlInfoTexto}>Puntos acumulados totales</div>
+                </div>
+
+                <div style={controlInfoCard}>
+                  <div style={controlInfoNumero}>
+                    {siguienteNivelClientePreferente
+                      ? `${siguienteNivelClientePreferente.meta - puntosAcumuladosClientePreferente} pts`
+                      : "Nivel máximo"}
+                  </div>
+                  <div style={controlInfoTexto}>
+                    {siguienteNivelClientePreferente
+                      ? `Te faltan para llegar al ${siguienteNivelClientePreferente.etiqueta}`
+                      : "Ya alcanzaste el 20%"}
+                  </div>
                 </div>
               </div>
             </>
@@ -1286,18 +1171,14 @@ function App() {
                     ? "Lectura de recompra mensual - Lealtad"
                     : "Lectura de recompra mensual - Lealtad Acelerado"}
             </div>
-            <div style={{ ...semaforoTexto, color: estado.colorTexto }}>
-              {estado.texto}
-            </div>
+            <div style={{ ...semaforoTexto, color: estado.colorTexto }}>{estado.texto}</div>
           </div>
         </section>
 
         <section id="pedido-actual" style={pedidoActualPanel}>
           <div style={panelTituloFila}>
             <h2 style={panelTitulo}>Pedido actual</h2>
-            <p style={panelSubtitulo}>
-              Aquí aparecen únicamente los productos que ya capturaste.
-            </p>
+            <p style={panelSubtitulo}>Aquí aparecen únicamente los productos que ya capturaste.</p>
 
             {productosSeleccionados.length > 0 && (
               <div style={{ marginTop: "12px" }}>
@@ -1309,9 +1190,7 @@ function App() {
           </div>
 
           {productosSeleccionados.length === 0 ? (
-            <div style={pedidoVacio}>
-              Aún no has agregado productos al pedido.
-            </div>
+            <div style={pedidoVacio}>Aún no has agregado productos al pedido.</div>
           ) : (
             <div style={pedidoActualGrid}>
               {productosSeleccionados.map((item) => (
@@ -1332,10 +1211,7 @@ function App() {
                   </div>
 
                   <div style={pedidoControles}>
-                    <button
-                      onClick={() => decrementarProducto(item.codigo)}
-                      style={botonCantidad}
-                    >
+                    <button onClick={() => decrementarProducto(item.codigo)} style={botonCantidad}>
                       −
                     </button>
 
@@ -1347,20 +1223,14 @@ function App() {
                       style={inputCantidadPedido}
                     />
 
-                    <button
-                      onClick={() => incrementarProducto(item.codigo)}
-                      style={botonCantidad}
-                    >
+                    <button onClick={() => incrementarProducto(item.codigo)} style={botonCantidad}>
                       +
                     </button>
                   </div>
 
                   <div style={pedidoTotalesGrid}>
                     <MiniDato label="Subtotal puntos" value={item.subtotalPuntos} />
-                    <MiniDato
-                      label="Público"
-                      value={formatoMoneda(item.subtotalPrecioPublico)}
-                    />
+                    <MiniDato label="Público" value={formatoMoneda(item.subtotalPrecioPublico)} />
                     <MiniDato
                       label={`Con ${obtenerDescuentoActualGeneral()}%`}
                       value={formatoMoneda(obtenerTotalPedidoActual(item))}
@@ -1406,11 +1276,7 @@ function App() {
                     : cardProductoMovil;
 
                 return (
-                  <div
-                    key={item.codigo}
-                    style={cardStyle}
-                    onClick={() => setFilaActiva(item.codigo)}
-                  >
+                  <div key={item.codigo} style={cardStyle} onClick={() => setFilaActiva(item.codigo)}>
                     <div style={cardProductoTop}>
                       <div>
                         <div style={cardCodigo}>{item.codigo}</div>
@@ -1435,18 +1301,99 @@ function App() {
                     <div style={cardResumenGrid}>
                       <MiniDato label="Puntos unit." value={item.puntos} />
                       <MiniDato label="Subtotal puntos" value={item.subtotalPuntos} />
+                      <MiniDato label="Público" value={formatoMoneda(item.subtotalPrecioPublico)} />
                       <MiniDato
-                        label="Público"
-                        value={formatoMoneda(item.subtotalPrecioPublico)}
-                      />
-                      <MiniDato
-                        label="Comisionable"
-                        value={formatoMoneda(item.subtotalValorComisionable)}
+                        label={`Con ${obtenerDescuentoActualGeneral()}%`}
+                        value={formatoMoneda(obtenerTotalPedidoActual(item))}
                       />
                     </div>
                   </div>
                 );
               })}
+            </div>
+          ) : perfilUsuario === "clientePreferente" ? (
+            <div style={tablaWrapper}>
+              <table style={tabla}>
+                <thead>
+                  <tr style={filaHeader}>
+                    <th style={estiloTh}>Categoría</th>
+                    <th style={estiloTh}>Código</th>
+                    <th style={estiloTh}>Producto</th>
+                    <th style={estiloTh}>Contenido</th>
+                    <th style={estiloTh}>Unidades</th>
+                    <th style={estiloTh}>Puntos</th>
+                    <th style={estiloTh}>Subtotal puntos</th>
+                    <th style={estiloTh}>Precio público</th>
+                    <th style={estiloTh}>Subtotal público</th>
+                    <th style={estiloTh}>Precio con descuento</th>
+                    <th style={estiloTh}>Subtotal con descuento</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {filasCalculadas.map((item, index) => {
+                    const activa = filaActiva === item.codigo;
+                    const base = index % 2 === 0 ? filaPar : filaImpar;
+                    const estiloFila = activa
+                      ? filaActivaEstilo
+                      : item.unidades > 0
+                        ? filaConCaptura
+                        : base;
+
+                    return (
+                      <tr key={item.codigo} onClick={() => setFilaActiva(item.codigo)} style={estiloFila}>
+                        <td style={estiloTd}>{item.categoria}</td>
+                        <td style={estiloTd}>{item.codigo}</td>
+                        <td style={{ ...estiloTdProducto, cursor: "pointer" }}>
+                          <strong>{item.producto}</strong>
+                        </td>
+                        <td style={estiloTd}>{item.contenido}</td>
+                        <td style={estiloTd}>
+                          <input
+                            type="number"
+                            min="0"
+                            value={item.unidades}
+                            onChange={(e) => cambiarCantidad(item.codigo, e.target.value)}
+                            onFocus={() => setFilaActiva(item.codigo)}
+                            style={inputCantidad}
+                          />
+                        </td>
+                        <td style={estiloTd}>{item.puntos}</td>
+                        <td style={estiloTd}>{item.subtotalPuntos}</td>
+                        <td style={estiloTd}>{formatoMoneda(item.precioPublico)}</td>
+                        <td style={estiloTd}>{formatoMoneda(item.subtotalPrecioPublico)}</td>
+                        <td style={estiloTd}>{formatoMoneda(obtenerPrecioActualPorPerfil(item))}</td>
+                        <td style={estiloTd}>{formatoMoneda(obtenerTotalPedidoActual(item))}</td>
+                      </tr>
+                    );
+                  })}
+
+                  <tr style={filaTotal}>
+                    <td style={estiloTdTotal}></td>
+                    <td style={estiloTdTotal}></td>
+                    <td style={estiloTdTotal}><strong>TOTAL GENERAL</strong></td>
+                    <td style={estiloTdTotal}></td>
+                    <td style={estiloTdTotal}><strong>{totalUnidades}</strong></td>
+                    <td style={estiloTdTotal}></td>
+                    <td
+                      style={{
+                        ...estiloTdTotal,
+                        backgroundColor: estado.colorFondo,
+                        color: estado.colorTexto,
+                        border: `2px solid ${estado.colorBorde}`,
+                        borderRadius: "10px",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {totalPuntos}
+                    </td>
+                    <td style={estiloTdTotal}></td>
+                    <td style={estiloTdTotal}><strong>{formatoMoneda(totalPrecioPublico)}</strong></td>
+                    <td style={estiloTdTotal}></td>
+                    <td style={estiloTdTotal}><strong>{formatoMoneda(totalSegunDescuentoClientePreferente)}</strong></td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           ) : (
             <div style={tablaWrapper}>
@@ -1478,11 +1425,7 @@ function App() {
                         : base;
 
                     return (
-                      <tr
-                        key={item.codigo}
-                        onClick={() => setFilaActiva(item.codigo)}
-                        style={estiloFila}
-                      >
+                      <tr key={item.codigo} onClick={() => setFilaActiva(item.codigo)} style={estiloFila}>
                         <td style={estiloTd}>{item.categoria}</td>
                         <td style={estiloTd}>{item.codigo}</td>
                         <td style={{ ...estiloTdProducto, cursor: "pointer" }}>
@@ -1502,15 +1445,9 @@ function App() {
                         <td style={estiloTd}>{item.puntos}</td>
                         <td style={estiloTd}>{item.subtotalPuntos}</td>
                         <td style={estiloTd}>{formatoMoneda(item.precioPublico)}</td>
-                        <td style={estiloTd}>
-                          {formatoMoneda(item.subtotalPrecioPublico)}
-                        </td>
-                        <td style={estiloTd}>
-                          {formatoMoneda(item.valorComisionable)}
-                        </td>
-                        <td style={estiloTd}>
-                          {formatoMoneda(item.subtotalValorComisionable)}
-                        </td>
+                        <td style={estiloTd}>{formatoMoneda(item.subtotalPrecioPublico)}</td>
+                        <td style={estiloTd}>{formatoMoneda(item.valorComisionable)}</td>
+                        <td style={estiloTd}>{formatoMoneda(item.subtotalValorComisionable)}</td>
                       </tr>
                     );
                   })}
@@ -1518,13 +1455,9 @@ function App() {
                   <tr style={filaTotal}>
                     <td style={estiloTdTotal}></td>
                     <td style={estiloTdTotal}></td>
-                    <td style={estiloTdTotal}>
-                      <strong>TOTAL GENERAL</strong>
-                    </td>
+                    <td style={estiloTdTotal}><strong>TOTAL GENERAL</strong></td>
                     <td style={estiloTdTotal}></td>
-                    <td style={estiloTdTotal}>
-                      <strong>{totalUnidades}</strong>
-                    </td>
+                    <td style={estiloTdTotal}><strong>{totalUnidades}</strong></td>
                     <td style={estiloTdTotal}></td>
                     <td
                       style={{
@@ -1539,13 +1472,9 @@ function App() {
                       {totalPuntos}
                     </td>
                     <td style={estiloTdTotal}></td>
-                    <td style={estiloTdTotal}>
-                      <strong>{formatoMoneda(totalPrecioPublico)}</strong>
-                    </td>
+                    <td style={estiloTdTotal}><strong>{formatoMoneda(totalPrecioPublico)}</strong></td>
                     <td style={estiloTdTotal}></td>
-                    <td style={estiloTdTotal}>
-                      <strong>{formatoMoneda(totalValorComisionable)}</strong>
-                    </td>
+                    <td style={estiloTdTotal}><strong>{formatoMoneda(totalValorComisionable)}</strong></td>
                   </tr>
                 </tbody>
               </table>
@@ -1577,36 +1506,28 @@ function App() {
                 <a href={`tel:${telefonoCentroServicio}`} style={telefonoLink}>
                   800 702 4840
                 </a>
-                <p style={infoCardTexto}>
-                  Lunes a viernes de 8:00 a 20:00 hrs.
-                </p>
+                <p style={infoCardTexto}>Lunes a viernes de 8:00 a 20:00 hrs.</p>
                 <p style={infoCardTexto}>Sábados de 9:00 a 14:00 hrs.</p>
               </div>
 
               <div style={infoCard}>
                 <div style={miniBadge}>Presencial</div>
                 <h3 style={infoCardTitulo}>CAD</h3>
-                <p style={infoCardTexto}>
-                  Adquiere tus productos en tu CAD más cercano.
-                </p>
+                <p style={infoCardTexto}>Adquiere tus productos en tu CAD más cercano.</p>
               </div>
             </div>
           </div>
 
           <div style={leyendasPanel}>
             <h2 style={panelTitulo}>Leyendas importantes</h2>
-            <div style={leyendaItem}>
-              Los puntos mostrados corresponden al valor en puntos de cada producto.
-            </div>
-            <div style={leyendaItem}>
-              El valor comisionable corresponde al 89% del precio con descuento sin IVA.
-            </div>
-            <div style={leyendaItem}>
-              Las herramientas de negocio no generan puntos ni valor comisionable.
-            </div>
-            <div style={leyendaItem}>
-              La información debe validarse siempre con la lista vigente de la empresa.
-            </div>
+            <div style={leyendaItem}>Los puntos mostrados corresponden al valor en puntos de cada producto.</div>
+            {perfilUsuario === "distribuidor" && (
+              <div style={leyendaItem}>
+                El valor comisionable corresponde al 89% del precio con descuento sin IVA.
+              </div>
+            )}
+            <div style={leyendaItem}>Las herramientas de negocio no generan puntos ni valor comisionable.</div>
+            <div style={leyendaItem}>La información debe validarse siempre con la lista vigente de la empresa.</div>
           </div>
         </section>
 
@@ -1615,13 +1536,15 @@ function App() {
             <div>
               <h2 style={panelTitulo}>Documentos importantes</h2>
               <p style={panelSubtitulo}>
-                Descarga los archivos oficiales desde la misma plataforma.
+                {perfilUsuario === "clientePreferente"
+                  ? "Aquí solo se muestran los documentos más útiles para Cliente Preferente."
+                  : "Descarga los archivos oficiales desde la misma plataforma."}
               </p>
             </div>
           </div>
 
           <div style={listaDocs}>
-            {documentos.map((doc) => {
+            {documentosVisibles.map((doc) => {
               const esMembresia = doc.tipo === "membresia";
               const estaDescargando = descargandoArchivo === doc.archivo;
 
@@ -1635,9 +1558,7 @@ function App() {
 
                   <div style={accionesDoc}>
                     <button
-                      onClick={() =>
-                        descargarArchivoRobusto(doc.archivo, doc.nombre)
-                      }
+                      onClick={() => descargarArchivoRobusto(doc.archivo, doc.nombre)}
                       style={botonDocumento}
                       disabled={estaDescargando}
                     >
@@ -1668,38 +1589,22 @@ function App() {
                 <div style={resumenVisibleSiempre}>
                   <div style={resumenVisibleMiniDatos}>
                     <div style={resumenVisibleDato}>
-                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
-                        Perfil
-                      </span>
-                      <span
-                        style={{
-                          ...resumenVisibleValorMoneda,
-                          color: estado.colorTexto,
-                        }}
-                      >
+                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>Perfil</span>
+                      <span style={{ ...resumenVisibleValorMoneda, color: estado.colorTexto }}>
                         Cliente Preferente
                       </span>
                     </div>
 
                     <div style={resumenVisibleDato}>
-                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
-                        Acumulado
-                      </span>
+                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>Acumulado</span>
                       <span style={{ ...resumenVisibleValor, color: estado.colorTexto }}>
                         {puntosAcumuladosClientePreferente}
                       </span>
                     </div>
 
                     <div style={resumenVisibleDato}>
-                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
-                        Descuento
-                      </span>
-                      <span
-                        style={{
-                          ...resumenVisibleValorMoneda,
-                          color: estado.colorTexto,
-                        }}
-                      >
+                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>Descuento</span>
+                      <span style={{ ...resumenVisibleValorMoneda, color: estado.colorTexto }}>
                         {descuentoClientePreferenteActual}%
                       </span>
                     </div>
@@ -1716,20 +1621,10 @@ function App() {
                 {!resumenContraido && (
                   <>
                     <div style={resumenCompraInicialGrande}>
-                      <div
-                        style={{
-                          ...resumenCompraInicialTitulo,
-                          color: estado.colorTexto,
-                        }}
-                      >
+                      <div style={{ ...resumenCompraInicialTitulo, color: estado.colorTexto }}>
                         Cliente Preferente
                       </div>
-                      <div
-                        style={{
-                          ...resumenCompraInicialSubtitulo,
-                          color: estado.colorTexto,
-                        }}
-                      >
+                      <div style={{ ...resumenCompraInicialSubtitulo, color: estado.colorTexto }}>
                         Descuento actual: {descuentoClientePreferenteActual}%
                       </div>
                     </div>
@@ -1742,20 +1637,10 @@ function App() {
                           backgroundColor: "rgba(255,255,255,0.55)",
                         }}
                       >
-                        <div
-                          style={{
-                            ...resumenFlotanteLabel,
-                            color: estado.colorTexto,
-                          }}
-                        >
+                        <div style={{ ...resumenFlotanteLabel, color: estado.colorTexto }}>
                           Puntos acumulados
                         </div>
-                        <div
-                          style={{
-                            ...resumenFlotanteValor,
-                            color: estado.colorTexto,
-                          }}
-                        >
+                        <div style={{ ...resumenFlotanteValor, color: estado.colorTexto }}>
                           {puntosAcumuladosClientePreferente}
                         </div>
                       </div>
@@ -1767,20 +1652,10 @@ function App() {
                           backgroundColor: "rgba(255,255,255,0.55)",
                         }}
                       >
-                        <div
-                          style={{
-                            ...resumenFlotanteLabel,
-                            color: estado.colorTexto,
-                          }}
-                        >
+                        <div style={{ ...resumenFlotanteLabel, color: estado.colorTexto }}>
                           Precio público
                         </div>
-                        <div
-                          style={{
-                            ...resumenFlotanteValorMoneda,
-                            color: estado.colorTexto,
-                          }}
-                        >
+                        <div style={{ ...resumenFlotanteValorMoneda, color: estado.colorTexto }}>
                           {formatoMoneda(totalPrecioPublico)}
                         </div>
                       </div>
@@ -1792,20 +1667,10 @@ function App() {
                           backgroundColor: "rgba(255,255,255,0.55)",
                         }}
                       >
-                        <div
-                          style={{
-                            ...resumenFlotanteLabel,
-                            color: estado.colorTexto,
-                          }}
-                        >
+                        <div style={{ ...resumenFlotanteLabel, color: estado.colorTexto }}>
                           Total con {descuentoClientePreferenteActual}%
                         </div>
-                        <div
-                          style={{
-                            ...resumenFlotanteValorMoneda,
-                            color: estado.colorTexto,
-                          }}
-                        >
+                        <div style={{ ...resumenFlotanteValorMoneda, color: estado.colorTexto }}>
                           {formatoMoneda(totalSegunDescuentoClientePreferente)}
                         </div>
                       </div>
@@ -1816,42 +1681,26 @@ function App() {
                         {estado.mensajePrincipal}
                       </div>
                       <div
-                        style={{
-                          color: estado.colorTexto,
-                          fontWeight: "bold",
-                          marginTop: "8px",
-                        }}
+                        style={{ color: estado.colorTexto, fontWeight: "bold", marginTop: "8px" }}
                       >
                         {estado.mensajeSecundario}
                       </div>
                     </div>
 
                     <div style={resumenFlotanteBotonesGrid}>
-                      <button
-                        onClick={irAPedidoActual}
-                        style={botonResumenFlotantePrimario}
-                      >
+                      <button onClick={irAPedidoActual} style={botonResumenFlotantePrimario}>
                         Ver pedido
                       </button>
 
-                      <button
-                        onClick={descargarPDFPedido}
-                        style={botonResumenFlotanteAccion}
-                      >
+                      <button onClick={descargarPDFPedido} style={botonResumenFlotanteAccion}>
                         PDF
                       </button>
 
-                      <button
-                        onClick={imprimirFormulario}
-                        style={botonResumenFlotanteAccion}
-                      >
+                      <button onClick={imprimirFormulario} style={botonResumenFlotanteAccion}>
                         Imprimir
                       </button>
 
-                      <button
-                        onClick={irArriba}
-                        style={botonResumenFlotanteSecundario}
-                      >
+                      <button onClick={irArriba} style={botonResumenFlotanteSecundario}>
                         Subir
                       </button>
                     </div>
@@ -1863,18 +1712,14 @@ function App() {
                 <div style={resumenVisibleSiempre}>
                   <div style={resumenVisibleMiniDatos}>
                     <div style={resumenVisibleDato}>
-                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
-                        Puntos
-                      </span>
+                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>Puntos</span>
                       <span style={{ ...resumenVisibleValor, color: estado.colorTexto }}>
                         {totalPuntos}
                       </span>
                     </div>
 
                     <div style={resumenVisibleDato}>
-                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
-                        Paquete
-                      </span>
+                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>Paquete</span>
                       <span
                         style={{
                           ...resumenVisibleValorMoneda,
@@ -1888,15 +1733,8 @@ function App() {
                     </div>
 
                     <div style={resumenVisibleDato}>
-                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
-                        Descuento
-                      </span>
-                      <span
-                        style={{
-                          ...resumenVisibleValorMoneda,
-                          color: estado.colorTexto,
-                        }}
-                      >
+                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>Descuento</span>
+                      <span style={{ ...resumenVisibleValorMoneda, color: estado.colorTexto }}>
                         {paqueteActual.descuento}%
                       </span>
                     </div>
@@ -1913,20 +1751,10 @@ function App() {
                 {!resumenContraido && (
                   <>
                     <div style={resumenCompraInicialGrande}>
-                      <div
-                        style={{
-                          ...resumenCompraInicialTitulo,
-                          color: estado.colorTexto,
-                        }}
-                      >
+                      <div style={{ ...resumenCompraInicialTitulo, color: estado.colorTexto }}>
                         {paqueteActual.nombre}
                       </div>
-                      <div
-                        style={{
-                          ...resumenCompraInicialSubtitulo,
-                          color: estado.colorTexto,
-                        }}
-                      >
+                      <div style={{ ...resumenCompraInicialSubtitulo, color: estado.colorTexto }}>
                         Descuento actual: {paqueteActual.descuento}%
                       </div>
                     </div>
@@ -1939,20 +1767,8 @@ function App() {
                           backgroundColor: "rgba(255,255,255,0.55)",
                         }}
                       >
-                        <div
-                          style={{
-                            ...resumenFlotanteLabel,
-                            color: estado.colorTexto,
-                          }}
-                        >
-                          Puntos
-                        </div>
-                        <div
-                          style={{
-                            ...resumenFlotanteValor,
-                            color: estado.colorTexto,
-                          }}
-                        >
+                        <div style={{ ...resumenFlotanteLabel, color: estado.colorTexto }}>Puntos</div>
+                        <div style={{ ...resumenFlotanteValor, color: estado.colorTexto }}>
                           {totalPuntos}
                         </div>
                       </div>
@@ -1964,20 +1780,10 @@ function App() {
                           backgroundColor: "rgba(255,255,255,0.55)",
                         }}
                       >
-                        <div
-                          style={{
-                            ...resumenFlotanteLabel,
-                            color: estado.colorTexto,
-                          }}
-                        >
+                        <div style={{ ...resumenFlotanteLabel, color: estado.colorTexto }}>
                           Precio público
                         </div>
-                        <div
-                          style={{
-                            ...resumenFlotanteValorMoneda,
-                            color: estado.colorTexto,
-                          }}
-                        >
+                        <div style={{ ...resumenFlotanteValorMoneda, color: estado.colorTexto }}>
                           {formatoMoneda(totalPrecioPublico)}
                         </div>
                       </div>
@@ -1989,20 +1795,10 @@ function App() {
                           backgroundColor: "rgba(255,255,255,0.55)",
                         }}
                       >
-                        <div
-                          style={{
-                            ...resumenFlotanteLabel,
-                            color: estado.colorTexto,
-                          }}
-                        >
+                        <div style={{ ...resumenFlotanteLabel, color: estado.colorTexto }}>
                           Total con {paqueteActual.descuento}%
                         </div>
-                        <div
-                          style={{
-                            ...resumenFlotanteValorMoneda,
-                            color: estado.colorTexto,
-                          }}
-                        >
+                        <div style={{ ...resumenFlotanteValorMoneda, color: estado.colorTexto }}>
                           {formatoMoneda(paqueteActual.totalConDescuento)}
                         </div>
                       </div>
@@ -2015,31 +1811,19 @@ function App() {
                     </div>
 
                     <div style={resumenFlotanteBotonesGrid}>
-                      <button
-                        onClick={irAPedidoActual}
-                        style={botonResumenFlotantePrimario}
-                      >
+                      <button onClick={irAPedidoActual} style={botonResumenFlotantePrimario}>
                         Ver pedido
                       </button>
 
-                      <button
-                        onClick={descargarPDFPedido}
-                        style={botonResumenFlotanteAccion}
-                      >
+                      <button onClick={descargarPDFPedido} style={botonResumenFlotanteAccion}>
                         PDF
                       </button>
 
-                      <button
-                        onClick={imprimirFormulario}
-                        style={botonResumenFlotanteAccion}
-                      >
+                      <button onClick={imprimirFormulario} style={botonResumenFlotanteAccion}>
                         Imprimir
                       </button>
 
-                      <button
-                        onClick={irArriba}
-                        style={botonResumenFlotanteSecundario}
-                      >
+                      <button onClick={irArriba} style={botonResumenFlotanteSecundario}>
                         Subir
                       </button>
                     </div>
@@ -2051,38 +1835,22 @@ function App() {
                 <div style={resumenVisibleSiempre}>
                   <div style={resumenVisibleMiniDatos}>
                     <div style={resumenVisibleDato}>
-                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
-                        Programa
-                      </span>
-                      <span
-                        style={{
-                          ...resumenVisibleValorMoneda,
-                          color: estado.colorTexto,
-                        }}
-                      >
+                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>Programa</span>
+                      <span style={{ ...resumenVisibleValorMoneda, color: estado.colorTexto }}>
                         Lealtad
                       </span>
                     </div>
 
                     <div style={resumenVisibleDato}>
-                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
-                        Mes
-                      </span>
+                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>Mes</span>
                       <span style={{ ...resumenVisibleValor, color: estado.colorTexto }}>
                         {mesLealtad}
                       </span>
                     </div>
 
                     <div style={resumenVisibleDato}>
-                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
-                        Descuento
-                      </span>
-                      <span
-                        style={{
-                          ...resumenVisibleValorMoneda,
-                          color: estado.colorTexto,
-                        }}
-                      >
+                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>Descuento</span>
+                      <span style={{ ...resumenVisibleValorMoneda, color: estado.colorTexto }}>
                         {descuentoLealtadActual}%
                       </span>
                     </div>
@@ -2099,22 +1867,10 @@ function App() {
                 {!resumenContraido && (
                   <>
                     <div style={resumenCompraInicialGrande}>
-                      <div
-                        style={{
-                          ...resumenCompraInicialTitulo,
-                          color: estado.colorTexto,
-                        }}
-                      >
-                        {estado.continuidad
-                          ? "Lealtad sostenida"
-                          : "Secuencia comprometida"}
+                      <div style={{ ...resumenCompraInicialTitulo, color: estado.colorTexto }}>
+                        {estado.continuidad ? "Lealtad sostenida" : "Secuencia comprometida"}
                       </div>
-                      <div
-                        style={{
-                          ...resumenCompraInicialSubtitulo,
-                          color: estado.colorTexto,
-                        }}
-                      >
+                      <div style={{ ...resumenCompraInicialSubtitulo, color: estado.colorTexto }}>
                         Descuento actual: {descuentoLealtadActual}%
                       </div>
                     </div>
@@ -2127,20 +1883,10 @@ function App() {
                           backgroundColor: "rgba(255,255,255,0.55)",
                         }}
                       >
-                        <div
-                          style={{
-                            ...resumenFlotanteLabel,
-                            color: estado.colorTexto,
-                          }}
-                        >
+                        <div style={{ ...resumenFlotanteLabel, color: estado.colorTexto }}>
                           Puntos personales
                         </div>
-                        <div
-                          style={{
-                            ...resumenFlotanteValor,
-                            color: estado.colorTexto,
-                          }}
-                        >
+                        <div style={{ ...resumenFlotanteValor, color: estado.colorTexto }}>
                           {totalPuntos}
                         </div>
                       </div>
@@ -2152,20 +1898,10 @@ function App() {
                           backgroundColor: "rgba(255,255,255,0.55)",
                         }}
                       >
-                        <div
-                          style={{
-                            ...resumenFlotanteLabel,
-                            color: estado.colorTexto,
-                          }}
-                        >
+                        <div style={{ ...resumenFlotanteLabel, color: estado.colorTexto }}>
                           Precio público
                         </div>
-                        <div
-                          style={{
-                            ...resumenFlotanteValorMoneda,
-                            color: estado.colorTexto,
-                          }}
-                        >
+                        <div style={{ ...resumenFlotanteValorMoneda, color: estado.colorTexto }}>
                           {formatoMoneda(totalPrecioPublico)}
                         </div>
                       </div>
@@ -2177,20 +1913,10 @@ function App() {
                           backgroundColor: "rgba(255,255,255,0.55)",
                         }}
                       >
-                        <div
-                          style={{
-                            ...resumenFlotanteLabel,
-                            color: estado.colorTexto,
-                          }}
-                        >
+                        <div style={{ ...resumenFlotanteLabel, color: estado.colorTexto }}>
                           Total con {descuentoLealtadActual}%
                         </div>
-                        <div
-                          style={{
-                            ...resumenFlotanteValorMoneda,
-                            color: estado.colorTexto,
-                          }}
-                        >
+                        <div style={{ ...resumenFlotanteValorMoneda, color: estado.colorTexto }}>
                           {formatoMoneda(totalSegunDescuentoLealtad)}
                         </div>
                       </div>
@@ -2200,43 +1926,25 @@ function App() {
                       <div style={{ color: estado.colorTexto, fontWeight: "bold" }}>
                         {estado.mensajePrincipal}
                       </div>
-                      <div
-                        style={{
-                          color: estado.colorTexto,
-                          fontWeight: "bold",
-                          marginTop: "8px",
-                        }}
-                      >
+                      <div style={{ color: estado.colorTexto, fontWeight: "bold", marginTop: "8px" }}>
                         {estado.mensajeSecundario}
                       </div>
                     </div>
 
                     <div style={resumenFlotanteBotonesGrid}>
-                      <button
-                        onClick={irAPedidoActual}
-                        style={botonResumenFlotantePrimario}
-                      >
+                      <button onClick={irAPedidoActual} style={botonResumenFlotantePrimario}>
                         Ver pedido
                       </button>
 
-                      <button
-                        onClick={descargarPDFPedido}
-                        style={botonResumenFlotanteAccion}
-                      >
+                      <button onClick={descargarPDFPedido} style={botonResumenFlotanteAccion}>
                         PDF
                       </button>
 
-                      <button
-                        onClick={imprimirFormulario}
-                        style={botonResumenFlotanteAccion}
-                      >
+                      <button onClick={imprimirFormulario} style={botonResumenFlotanteAccion}>
                         Imprimir
                       </button>
 
-                      <button
-                        onClick={irArriba}
-                        style={botonResumenFlotanteSecundario}
-                      >
+                      <button onClick={irArriba} style={botonResumenFlotanteSecundario}>
                         Subir
                       </button>
                     </div>
@@ -2248,38 +1956,22 @@ function App() {
                 <div style={resumenVisibleSiempre}>
                   <div style={resumenVisibleMiniDatos}>
                     <div style={resumenVisibleDato}>
-                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
-                        Programa
-                      </span>
-                      <span
-                        style={{
-                          ...resumenVisibleValorMoneda,
-                          color: estado.colorTexto,
-                        }}
-                      >
+                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>Programa</span>
+                      <span style={{ ...resumenVisibleValorMoneda, color: estado.colorTexto }}>
                         Acelerado
                       </span>
                     </div>
 
                     <div style={resumenVisibleDato}>
-                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
-                        Acumulado
-                      </span>
+                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>Acumulado</span>
                       <span style={{ ...resumenVisibleValor, color: estado.colorTexto }}>
                         {totalAcumuladoAcelerado}
                       </span>
                     </div>
 
                     <div style={resumenVisibleDato}>
-                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
-                        Descuento
-                      </span>
-                      <span
-                        style={{
-                          ...resumenVisibleValorMoneda,
-                          color: estado.colorTexto,
-                        }}
-                      >
+                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>Descuento</span>
+                      <span style={{ ...resumenVisibleValorMoneda, color: estado.colorTexto }}>
                         {descuentoAceleradoActual}%
                       </span>
                     </div>
@@ -2296,20 +1988,10 @@ function App() {
                 {!resumenContraido && (
                   <>
                     <div style={resumenCompraInicialGrande}>
-                      <div
-                        style={{
-                          ...resumenCompraInicialTitulo,
-                          color: estado.colorTexto,
-                        }}
-                      >
+                      <div style={{ ...resumenCompraInicialTitulo, color: estado.colorTexto }}>
                         Lealtad Acelerado
                       </div>
-                      <div
-                        style={{
-                          ...resumenCompraInicialSubtitulo,
-                          color: estado.colorTexto,
-                        }}
-                      >
+                      <div style={{ ...resumenCompraInicialSubtitulo, color: estado.colorTexto }}>
                         Descuento actual: {descuentoAceleradoActual}%
                       </div>
                     </div>
@@ -2322,22 +2004,11 @@ function App() {
                           backgroundColor: "rgba(255,255,255,0.55)",
                         }}
                       >
-                        <div
-                          style={{
-                            ...resumenFlotanteLabel,
-                            color: estado.colorTexto,
-                          }}
-                        >
+                        <div style={{ ...resumenFlotanteLabel, color: estado.colorTexto }}>
                           Puntos periodo
                         </div>
-                        <div
-                          style={{
-                            ...resumenFlotanteValor,
-                            color: estado.colorTexto,
-                          }}
-                        >
-                          {Number(puntosPersonalesAcelerado || 0) +
-                            Number(puntosGrupalesAcelerado || 0)}
+                        <div style={{ ...resumenFlotanteValor, color: estado.colorTexto }}>
+                          {Number(puntosPersonalesAcelerado || 0) + Number(puntosGrupalesAcelerado || 0)}
                         </div>
                       </div>
 
@@ -2348,20 +2019,10 @@ function App() {
                           backgroundColor: "rgba(255,255,255,0.55)",
                         }}
                       >
-                        <div
-                          style={{
-                            ...resumenFlotanteLabel,
-                            color: estado.colorTexto,
-                          }}
-                        >
+                        <div style={{ ...resumenFlotanteLabel, color: estado.colorTexto }}>
                           Precio público
                         </div>
-                        <div
-                          style={{
-                            ...resumenFlotanteValorMoneda,
-                            color: estado.colorTexto,
-                          }}
-                        >
+                        <div style={{ ...resumenFlotanteValorMoneda, color: estado.colorTexto }}>
                           {formatoMoneda(totalPrecioPublico)}
                         </div>
                       </div>
@@ -2373,20 +2034,10 @@ function App() {
                           backgroundColor: "rgba(255,255,255,0.55)",
                         }}
                       >
-                        <div
-                          style={{
-                            ...resumenFlotanteLabel,
-                            color: estado.colorTexto,
-                          }}
-                        >
+                        <div style={{ ...resumenFlotanteLabel, color: estado.colorTexto }}>
                           Total con {descuentoAceleradoActual}%
                         </div>
-                        <div
-                          style={{
-                            ...resumenFlotanteValorMoneda,
-                            color: estado.colorTexto,
-                          }}
-                        >
+                        <div style={{ ...resumenFlotanteValorMoneda, color: estado.colorTexto }}>
                           {formatoMoneda(totalSegunDescuentoAcelerado)}
                         </div>
                       </div>
@@ -2396,43 +2047,25 @@ function App() {
                       <div style={{ color: estado.colorTexto, fontWeight: "bold" }}>
                         {estado.mensajePrincipal}
                       </div>
-                      <div
-                        style={{
-                          color: estado.colorTexto,
-                          fontWeight: "bold",
-                          marginTop: "8px",
-                        }}
-                      >
+                      <div style={{ color: estado.colorTexto, fontWeight: "bold", marginTop: "8px" }}>
                         {estado.mensajeSecundario}
                       </div>
                     </div>
 
                     <div style={resumenFlotanteBotonesGrid}>
-                      <button
-                        onClick={irAPedidoActual}
-                        style={botonResumenFlotantePrimario}
-                      >
+                      <button onClick={irAPedidoActual} style={botonResumenFlotantePrimario}>
                         Ver pedido
                       </button>
 
-                      <button
-                        onClick={descargarPDFPedido}
-                        style={botonResumenFlotanteAccion}
-                      >
+                      <button onClick={descargarPDFPedido} style={botonResumenFlotanteAccion}>
                         PDF
                       </button>
 
-                      <button
-                        onClick={imprimirFormulario}
-                        style={botonResumenFlotanteAccion}
-                      >
+                      <button onClick={imprimirFormulario} style={botonResumenFlotanteAccion}>
                         Imprimir
                       </button>
 
-                      <button
-                        onClick={irArriba}
-                        style={botonResumenFlotanteSecundario}
-                      >
+                      <button onClick={irArriba} style={botonResumenFlotanteSecundario}>
                         Subir
                       </button>
                     </div>
@@ -2474,8 +2107,7 @@ const brilloSuperior = {
   width: "340px",
   height: "340px",
   borderRadius: "50%",
-  background:
-    "radial-gradient(circle, rgba(251,146,60,0.25) 0%, transparent 70%)",
+  background: "radial-gradient(circle, rgba(251,146,60,0.25) 0%, transparent 70%)",
   pointerEvents: "none",
 };
 
@@ -2486,8 +2118,7 @@ const brilloLateral = {
   width: "250px",
   height: "250px",
   borderRadius: "50%",
-  background:
-    "radial-gradient(circle, rgba(249,115,22,0.10) 0%, transparent 72%)",
+  background: "radial-gradient(circle, rgba(249,115,22,0.10) 0%, transparent 72%)",
   pointerEvents: "none",
 };
 
@@ -2575,16 +2206,8 @@ const panelControles = {
   marginBottom: "20px",
 };
 
-const panelTituloFila = {
-  marginBottom: "18px",
-};
-
-const panelTitulo = {
-  margin: 0,
-  fontSize: "26px",
-  color: "#7c2d12",
-};
-
+const panelTituloFila = { marginBottom: "18px" };
+const panelTitulo = { margin: 0, fontSize: "26px", color: "#7c2d12" };
 const panelSubtitulo = {
   margin: "8px 0 0 0",
   color: "#7c6f64",
@@ -2667,11 +2290,7 @@ const controlInfoNumero = {
   wordBreak: "break-word",
 };
 
-const controlInfoTexto = {
-  marginTop: "8px",
-  color: "#7c6f64",
-};
-
+const controlInfoTexto = { marginTop: "8px", color: "#7c6f64" };
 const labelControl = {
   display: "block",
   marginBottom: "10px",
@@ -2723,15 +2342,8 @@ const dotSemaforo = {
   flexShrink: 0,
 };
 
-const semaforoTitulo = {
-  fontSize: "18px",
-  fontWeight: "bold",
-};
-
-const semaforoTexto = {
-  marginTop: "4px",
-  lineHeight: 1.5,
-};
+const semaforoTitulo = { fontSize: "18px", fontWeight: "bold" };
+const semaforoTexto = { marginTop: "4px", lineHeight: 1.5 };
 
 const pedidoActualPanel = {
   backgroundColor: "rgba(255,255,255,0.95)",
@@ -2750,11 +2362,7 @@ const pedidoVacio = {
   color: "#7c6f64",
 };
 
-const pedidoActualGrid = {
-  display: "grid",
-  gap: "14px",
-};
-
+const pedidoActualGrid = { display: "grid", gap: "14px" };
 const pedidoCard = {
   background: "linear-gradient(180deg, #fffaf5 0%, #fff4ea 100%)",
   border: "1px solid #fde2cc",
@@ -2769,12 +2377,7 @@ const pedidoCardTop = {
   alignItems: "flex-start",
 };
 
-const pedidoCodigo = {
-  fontSize: "12px",
-  color: "#9a3412",
-  fontWeight: "bold",
-};
-
+const pedidoCodigo = { fontSize: "12px", color: "#9a3412", fontWeight: "bold" };
 const pedidoNombre = {
   marginTop: "4px",
   fontSize: "16px",
@@ -2783,11 +2386,7 @@ const pedidoNombre = {
   lineHeight: 1.35,
 };
 
-const pedidoContenido = {
-  marginTop: "4px",
-  fontSize: "12px",
-  color: "#7c6f64",
-};
+const pedidoContenido = { marginTop: "4px", fontSize: "12px", color: "#7c6f64" };
 
 const botonEliminarPedido = {
   padding: "8px 12px",
@@ -2862,10 +2461,7 @@ const accionesResumen = {
   marginTop: "14px",
 };
 
-const cardsProductosMovil = {
-  display: "grid",
-  gap: "14px",
-};
+const cardsProductosMovil = { display: "grid", gap: "14px" };
 
 const cardProductoMovil = {
   background: "linear-gradient(180deg, #fffaf5 0%, #fff4ea 100%)",
@@ -2891,12 +2487,7 @@ const cardProductoTop = {
   alignItems: "flex-start",
 };
 
-const cardCodigo = {
-  fontSize: "12px",
-  color: "#9a3412",
-  fontWeight: "bold",
-};
-
+const cardCodigo = { fontSize: "12px", color: "#9a3412", fontWeight: "bold" };
 const cardNombre = {
   marginTop: "4px",
   fontSize: "16px",
@@ -2905,11 +2496,7 @@ const cardNombre = {
   lineHeight: 1.35,
 };
 
-const cardContenido = {
-  marginTop: "4px",
-  fontSize: "12px",
-  color: "#7c6f64",
-};
+const cardContenido = { marginTop: "4px", fontSize: "12px", color: "#7c6f64" };
 
 const cardBadgeCategoria = {
   padding: "6px 10px",
@@ -2921,10 +2508,7 @@ const cardBadgeCategoria = {
   whiteSpace: "nowrap",
 };
 
-const cardInputRow = {
-  marginTop: "14px",
-};
-
+const cardInputRow = { marginTop: "14px" };
 const labelMini = {
   display: "block",
   marginBottom: "8px",
@@ -2957,12 +2541,7 @@ const miniDatoCard = {
   padding: "10px",
 };
 
-const miniDatoLabel = {
-  fontSize: "11px",
-  color: "#7c6f64",
-  marginBottom: "6px",
-};
-
+const miniDatoLabel = { fontSize: "11px", color: "#7c6f64", marginBottom: "6px" };
 const miniDatoValor = {
   fontSize: "13px",
   fontWeight: "bold",
@@ -2989,25 +2568,11 @@ const filaHeader = {
   background: "linear-gradient(180deg, #fff1e6 0%, #ffe4cf 100%)",
 };
 
-const filaPar = {
-  backgroundColor: "#ffffff",
-};
-
-const filaImpar = {
-  backgroundColor: "#fffaf5",
-};
-
-const filaConCaptura = {
-  backgroundColor: "#fff3e8",
-};
-
-const filaActivaEstilo = {
-  backgroundColor: "#fed7aa",
-};
-
-const filaTotal = {
-  background: "linear-gradient(180deg, #fffaf5 0%, #fff1e6 100%)",
-};
+const filaPar = { backgroundColor: "#ffffff" };
+const filaImpar = { backgroundColor: "#fffaf5" };
+const filaConCaptura = { backgroundColor: "#fff3e8" };
+const filaActivaEstilo = { backgroundColor: "#fed7aa" };
+const filaTotal = { background: "linear-gradient(180deg, #fffaf5 0%, #fff1e6 100%)" };
 
 const estiloTh = {
   textAlign: "left",
@@ -3030,11 +2595,7 @@ const estiloTd = {
   whiteSpace: "nowrap",
 };
 
-const estiloTdProducto = {
-  ...estiloTd,
-  color: "#7c2d12",
-};
-
+const estiloTdProducto = { ...estiloTd, color: "#7c2d12" };
 const estiloTdTotal = {
   padding: "14px 12px",
   borderTop: "1px solid #fde0c8",
@@ -3105,17 +2666,8 @@ const miniBadge = {
   marginBottom: "12px",
 };
 
-const infoCardTitulo = {
-  margin: "0 0 10px 0",
-  color: "#7c2d12",
-};
-
-const infoCardTexto = {
-  margin: "6px 0",
-  color: "#7c6f64",
-  lineHeight: 1.5,
-};
-
+const infoCardTitulo = { margin: "0 0 10px 0", color: "#7c2d12" };
+const infoCardTexto = { margin: "6px 0", color: "#7c6f64", lineHeight: 1.5 };
 const infoCardLink = {
   display: "inline-block",
   marginTop: "8px",
@@ -3156,11 +2708,7 @@ const documentosPanel = {
   marginBottom: "20px",
 };
 
-const listaDocs = {
-  display: "grid",
-  gap: "12px",
-};
-
+const listaDocs = { display: "grid", gap: "12px" };
 const docCard = {
   background: "linear-gradient(180deg, #fffaf5 0%, #fff4ea 100%)",
   borderRadius: "20px",
@@ -3168,30 +2716,10 @@ const docCard = {
   border: "1px solid #fde4d3",
 };
 
-const docTitulo = {
-  fontWeight: "bold",
-  fontSize: "17px",
-  color: "#7c2d12",
-};
-
-const docDescripcion = {
-  marginTop: "8px",
-  color: "#7c6f64",
-  lineHeight: 1.5,
-};
-
-const docArchivo = {
-  marginTop: "8px",
-  color: "#ea580c",
-  fontSize: "13px",
-};
-
-const accionesDoc = {
-  display: "flex",
-  gap: "10px",
-  flexWrap: "wrap",
-  marginTop: "14px",
-};
+const docTitulo = { fontWeight: "bold", fontSize: "17px", color: "#7c2d12" };
+const docDescripcion = { marginTop: "8px", color: "#7c6f64", lineHeight: 1.5 };
+const docArchivo = { marginTop: "8px", color: "#ea580c", fontSize: "13px" };
+const accionesDoc = { display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "14px" };
 
 const botonDocumento = {
   padding: "10px 14px",
@@ -3229,25 +2757,10 @@ const resumenVisibleMiniDatos = {
   flexWrap: "wrap",
 };
 
-const resumenVisibleDato = {
-  display: "flex",
-  flexDirection: "column",
-};
-
-const resumenVisibleLabel = {
-  fontSize: "11px",
-  marginBottom: "2px",
-};
-
-const resumenVisibleValor = {
-  fontSize: "18px",
-  fontWeight: "bold",
-};
-
-const resumenVisibleValorMoneda = {
-  fontSize: "13px",
-  fontWeight: "bold",
-};
+const resumenVisibleDato = { display: "flex", flexDirection: "column" };
+const resumenVisibleLabel = { fontSize: "11px", marginBottom: "2px" };
+const resumenVisibleValor = { fontSize: "18px", fontWeight: "bold" };
+const resumenVisibleValorMoneda = { fontSize: "13px", fontWeight: "bold" };
 
 const botonToggleResumen = {
   padding: "12px 14px",
@@ -3269,21 +2782,9 @@ const resumenFlotanteFilaCompraInicial = {
   marginBottom: "10px",
 };
 
-const resumenFlotanteMini = {
-  borderRadius: "14px",
-  padding: "10px",
-};
-
-const resumenFlotanteLabel = {
-  fontSize: "11px",
-  marginBottom: "4px",
-};
-
-const resumenFlotanteValor = {
-  fontSize: "20px",
-  fontWeight: "bold",
-};
-
+const resumenFlotanteMini = { borderRadius: "14px", padding: "10px" };
+const resumenFlotanteLabel = { fontSize: "11px", marginBottom: "4px" };
+const resumenFlotanteValor = { fontSize: "20px", fontWeight: "bold" };
 const resumenFlotanteValorMoneda = {
   fontSize: "13px",
   fontWeight: "bold",
