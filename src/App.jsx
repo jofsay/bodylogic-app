@@ -384,8 +384,8 @@ function App() {
         colorTexto: "#991b1b",
         colorBorde: "#ef4444",
         colorSemaforo: "#dc2626",
-        mensaje100: `Te faltan ${faltan100} puntos para calificar con 100 puntos y tener derecho a recibir comisiones.`,
-        mensaje200: `Te faltan ${faltan200} puntos para llegar a 200 puntos y mantener el 42% de descuento.`,
+        mensaje100: `Te faltan ${faltan100} puntos para calificar y tener derecho a recibir comisiones.`,
+        mensaje200: `Te faltan ${faltan200} puntos para mantener el 42% de descuento.`,
         califica100: false,
         califica200: false,
       };
@@ -399,7 +399,7 @@ function App() {
         colorBorde: "#f59e0b",
         colorSemaforo: "#d97706",
         mensaje100: "Ya calificas con 100 puntos para tener derecho a recibir comisiones.",
-        mensaje200: `Te faltan ${faltan200} puntos para llegar a 200 puntos y mantener tu descuento del 42%.`,
+        mensaje200: `Te faltan ${faltan200} puntos para mantener tu descuento del 42%.`,
         califica100: true,
         califica200: false,
       };
