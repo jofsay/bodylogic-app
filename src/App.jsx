@@ -377,44 +377,77 @@ function App() {
     const faltan100 = Math.max(100 - totalPuntos, 0);
     const faltan200 = Math.max(200 - totalPuntos, 0);
 
+    const mensaje100 =
+      totalPuntos >= 100
+        ? "¡Felicidades, has cubierto tu calificación de 100 puntos y tienes derecho a recibir comisiones!"
+        : `Te faltan ${faltan100} puntos para calificar y tener derecho a recibir comisiones.`;
+
+    const usa42 = descuentoRecompraActual === 42;
+
+    let mensaje200 = "";
+    if (usa42) {
+      mensaje200 =
+        totalPuntos >= 200
+          ? "¡Felicidades, has cubierto tu calificación de 200 puntos y mantienes el descuento del 42%!"
+          : `Te faltan ${faltan200} puntos para mantener el 42% de descuento.`;
+    }
+
     if (totalPuntos < 100) {
       return {
-        texto: `Aún no calificas para comisiones. Te faltan ${faltan100} puntos para llegar a 100, y ${faltan200} puntos para llegar a 200.`,
+        texto: mensaje100,
         colorFondo: "#fee2e2",
         colorTexto: "#991b1b",
         colorBorde: "#ef4444",
         colorSemaforo: "#dc2626",
-        mensaje100: `Te faltan ${faltan100} puntos para calificar y tener derecho a recibir comisiones.`,
-        mensaje200: `Te faltan ${faltan200} puntos para mantener el 42% de descuento.`,
+        mensaje100,
+        mensaje200,
         califica100: false,
-        califica200: false,
+        califica200: totalPuntos >= 200,
+        usa42,
       };
     }
 
-    if (totalPuntos >= 100 && totalPuntos < 200) {
+    if (usa42) {
+      if (totalPuntos < 200) {
+        return {
+          texto: mensaje100,
+          colorFondo: "#fef3c7",
+          colorTexto: "#92400e",
+          colorBorde: "#f59e0b",
+          colorSemaforo: "#d97706",
+          mensaje100,
+          mensaje200,
+          califica100: true,
+          califica200: false,
+          usa42,
+        };
+      }
+
       return {
-        texto: `Ya calificas con 100 puntos para comisiones. Te faltan ${faltan200} puntos para llegar a 200.`,
-        colorFondo: "#fef3c7",
-        colorTexto: "#92400e",
-        colorBorde: "#f59e0b",
-        colorSemaforo: "#d97706",
-        mensaje100: "¡Felicidades, has cubierto tu calificación de 100 puntos y tienes derecho a recibir comisiones!",
-        mensaje200: `Te faltan ${faltan200} puntos para mantener el descuento del 42%.`,
+        texto: mensaje200,
+        colorFondo: "#ecfccb",
+        colorTexto: "#3f6212",
+        colorBorde: "#84cc16",
+        colorSemaforo: "#65a30d",
+        mensaje100,
+        mensaje200,
         califica100: true,
-        califica200: false,
+        califica200: true,
+        usa42,
       };
     }
 
     return {
-      texto: "Ya calificas con 100 puntos para comisiones y también alcanzas 200 puntos.",
+      texto: mensaje100,
       colorFondo: "#ecfccb",
       colorTexto: "#3f6212",
       colorBorde: "#84cc16",
       colorSemaforo: "#65a30d",
-      mensaje100: "¡Felicidades, has cubierto tu calificación de 100 puntos y tienes derecho a recibir comisiones!",
-      mensaje200: "¡Felicidades, has cubierto tu calificación de 200 puntos y mantienes el descuento del 42%!",
+      mensaje100,
+      mensaje200,
       califica100: true,
-      califica200: true,
+      califica200: false,
+      usa42,
     };
   };
 
@@ -1472,11 +1505,7 @@ function App() {
                           color: estado.colorTexto,
                         }}
                       >
-                        {estado.califica200
-                          ? "Ya calificas con 200 puntos"
-                          : estado.califica100
-                            ? "Ya calificas con 100 puntos"
-                            : "Aún no calificas"}
+                        {estado.califica100 ? "Ya calificas" : "Aún no calificas"}
                       </div>
                       <div
                         style={{
@@ -1566,12 +1595,14 @@ function App() {
                     </div>
 
                     <div style={resumenFlotanteMensaje}>
-                      <div style={{ color: estado.colorTexto, fontWeight: "bold", marginBottom: "6px" }}>
+                      <div style={{ color: estado.colorTexto, fontWeight: "bold" }}>
                         {estado.mensaje100}
                       </div>
-                      <div style={{ color: estado.colorTexto, fontWeight: "bold" }}>
-                        {estado.mensaje200}
-                      </div>
+                      {estado.usa42 && (
+                        <div style={{ color: estado.colorTexto, fontWeight: "bold", marginTop: "8px" }}>
+                          {estado.mensaje200}
+                        </div>
+                      )}
                     </div>
 
                     <div style={resumenFlotanteBotonesGrid}>
