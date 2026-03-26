@@ -17,24 +17,23 @@ function App() {
   const [resumenContraido, setResumenContraido] = useState(false);
   const [descargandoArchivo, setDescargandoArchivo] = useState("");
 
-  // DISTRIBUIDOR INDEPENDIENTE
+  // Distribuidor Independiente
   const [programaRecompra, setProgramaRecompra] = useState("lealtad");
   const [mesLealtad, setMesLealtad] = useState(1);
   const [dentroPrimeros15, setDentroPrimeros15] = useState(true);
 
-  // LEALTAD ACELERADO
+  // Lealtad acelerado
   const [puntosPersonalesAcelerado, setPuntosPersonalesAcelerado] = useState(0);
   const [puntosGrupalesAcelerado, setPuntosGrupalesAcelerado] = useState(0);
   const [acumuladoPrevioAcelerado, setAcumuladoPrevioAcelerado] = useState(0);
 
-  // CLIENTE PREFERENTE
+  // Cliente Preferente
   const [acumuladoPrevioClientePreferente, setAcumuladoPrevioClientePreferente] =
     useState(0);
 
   useEffect(() => {
     const manejarResize = () => {
-      const movil = window.innerWidth <= 768;
-      setEsMovil(movil);
+      setEsMovil(window.innerWidth <= 768);
     };
 
     window.addEventListener("resize", manejarResize);
@@ -177,6 +176,7 @@ function App() {
 
   const productosFiltrados = productosFiltradosBase.filter((item) => {
     if (!textoBusqueda) return true;
+
     return (
       item.producto.toLowerCase().includes(textoBusqueda) ||
       item.codigo.toLowerCase().includes(textoBusqueda) ||
@@ -185,7 +185,7 @@ function App() {
   });
 
   const filasCalculadas = productosFiltrados.map((item) => {
-    const unidades = cantidades[item.codigo] || 0;
+    const unidades = Number(cantidades[item.codigo] || 0);
 
     const subtotalPuntos = unidades * item.puntos;
     const subtotalPrecioPublico = unidades * item.precioPublico;
@@ -225,7 +225,7 @@ function App() {
   });
 
   const filasTotales = productos.map((item) => {
-    const unidades = cantidades[item.codigo] || 0;
+    const unidades = Number(cantidades[item.codigo] || 0);
 
     const subtotalPuntos = unidades * item.puntos;
     const subtotalPrecioPublico = unidades * item.precioPublico;
@@ -240,11 +240,11 @@ function App() {
         ? unidades * item.precio20
         : unidades * item.precioPublico * 0.8;
     const subtotal30 = unidades * item.precio30;
-    const subtotal33 = unitsSafe(unidades) * item.precio33;
-    const subtotal35 = unitsSafe(unidades) * item.precio35;
-    const subtotal37 = unitsSafe(unidades) * item.precio37;
-    const subtotal40 = unitsSafe(unidades) * item.precio40;
-    const subtotal42 = unitsSafe(unidades) * item.precio42;
+    const subtotal33 = unidades * item.precio33;
+    const subtotal35 = unidades * item.precio35;
+    const subtotal37 = unidades * item.precio37;
+    const subtotal40 = unidades * item.precio40;
+    const subtotal42 = unidades * item.precio42;
 
     return {
       ...item,
@@ -264,19 +264,10 @@ function App() {
     };
   });
 
-  function unitsSafe(value) {
-    return Number(value || 0);
-  }
-
-  const productosSeleccionados = filasTotales.filter(
-    (item) => item.unidades > 0
-  );
+  const productosSeleccionados = filasTotales.filter((item) => item.unidades > 0);
 
   const totalUnidades = filasTotales.reduce((acc, item) => acc + item.unidades, 0);
-  const totalPuntos = filasTotales.reduce(
-    (acc, item) => acc + item.subtotalPuntos,
-    0
-  );
+  const totalPuntos = filasTotales.reduce((acc, item) => acc + item.subtotalPuntos, 0);
   const totalPrecioPublico = filasTotales.reduce(
     (acc, item) => acc + item.subtotalPrecioPublico,
     0
@@ -295,9 +286,6 @@ function App() {
   const total40 = filasTotales.reduce((acc, item) => acc + item.subtotal40, 0);
   const total42 = filasTotales.reduce((acc, item) => acc + item.subtotal42, 0);
 
-  // =========================
-  // COMPRA INICIAL DI
-  // =========================
   const obtenerPaqueteCompraInicial = (puntos) => {
     if (puntos >= 500) {
       return {
@@ -402,9 +390,6 @@ function App() {
     };
   };
 
-  // =========================
-  // RECOMPRA DI - LEALTAD
-  // =========================
   const obtenerDescuentoLealtad = (mes) => {
     if (mes <= 1) return 30;
     if (mes <= 3) return 33;
@@ -451,17 +436,17 @@ function App() {
 
     if (!dentroPrimeros15) {
       return {
-        texto: "Esta compra no sostiene tu avance en el programa de lealtad y reinicia tu secuencia.",
+        texto:
+          "Esta compra no sostiene tu avance en el programa de lealtad y reinicia tu secuencia.",
         colorFondo: "#fee2e2",
         colorTexto: "#991b1b",
         colorBorde: "#ef4444",
         colorSemaforo: "#dc2626",
         mensajePrincipal:
           "Esta compra no sostiene tu avance en el programa de lealtad y reinicia tu secuencia.",
-        mensajeSecundario:
-          totalPuntos >= 100
-            ? "Aunque cubriste 100 puntos, al no comprar dentro de los primeros 15 días no conservas continuidad."
-            : `Además, te faltan ${100 - totalPuntos} puntos para cubrir tu calificación de 100 puntos.`,
+        mensajeSecundario: califica100
+          ? "Aunque cubriste 100 puntos, al no comprar dentro de los primeros 15 días no conservas continuidad."
+          : `Además, te faltan ${100 - totalPuntos} puntos para cubrir tu calificación de 100 puntos.`,
         califica100,
         continuidad: false,
       };
@@ -483,8 +468,7 @@ function App() {
     }
 
     if (siguienteEscalonLealtad) {
-      const plural =
-        siguienteEscalonLealtad.mesesFaltantes === 1 ? "mes" : "meses";
+      const plural = siguienteEscalonLealtad.mesesFaltantes === 1 ? "mes" : "meses";
       return {
         texto: `¡Felicidades! Ya sostienes tu mes ${mesLealtad} en Lealtad con ${descuentoLealtadActual}% de descuento.`,
         colorFondo: "#ecfccb",
@@ -514,9 +498,6 @@ function App() {
     };
   };
 
-  // =========================
-  // RECOMPRA DI - LEALTAD ACELERADO
-  // =========================
   const totalAcumuladoAcelerado =
     Number(puntosPersonalesAcelerado || 0) +
     Number(puntosGrupalesAcelerado || 0) +
@@ -530,9 +511,7 @@ function App() {
     return 0;
   };
 
-  const descuentoAceleradoActual = obtenerDescuentoAcelerado(
-    totalAcumuladoAcelerado
-  );
+  const descuentoAceleradoActual = obtenerDescuentoAcelerado(totalAcumuladoAcelerado);
 
   const totalSegunDescuentoAcelerado = (() => {
     switch (descuentoAceleradoActual) {
@@ -556,13 +535,15 @@ function App() {
     return null;
   };
 
-  const siguienteEscalonAcelerado =
-    obtenerSiguienteEscalonAcelerado(totalAcumuladoAcelerado);
+  const siguienteEscalonAcelerado = obtenerSiguienteEscalonAcelerado(
+    totalAcumuladoAcelerado
+  );
 
   const obtenerMensajeAcelerado = () => {
     if (totalAcumuladoAcelerado <= 0) {
       return {
-        texto: "Captura puntos personales, grupales y acumulado previo para evaluar tu Lealtad Acelerado.",
+        texto:
+          "Captura puntos personales, grupales y acumulado previo para evaluar tu Lealtad Acelerado.",
         colorFondo: "#fee2e2",
         colorTexto: "#991b1b",
         colorBorde: "#ef4444",
@@ -599,9 +580,6 @@ function App() {
     };
   };
 
-  // =========================
-  // CLIENTE PREFERENTE
-  // =========================
   const puntosAcumuladosClientePreferente =
     Number(acumuladoPrevioClientePreferente || 0) + Number(totalPuntos || 0);
 
@@ -611,8 +589,9 @@ function App() {
     return 10;
   };
 
-  const descuentoClientePreferenteActual =
-    obtenerDescuentoClientePreferente(puntosAcumuladosClientePreferente);
+  const descuentoClientePreferenteActual = obtenerDescuentoClientePreferente(
+    puntosAcumuladosClientePreferente
+  );
 
   const totalSegunDescuentoClientePreferente = (() => {
     switch (descuentoClientePreferenteActual) {
@@ -636,7 +615,8 @@ function App() {
         colorTexto: "#991b1b",
         colorBorde: "#ef4444",
         colorSemaforo: "#dc2626",
-        mensajePrincipal: `Tu descuento actual como Cliente Preferente es 10%.`,
+        mensajePrincipal:
+          "Tu descuento actual como Cliente Preferente es 10%.",
         mensajeSecundario: `Te faltan ${faltan} puntos acumulados para llegar al 15%.`,
       };
     }
@@ -649,19 +629,23 @@ function App() {
         colorTexto: "#92400e",
         colorBorde: "#f59e0b",
         colorSemaforo: "#d97706",
-        mensajePrincipal: `Tu descuento actual como Cliente Preferente es 15%.`,
+        mensajePrincipal:
+          "Tu descuento actual como Cliente Preferente es 15%.",
         mensajeSecundario: `Te faltan ${faltan} puntos acumulados para llegar al 20%.`,
       };
     }
 
     return {
-      texto: "¡Felicidades! Ya alcanzaste el 20% de descuento como Cliente Preferente.",
+      texto:
+        "¡Felicidades! Ya alcanzaste el 20% de descuento como Cliente Preferente.",
       colorFondo: "#ecfccb",
       colorTexto: "#3f6212",
       colorBorde: "#84cc16",
       colorSemaforo: "#65a30d",
-      mensajePrincipal: "Tu descuento actual como Cliente Preferente es 20%.",
-      mensajeSecundario: "Ya estás en el nivel máximo de Cliente Preferente.",
+      mensajePrincipal:
+        "Tu descuento actual como Cliente Preferente es 20%.",
+      mensajeSecundario:
+        "Ya estás en el nivel máximo de Cliente Preferente.",
     };
   };
 
@@ -745,12 +729,15 @@ function App() {
     if (perfilUsuario === "clientePreferente") {
       return descuentoClientePreferenteActual;
     }
+
     if (modo === "compraInicial") {
       return paqueteActual.descuento;
     }
+
     if (programaRecompra === "lealtad") {
       return descuentoLealtadActual;
     }
+
     return descuentoAceleradoActual;
   };
 
@@ -758,12 +745,15 @@ function App() {
     if (perfilUsuario === "clientePreferente") {
       return totalSegunDescuentoClientePreferente;
     }
+
     if (modo === "compraInicial") {
       return paqueteActual.totalConDescuento;
     }
+
     if (programaRecompra === "lealtad") {
       return totalSegunDescuentoLealtad;
     }
+
     return totalSegunDescuentoAcelerado;
   };
 
@@ -1023,9 +1013,8 @@ function App() {
 
               <div style={fraseAutorContainer}>
                 <div style={fraseAutor}>
-                  Este material ha sido creado por el líder Jorge Francisco
-                  Sánchez Yerenas para el apoyo de su comunidad empresarial
-                  BodyLogic.
+                  Este material ha sido creado por el líder Jorge Francisco Sánchez
+                  Yerenas para el apoyo de su comunidad empresarial BodyLogic.
                 </div>
               </div>
             </div>
@@ -1149,13 +1138,11 @@ function App() {
                             onChange={(e) => setMesLealtad(Number(e.target.value))}
                             style={selectEstilo}
                           >
-                            {Array.from({ length: 18 }, (_, i) => i + 1).map(
-                              (mes) => (
-                                <option key={mes} value={mes}>
-                                  {mes === 18 ? "Mes 18 o más" : `Mes ${mes}`}
-                                </option>
-                              )
-                            )}
+                            {Array.from({ length: 18 }, (_, i) => i + 1).map((mes) => (
+                              <option key={mes} value={mes}>
+                                {mes === 18 ? "Mes 18 o más" : `Mes ${mes}`}
+                              </option>
+                            ))}
                           </select>
                         </div>
 
@@ -1165,9 +1152,7 @@ function App() {
                           </label>
                           <select
                             value={dentroPrimeros15 ? "si" : "no"}
-                            onChange={(e) =>
-                              setDentroPrimeros15(e.target.value === "si")
-                            }
+                            onChange={(e) => setDentroPrimeros15(e.target.value === "si")}
                             style={selectEstilo}
                           >
                             <option value="si">Sí</option>
@@ -1178,34 +1163,26 @@ function App() {
                     ) : (
                       <>
                         <div style={controlCard}>
-                          <label style={labelControl}>
-                            Puntos personales del periodo
-                          </label>
+                          <label style={labelControl}>Puntos personales del periodo</label>
                           <input
                             type="number"
                             min="0"
                             value={puntosPersonalesAcelerado}
                             onChange={(e) =>
-                              setPuntosPersonalesAcelerado(
-                                Number(e.target.value || 0)
-                              )
+                              setPuntosPersonalesAcelerado(Number(e.target.value || 0))
                             }
                             style={inputBusqueda}
                           />
                         </div>
 
                         <div style={controlCard}>
-                          <label style={labelControl}>
-                            Puntos grupales del periodo
-                          </label>
+                          <label style={labelControl}>Puntos grupales del periodo</label>
                           <input
                             type="number"
                             min="0"
                             value={puntosGrupalesAcelerado}
                             onChange={(e) =>
-                              setPuntosGrupalesAcelerado(
-                                Number(e.target.value || 0)
-                              )
+                              setPuntosGrupalesAcelerado(Number(e.target.value || 0))
                             }
                             style={inputBusqueda}
                           />
@@ -1218,18 +1195,16 @@ function App() {
                             min="0"
                             value={acumuladoPrevioAcelerado}
                             onChange={(e) =>
-                              setAcumuladoPrevioAcelerado(
-                                Number(e.target.value || 0)
-                              )
+                              setAcumuladoPrevioAcelerado(Number(e.target.value || 0))
                             }
                             style={inputBusqueda}
                           />
                         </div>
                       </>
                     )}
-                  </div>
+                  </>
                 )}
-              </>
+              </div>
             </>
           ) : (
             <>
@@ -1247,27 +1222,21 @@ function App() {
                     min="0"
                     value={acumuladoPrevioClientePreferente}
                     onChange={(e) =>
-                      setAcumuladoPrevioClientePreferente(
-                        Number(e.target.value || 0)
-                      )
+                      setAcumuladoPrevioClientePreferente(Number(e.target.value || 0))
                     }
                     style={inputBusqueda}
                   />
                 </div>
 
                 <div style={controlInfoCard}>
-                  <div style={controlInfoNumero}>
-                    {descuentoClientePreferenteActual}%
-                  </div>
+                  <div style={controlInfoNumero}>{descuentoClientePreferenteActual}%</div>
                   <div style={controlInfoTexto}>
                     Descuento actual de Cliente Preferente
                   </div>
                 </div>
 
                 <div style={controlInfoCard}>
-                  <div style={controlInfoNumero}>
-                    {puntosAcumuladosClientePreferente}
-                  </div>
+                  <div style={controlInfoNumero}>{puntosAcumuladosClientePreferente}</div>
                   <div style={controlInfoTexto}>Puntos acumulados totales</div>
                 </div>
               </div>
