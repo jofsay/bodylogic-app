@@ -16,9 +16,15 @@ function App() {
   const [resumenContraido, setResumenContraido] = useState(false);
   const [descargandoArchivo, setDescargandoArchivo] = useState("");
 
+  // RECOMPRA
   const [programaRecompra, setProgramaRecompra] = useState("lealtad");
   const [mesLealtad, setMesLealtad] = useState(1);
   const [dentroPrimeros15, setDentroPrimeros15] = useState(true);
+
+  // LEALTAD ACELERADO
+  const [puntosPersonalesAcelerado, setPuntosPersonalesAcelerado] = useState(0);
+  const [puntosGrupalesAcelerado, setPuntosGrupalesAcelerado] = useState(0);
+  const [acumuladoPrevioAcelerado, setAcumuladoPrevioAcelerado] = useState(0);
 
   useEffect(() => {
     const manejarResize = () => {
@@ -253,6 +259,9 @@ function App() {
   const total40 = filasTotales.reduce((acc, item) => acc + item.subtotal40, 0);
   const total42 = filasTotales.reduce((acc, item) => acc + item.subtotal42, 0);
 
+  // =========================
+  // COMPRA INICIAL
+  // =========================
   const obtenerPaqueteCompraInicial = (puntos) => {
     if (puntos >= 500) {
       return {
@@ -357,6 +366,9 @@ function App() {
     };
   };
 
+  // =========================
+  // RECOMPRA - LEALTAD
+  // =========================
   const obtenerDescuentoLealtad = (mes) => {
     if (mes <= 1) return 30;
     if (mes <= 3) return 33;
@@ -467,7 +479,8 @@ function App() {
         colorTexto: "#3f6212",
         colorBorde: "#84cc16",
         colorSemaforo: "#65a30d",
-        mensajePrincipal: `¡Felicidades! Ya sostienes tu calificación de 100 puntos dentro del Programa de Lealtad.`,
+        mensajePrincipal:
+          "¡Felicidades! Ya sostienes tu calificación de 100 puntos dentro del Programa de Lealtad.",
         mensajeSecundario: `Te faltan ${siguienteEscalonLealtad.mesesFaltantes} ${plural} consecutivos para llegar al ${siguienteEscalonLealtad.etiqueta}.`,
         califica100: true,
         continuidad: true,
@@ -489,10 +502,107 @@ function App() {
     };
   };
 
+  // =========================
+  // RECOMPRA - LEALTAD ACELERADO
+  // =========================
+  const totalAcumuladoAcelerado =
+    Number(puntosPersonalesAcelerado || 0) +
+    Number(puntosGrupalesAcelerado || 0) +
+    Number(acumuladoPrevioAcelerado || 0);
+
+  const obtenerDescuentoAcelerado = (acumulado) => {
+    if (acumulado >= 3001) return 42;
+    if (acumulado >= 1501) return 40;
+    if (acumulado >= 501) return 35;
+    if (acumulado >= 1) return 30;
+    return 0;
+  };
+
+  const descuentoAceleradoActual = obtenerDescuentoAcelerado(
+    totalAcumuladoAcelerado
+  );
+
+  const totalSegunDescuentoAcelerado = (() => {
+    switch (descuentoAceleradoActual) {
+      case 30:
+        return total30;
+      case 35:
+        return total35;
+      case 40:
+        return total40;
+      case 42:
+        return total42;
+      default:
+        return 0;
+    }
+  })();
+
+  const obtenerSiguienteEscalonAcelerado = (acumulado) => {
+    if (acumulado < 501) {
+      return { meta: 501, etiqueta: "35%" };
+    }
+    if (acumulado < 1501) {
+      return { meta: 1501, etiqueta: "40%" };
+    }
+    if (acumulado < 3001) {
+      return { meta: 3001, etiqueta: "42%" };
+    }
+    return null;
+  };
+
+  const siguienteEscalonAcelerado =
+    obtenerSiguienteEscalonAcelerado(totalAcumuladoAcelerado);
+
+  const obtenerMensajeAcelerado = () => {
+    if (totalAcumuladoAcelerado <= 0) {
+      return {
+        texto: "Captura puntos personales, grupales y acumulado previo para evaluar tu Lealtad Acelerado.",
+        colorFondo: "#fee2e2",
+        colorTexto: "#991b1b",
+        colorBorde: "#ef4444",
+        colorSemaforo: "#dc2626",
+        mensajePrincipal:
+          "Aún no has capturado puntos suficientes para evaluar el Programa de Lealtad Acelerado.",
+        mensajeSecundario:
+          "Ingresa tus puntos personales, grupales y acumulado previo.",
+      };
+    }
+
+    if (siguienteEscalonAcelerado) {
+      const faltan = siguienteEscalonAcelerado.meta - totalAcumuladoAcelerado;
+      return {
+        texto: `Tu acumulado actual es de ${totalAcumuladoAcelerado} puntos y te coloca en ${descuentoAceleradoActual}% dentro del Programa de Lealtad Acelerado.`,
+        colorFondo:
+          descuentoAceleradoActual >= 35 ? "#fef3c7" : "#fee2e2",
+        colorTexto:
+          descuentoAceleradoActual >= 35 ? "#92400e" : "#991b1b",
+        colorBorde:
+          descuentoAceleradoActual >= 35 ? "#f59e0b" : "#ef4444",
+        colorSemaforo:
+          descuentoAceleradoActual >= 35 ? "#d97706" : "#dc2626",
+        mensajePrincipal: `Tu acumulado actual es de ${totalAcumuladoAcelerado} puntos y ya estás en ${descuentoAceleradoActual}% de descuento.`,
+        mensajeSecundario: `Te faltan ${faltan} puntos acumulados para llegar al ${siguienteEscalonAcelerado.etiqueta}.`,
+      };
+    }
+
+    return {
+      texto: `¡Felicidades! Ya alcanzaste ${totalAcumuladoAcelerado} puntos acumulados y entras al 42% en Lealtad Acelerado.`,
+      colorFondo: "#ecfccb",
+      colorTexto: "#3f6212",
+      colorBorde: "#84cc16",
+      colorSemaforo: "#65a30d",
+      mensajePrincipal:
+        "¡Felicidades! Ya alcanzaste el tramo máximo del Programa de Lealtad Acelerado.",
+      mensajeSecundario: "Ya estás en 42% de descuento por acumulado.",
+    };
+  };
+
   const estado =
     modo === "compraInicial"
       ? obtenerMensajeCompraInicial()
-      : obtenerMensajeLealtad();
+      : programaRecompra === "lealtad"
+        ? obtenerMensajeLealtad()
+        : obtenerMensajeAcelerado();
 
   const formatoMoneda = (numero) => {
     return Number(numero || 0).toLocaleString("es-MX", {
@@ -515,21 +625,36 @@ function App() {
       }
     }
 
-    switch (descuentoLealtadActual) {
+    if (programaRecompra === "lealtad") {
+      switch (descuentoLealtadActual) {
+        case 30:
+          return item.subtotal30;
+        case 33:
+          return item.subtotal33;
+        case 35:
+          return item.subtotal35;
+        case 37:
+          return item.subtotal37;
+        case 40:
+          return item.subtotal40;
+        case 42:
+          return item.subtotal42;
+        default:
+          return item.subtotal30;
+      }
+    }
+
+    switch (descuentoAceleradoActual) {
       case 30:
         return item.subtotal30;
-      case 33:
-        return item.subtotal33;
       case 35:
         return item.subtotal35;
-      case 37:
-        return item.subtotal37;
       case 40:
         return item.subtotal40;
       case 42:
         return item.subtotal42;
       default:
-        return item.subtotal30;
+        return 0;
     }
   };
 
@@ -558,10 +683,14 @@ function App() {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
 
-    const textoModo =
-      modo === "compraInicial"
-        ? `Compra inicial | ${paqueteActual.nombre} | ${paqueteActual.descuento}%`
-        : `Recompra mensual | Programa de Lealtad | Mes ${mesLealtad} | ${descuentoLealtadActual}%`;
+    let textoModo = "";
+    if (modo === "compraInicial") {
+      textoModo = `Compra inicial | ${paqueteActual.nombre} | ${paqueteActual.descuento}%`;
+    } else if (programaRecompra === "lealtad") {
+      textoModo = `Recompra mensual | Programa de Lealtad | Mes ${mesLealtad} | ${descuentoLealtadActual}%`;
+    } else {
+      textoModo = `Recompra mensual | Lealtad Acelerado | Acumulado ${totalAcumuladoAcelerado} | ${descuentoAceleradoActual}%`;
+    }
 
     doc.text(textoModo, 40, 60);
 
@@ -579,6 +708,13 @@ function App() {
       formatoMoneda(obtenerTotalPedidoActual(item)),
     ]);
 
+    const descuentoActualPDF =
+      modo === "compraInicial"
+        ? paqueteActual.descuento
+        : programaRecompra === "lealtad"
+          ? descuentoLealtadActual
+          : descuentoAceleradoActual;
+
     autoTable(doc, {
       startY: 145,
       head: [[
@@ -587,7 +723,7 @@ function App() {
         "Subtotal puntos",
         "Subtotal precio público",
         "Subtotal valor comisionable",
-        `Subtotal ${modo === "compraInicial" ? paqueteActual.descuento : descuentoLealtadActual}%`,
+        `Subtotal ${descuentoActualPDF}%`,
       ]],
       body,
       theme: "grid",
@@ -611,6 +747,13 @@ function App() {
 
     const finalY = doc.lastAutoTable.finalY + 22;
 
+    const totalConDescuentoPDF =
+      modo === "compraInicial"
+        ? paqueteActual.totalConDescuento
+        : programaRecompra === "lealtad"
+          ? totalSegunDescuentoLealtad
+          : totalSegunDescuentoAcelerado;
+
     doc.setDrawColor(234, 88, 12);
     doc.setLineWidth(1);
     doc.line(40, finalY, 802, finalY);
@@ -632,11 +775,7 @@ function App() {
       finalY + 44
     );
     doc.text(
-      `Total con descuento: ${formatoMoneda(
-        modo === "compraInicial"
-          ? paqueteActual.totalConDescuento
-          : totalSegunDescuentoLealtad
-      )}`,
+      `Total con descuento: ${formatoMoneda(totalConDescuentoPDF)}`,
       330,
       finalY + 44
     );
@@ -681,6 +820,27 @@ function App() {
       return;
     }
 
+    const descuentoActualImpresion =
+      modo === "compraInicial"
+        ? paqueteActual.descuento
+        : programaRecompra === "lealtad"
+          ? descuentoLealtadActual
+          : descuentoAceleradoActual;
+
+    const totalConDescuentoImpresion =
+      modo === "compraInicial"
+        ? paqueteActual.totalConDescuento
+        : programaRecompra === "lealtad"
+          ? totalSegunDescuentoLealtad
+          : totalSegunDescuentoAcelerado;
+
+    const subtituloImpresion =
+      modo === "compraInicial"
+        ? `Compra inicial | ${paqueteActual.nombre} | ${paqueteActual.descuento}%`
+        : programaRecompra === "lealtad"
+          ? `Recompra mensual | Programa de Lealtad | Mes ${mesLealtad} | ${descuentoLealtadActual}%`
+          : `Recompra mensual | Lealtad Acelerado | Acumulado ${totalAcumuladoAcelerado} | ${descuentoAceleradoActual}%`;
+
     ventana.document.write(`
       <html>
         <head>
@@ -702,13 +862,7 @@ function App() {
         <body>
           <div class="encabezado">
             <h1>BodyLogic - Formulario de compra</h1>
-            <div class="sub">
-              ${
-                modo === "compraInicial"
-                  ? `Compra inicial | ${paqueteActual.nombre} | ${paqueteActual.descuento}%`
-                  : `Recompra mensual | Programa de Lealtad | Mes ${mesLealtad} | ${descuentoLealtadActual}%`
-              }
-            </div>
+            <div class="sub">${subtituloImpresion}</div>
           </div>
 
           <div class="meta">
@@ -724,7 +878,7 @@ function App() {
                 <th>Subtotal puntos</th>
                 <th>Subtotal precio público</th>
                 <th>Subtotal valor comisionable</th>
-                <th>Subtotal con descuento</th>
+                <th>Subtotal con ${descuentoActualImpresion}%</th>
               </tr>
             </thead>
             <tbody>
@@ -737,11 +891,7 @@ function App() {
             <div><strong>Total de puntos:</strong> ${totalPuntos}</div>
             <div><strong>Total precio público:</strong> ${formatoMoneda(totalPrecioPublico)}</div>
             <div><strong>Total valor comisionable:</strong> ${formatoMoneda(totalValorComisionable)}</div>
-            <div><strong>Total con descuento:</strong> ${formatoMoneda(
-              modo === "compraInicial"
-                ? paqueteActual.totalConDescuento
-                : totalSegunDescuentoLealtad
-            )}</div>
+            <div><strong>Total con descuento:</strong> ${formatoMoneda(totalConDescuentoImpresion)}</div>
           </div>
 
           <div class="firma">
@@ -861,37 +1011,83 @@ function App() {
                     style={selectEstilo}
                   >
                     <option value="lealtad">Programa de Lealtad</option>
+                    <option value="acelerado">Lealtad Acelerado</option>
                   </select>
                 </div>
 
-                <div style={controlCard}>
-                  <label style={labelControl}>Mes actual del programa</label>
-                  <select
-                    value={mesLealtad}
-                    onChange={(e) => setMesLealtad(Number(e.target.value))}
-                    style={selectEstilo}
-                  >
-                    {Array.from({ length: 18 }, (_, i) => i + 1).map((mes) => (
-                      <option key={mes} value={mes}>
-                        {mes === 18 ? "Mes 18 o más" : `Mes ${mes}`}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {programaRecompra === "lealtad" ? (
+                  <>
+                    <div style={controlCard}>
+                      <label style={labelControl}>Mes actual del programa</label>
+                      <select
+                        value={mesLealtad}
+                        onChange={(e) => setMesLealtad(Number(e.target.value))}
+                        style={selectEstilo}
+                      >
+                        {Array.from({ length: 18 }, (_, i) => i + 1).map((mes) => (
+                          <option key={mes} value={mes}>
+                            {mes === 18 ? "Mes 18 o más" : `Mes ${mes}`}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                <div style={controlCard}>
-                  <label style={labelControl}>
-                    ¿Compras dentro de los primeros 15 días?
-                  </label>
-                  <select
-                    value={dentroPrimeros15 ? "si" : "no"}
-                    onChange={(e) => setDentroPrimeros15(e.target.value === "si")}
-                    style={selectEstilo}
-                  >
-                    <option value="si">Sí</option>
-                    <option value="no">No</option>
-                  </select>
-                </div>
+                    <div style={controlCard}>
+                      <label style={labelControl}>
+                        ¿Compras dentro de los primeros 15 días?
+                      </label>
+                      <select
+                        value={dentroPrimeros15 ? "si" : "no"}
+                        onChange={(e) => setDentroPrimeros15(e.target.value === "si")}
+                        style={selectEstilo}
+                      >
+                        <option value="si">Sí</option>
+                        <option value="no">No</option>
+                      </select>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={controlCard}>
+                      <label style={labelControl}>Puntos personales del periodo</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={puntosPersonalesAcelerado}
+                        onChange={(e) =>
+                          setPuntosPersonalesAcelerado(Number(e.target.value || 0))
+                        }
+                        style={inputBusqueda}
+                      />
+                    </div>
+
+                    <div style={controlCard}>
+                      <label style={labelControl}>Puntos grupales del periodo</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={puntosGrupalesAcelerado}
+                        onChange={(e) =>
+                          setPuntosGrupalesAcelerado(Number(e.target.value || 0))
+                        }
+                        style={inputBusqueda}
+                      />
+                    </div>
+
+                    <div style={controlCard}>
+                      <label style={labelControl}>Acumulado previo</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={acumuladoPrevioAcelerado}
+                        onChange={(e) =>
+                          setAcumuladoPrevioAcelerado(Number(e.target.value || 0))
+                        }
+                        style={inputBusqueda}
+                      />
+                    </div>
+                  </>
+                )}
               </>
             )}
           </div>
@@ -933,7 +1129,9 @@ function App() {
             <div style={{ ...semaforoTitulo, color: estado.colorTexto }}>
               {modo === "compraInicial"
                 ? "Lectura automática de compra inicial"
-                : "Lectura de recompra mensual"}
+                : programaRecompra === "lealtad"
+                  ? "Lectura de recompra mensual - Lealtad"
+                  : "Lectura de recompra mensual - Lealtad Acelerado"}
             </div>
             <div style={{ ...semaforoTexto, color: estado.colorTexto }}>
               {estado.texto}
@@ -1014,7 +1212,9 @@ function App() {
                       label={`Con ${
                         modo === "compraInicial"
                           ? paqueteActual.descuento
-                          : descuentoLealtadActual
+                          : programaRecompra === "lealtad"
+                            ? descuentoLealtadActual
+                            : descuentoAceleradoActual
                       }%`}
                       valor={formatoMoneda(obtenerTotalPedidoActual(item))}
                     />
@@ -1508,7 +1708,7 @@ function App() {
                   </>
                 )}
               </>
-            ) : (
+            ) : programaRecompra === "lealtad" ? (
               <>
                 <div style={resumenVisibleSiempre}>
                   <div style={resumenVisibleMiniDatos}>
@@ -1705,6 +1905,202 @@ function App() {
                   </>
                 )}
               </>
+            ) : (
+              <>
+                <div style={resumenVisibleSiempre}>
+                  <div style={resumenVisibleMiniDatos}>
+                    <div style={resumenVisibleDato}>
+                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
+                        Programa
+                      </span>
+                      <span
+                        style={{
+                          ...resumenVisibleValorMoneda,
+                          color: estado.colorTexto,
+                        }}
+                      >
+                        Acelerado
+                      </span>
+                    </div>
+
+                    <div style={resumenVisibleDato}>
+                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
+                        Acumulado
+                      </span>
+                      <span style={{ ...resumenVisibleValor, color: estado.colorTexto }}>
+                        {totalAcumuladoAcelerado}
+                      </span>
+                    </div>
+
+                    <div style={resumenVisibleDato}>
+                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
+                        Descuento
+                      </span>
+                      <span
+                        style={{
+                          ...resumenVisibleValorMoneda,
+                          color: estado.colorTexto,
+                        }}
+                      >
+                        {descuentoAceleradoActual}%
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setResumenContraido(!resumenContraido)}
+                    style={botonToggleResumen}
+                  >
+                    {resumenContraido ? "▼ Mostrar" : "▲ Ocultar"}
+                  </button>
+                </div>
+
+                {!resumenContraido && (
+                  <>
+                    <div style={resumenCompraInicialGrande}>
+                      <div
+                        style={{
+                          ...resumenCompraInicialTitulo,
+                          color: estado.colorTexto,
+                        }}
+                      >
+                        Lealtad Acelerado
+                      </div>
+                      <div
+                        style={{
+                          ...resumenCompraInicialSubtitulo,
+                          color: estado.colorTexto,
+                        }}
+                      >
+                        Descuento actual: {descuentoAceleradoActual}%
+                      </div>
+                    </div>
+
+                    <div style={resumenFlotanteFilaCompraInicial}>
+                      <div
+                        style={{
+                          ...resumenFlotanteMini,
+                          border: `1px solid ${estado.colorBorde}`,
+                          backgroundColor: "rgba(255,255,255,0.55)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            ...resumenFlotanteLabel,
+                            color: estado.colorTexto,
+                          }}
+                        >
+                          Puntos periodo
+                        </div>
+                        <div
+                          style={{
+                            ...resumenFlotanteValor,
+                            color: estado.colorTexto,
+                          }}
+                        >
+                          {Number(puntosPersonalesAcelerado || 0) +
+                            Number(puntosGrupalesAcelerado || 0)}
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          ...resumenFlotanteMini,
+                          border: `1px solid ${estado.colorBorde}`,
+                          backgroundColor: "rgba(255,255,255,0.55)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            ...resumenFlotanteLabel,
+                            color: estado.colorTexto,
+                          }}
+                        >
+                          Precio público
+                        </div>
+                        <div
+                          style={{
+                            ...resumenFlotanteValorMoneda,
+                            color: estado.colorTexto,
+                          }}
+                        >
+                          {formatoMoneda(totalPrecioPublico)}
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          ...resumenFlotanteMini,
+                          border: `1px solid ${estado.colorBorde}`,
+                          backgroundColor: "rgba(255,255,255,0.55)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            ...resumenFlotanteLabel,
+                            color: estado.colorTexto,
+                          }}
+                        >
+                          Total con {descuentoAceleradoActual}%
+                        </div>
+                        <div
+                          style={{
+                            ...resumenFlotanteValorMoneda,
+                            color: estado.colorTexto,
+                          }}
+                        >
+                          {formatoMoneda(totalSegunDescuentoAcelerado)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={resumenFlotanteMensaje}>
+                      <div style={{ color: estado.colorTexto, fontWeight: "bold" }}>
+                        {estado.mensajePrincipal}
+                      </div>
+                      <div
+                        style={{
+                          color: estado.colorTexto,
+                          fontWeight: "bold",
+                          marginTop: "8px",
+                        }}
+                      >
+                        {estado.mensajeSecundario}
+                      </div>
+                    </div>
+
+                    <div style={resumenFlotanteBotonesGrid}>
+                      <button
+                        onClick={irAPedidoActual}
+                        style={botonResumenFlotantePrimario}
+                      >
+                        Ver pedido
+                      </button>
+
+                      <button
+                        onClick={descargarPDFPedido}
+                        style={botonResumenFlotanteAccion}
+                      >
+                        PDF
+                      </button>
+
+                      <button
+                        onClick={imprimirFormulario}
+                        style={botonResumenFlotanteAccion}
+                      >
+                        Imprimir
+                      </button>
+
+                      <button
+                        onClick={irArriba}
+                        style={botonResumenFlotanteSecundario}
+                      >
+                        Subir
+                      </button>
+                    </div>
+                  </>
+                )}
+              </>
             )}
           </div>
         )}
@@ -1740,7 +2136,8 @@ const brilloSuperior = {
   width: "340px",
   height: "340px",
   borderRadius: "50%",
-  background: "radial-gradient(circle, rgba(251,146,60,0.25) 0%, transparent 70%)",
+  background:
+    "radial-gradient(circle, rgba(251,146,60,0.25) 0%, transparent 70%)",
   pointerEvents: "none",
 };
 
@@ -1751,7 +2148,8 @@ const brilloLateral = {
   width: "250px",
   height: "250px",
   borderRadius: "50%",
-  background: "radial-gradient(circle, rgba(249,115,22,0.10) 0%, transparent 72%)",
+  background:
+    "radial-gradient(circle, rgba(249,115,22,0.10) 0%, transparent 72%)",
   pointerEvents: "none",
 };
 
