@@ -338,7 +338,7 @@ function App() {
         colorTexto: "#3f6212",
         colorBorde: "#84cc16",
         colorSemaforo: "#65a30d",
-        siguienteMensaje: "Ya estás en el paquete más alto de compra inicial.",
+        siguienteMensaje: "¡Felicidades, ya cubriste los puntos para el paquete más alto de compra inicial!",
       };
     }
 
