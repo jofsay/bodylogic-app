@@ -6,7 +6,6 @@ import autoTable from "jspdf-autotable";
 function App() {
   const [cantidades, setCantidades] = useState({});
   const [modo, setModo] = useState("compraInicial");
-  const [paqueteSeleccionado, setPaqueteSeleccionado] = useState(100);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState("TODAS");
   const [filaActiva, setFilaActiva] = useState("");
   const [busqueda, setBusqueda] = useState("");
@@ -177,6 +176,7 @@ function App() {
     const subtotalPrecioPublico = unidades * item.precioPublico;
     const subtotalValorComisionable = unidades * item.valorComisionable;
     const subtotal30 = unidades * item.precio30;
+    const subtotal33 = unidades * item.precio33;
     const subtotal42 = unidades * item.precio42;
 
     return {
@@ -186,6 +186,7 @@ function App() {
       subtotalPrecioPublico,
       subtotalValorComisionable,
       subtotal30,
+      subtotal33,
       subtotal42,
     };
   });
@@ -197,6 +198,7 @@ function App() {
     const subtotalPrecioPublico = unidades * item.precioPublico;
     const subtotalValorComisionable = unidades * item.valorComisionable;
     const subtotal30 = unidades * item.precio30;
+    const subtotal33 = unidades * item.precio33;
     const subtotal42 = unidades * item.precio42;
 
     return {
@@ -206,6 +208,7 @@ function App() {
       subtotalPrecioPublico,
       subtotalValorComisionable,
       subtotal30,
+      subtotal33,
       subtotal42,
     };
   });
@@ -228,29 +231,114 @@ function App() {
     0
   );
   const total30 = filasTotales.reduce((acc, item) => acc + item.subtotal30, 0);
+  const total33 = filasTotales.reduce((acc, item) => acc + item.subtotal33, 0);
   const total42 = filasTotales.reduce((acc, item) => acc + item.subtotal42, 0);
 
-  const obtenerEstadoPuntos = () => {
-    if (modo === "compraInicial") {
-      if (totalPuntos >= paqueteSeleccionado) {
-        return {
-          texto: `Ya cubriste los ${paqueteSeleccionado} puntos de este paquete. ¡MUCHAS FELICIDADES, RECIBE UNA CORDIAL BIENVENIDA!`,
-          colorFondo: "#ecfccb",
-          colorTexto: "#3f6212",
-          colorBorde: "#84cc16",
-          colorSemaforo: "#65a30d",
-        };
-      } else {
-        return {
-          texto: `Te faltan ${paqueteSeleccionado - totalPuntos} puntos para poder adquirir este paquete.`,
-          colorFondo: "#fee2e2",
-          colorTexto: "#991b1b",
-          colorBorde: "#ef4444",
-          colorSemaforo: "#dc2626",
-        };
-      }
+  const obtenerPaqueteCompraInicial = (puntos) => {
+    if (puntos >= 500) {
+      return {
+        nombre: "Paquete 500",
+        puntosBase: 500,
+        descuento: 42,
+        totalConDescuento: total42,
+        siguientePaquete: null,
+        siguienteObjetivo: null,
+      };
     }
 
+    if (puntos >= 400) {
+      return {
+        nombre: "Paquete 400",
+        puntosBase: 400,
+        descuento: 33,
+        totalConDescuento: total33,
+        siguientePaquete: "Paquete 500",
+        siguienteObjetivo: 500,
+      };
+    }
+
+    if (puntos >= 300) {
+      return {
+        nombre: "Paquete 300",
+        puntosBase: 300,
+        descuento: 33,
+        totalConDescuento: total33,
+        siguientePaquete: "Paquete 400",
+        siguienteObjetivo: 400,
+      };
+    }
+
+    if (puntos >= 200) {
+      return {
+        nombre: "Paquete 200",
+        puntosBase: 200,
+        descuento: 33,
+        totalConDescuento: total33,
+        siguientePaquete: "Paquete 300",
+        siguienteObjetivo: 300,
+      };
+    }
+
+    if (puntos >= 100) {
+      return {
+        nombre: "Paquete 100",
+        puntosBase: 100,
+        descuento: 30,
+        totalConDescuento: total30,
+        siguientePaquete: "Paquete 200",
+        siguienteObjetivo: 200,
+      };
+    }
+
+    return {
+      nombre: "Aún no calificas",
+      puntosBase: 0,
+      descuento: 0,
+      totalConDescuento: 0,
+      siguientePaquete: "Paquete 100",
+      siguienteObjetivo: 100,
+    };
+  };
+
+  const paqueteActual = obtenerPaqueteCompraInicial(totalPuntos);
+
+  const obtenerMensajeCompraInicial = () => {
+    if (totalPuntos < 100) {
+      const faltan = 100 - totalPuntos;
+      return {
+        texto: `Te faltan ${faltan} puntos para iniciar con el paquete de 100 puntos.`,
+        colorFondo: "#fee2e2",
+        colorTexto: "#991b1b",
+        colorBorde: "#ef4444",
+        colorSemaforo: "#dc2626",
+        siguienteMensaje: `Te faltan ${faltan} puntos para iniciar (${paqueteActual.siguientePaquete}).`,
+      };
+    }
+
+    if (totalPuntos >= 500) {
+      return {
+        texto: `Ya alcanzaste el paquete de 500 puntos y el 42% de descuento. ¡Estás en el nivel más alto de compra inicial!`,
+        colorFondo: "#ecfccb",
+        colorTexto: "#3f6212",
+        colorBorde: "#84cc16",
+        colorSemaforo: "#65a30d",
+        siguienteMensaje: "Ya estás en el paquete más alto de compra inicial.",
+      };
+    }
+
+    const faltan = paqueteActual.siguienteObjetivo - totalPuntos;
+
+    return {
+      texto: `Ya estás dentro del ${paqueteActual.nombre} con ${paqueteActual.descuento}% de descuento. Te faltan ${faltan} puntos para alcanzar ${paqueteActual.siguientePaquete}.`,
+      colorFondo: "#fef3c7",
+      colorTexto: "#92400e",
+      colorBorde: "#f59e0b",
+      colorSemaforo: "#d97706",
+      siguienteMensaje: `Te faltan ${faltan} puntos para llegar a ${paqueteActual.siguientePaquete}.`,
+    };
+  };
+
+  const obtenerEstadoRecompra = () => {
     if (totalPuntos < 100) {
       return {
         texto: "Esta recompra aún no te califica para recibir comisiones. Necesitas mínimo 100 puntos para calificar.",
@@ -280,7 +368,10 @@ function App() {
     };
   };
 
-  const estado = obtenerEstadoPuntos();
+  const estado =
+    modo === "compraInicial"
+      ? obtenerMensajeCompraInicial()
+      : obtenerEstadoRecompra();
 
   const formatoMoneda = (numero) => {
     return Number(numero || 0).toLocaleString("es-MX", {
@@ -313,13 +404,13 @@ function App() {
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
-    doc.text(
+
+    const textoModo =
       modo === "compraInicial"
-        ? `Compra inicial | Paquete elegido: ${paqueteSeleccionado} puntos`
-        : "Recompra mensual",
-      40,
-      60
-    );
+        ? `Compra inicial | ${paqueteActual.nombre} | ${paqueteActual.descuento}%`
+        : "Recompra mensual";
+
+    doc.text(textoModo, 40, 60);
 
     doc.setTextColor(80, 80, 80);
     doc.setFontSize(10);
@@ -333,6 +424,7 @@ function App() {
       formatoMoneda(item.subtotalPrecioPublico),
       formatoMoneda(item.subtotalValorComisionable),
       formatoMoneda(item.subtotal30),
+      formatoMoneda(item.subtotal33),
       formatoMoneda(item.subtotal42),
     ]);
 
@@ -345,6 +437,7 @@ function App() {
         "Subtotal precio público",
         "Subtotal valor comisionable",
         "Subtotal 30%",
+        "Subtotal 33%",
         "Subtotal 42%",
       ]],
       body,
@@ -360,15 +453,6 @@ function App() {
         cellPadding: 6,
         textColor: [40, 40, 40],
         valign: "middle",
-      },
-      columnStyles: {
-        0: { cellWidth: 210 },
-        1: { cellWidth: 60, halign: "center" },
-        2: { cellWidth: 80, halign: "center" },
-        3: { cellWidth: 110, halign: "right" },
-        4: { cellWidth: 120, halign: "right" },
-        5: { cellWidth: 90, halign: "right" },
-        6: { cellWidth: 90, halign: "right" },
       },
       alternateRowStyles: {
         fillColor: [255, 250, 245],
@@ -399,7 +483,8 @@ function App() {
       finalY + 44
     );
     doc.text(`Total 30%: ${formatoMoneda(total30)}`, 330, finalY + 44);
-    doc.text(`Total 42%: ${formatoMoneda(total42)}`, 540, finalY + 44);
+    doc.text(`Total 33%: ${formatoMoneda(total33)}`, 520, finalY + 44);
+    doc.text(`Total 42%: ${formatoMoneda(total42)}`, 680, finalY + 44);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
@@ -429,6 +514,7 @@ function App() {
             <td style="text-align:right;">${formatoMoneda(item.subtotalPrecioPublico)}</td>
             <td style="text-align:right;">${formatoMoneda(item.subtotalValorComisionable)}</td>
             <td style="text-align:right;">${formatoMoneda(item.subtotal30)}</td>
+            <td style="text-align:right;">${formatoMoneda(item.subtotal33)}</td>
             <td style="text-align:right;">${formatoMoneda(item.subtotal42)}</td>
           </tr>
         `
@@ -466,7 +552,7 @@ function App() {
             <div class="sub">
               ${
                 modo === "compraInicial"
-                  ? `Compra inicial | Paquete elegido: ${paqueteSeleccionado} puntos`
+                  ? `Compra inicial | ${paqueteActual.nombre} | ${paqueteActual.descuento}%`
                   : "Recompra mensual"
               }
             </div>
@@ -486,6 +572,7 @@ function App() {
                 <th>Subtotal precio público</th>
                 <th>Subtotal valor comisionable</th>
                 <th>Subtotal 30%</th>
+                <th>Subtotal 33%</th>
                 <th>Subtotal 42%</th>
               </tr>
             </thead>
@@ -500,6 +587,7 @@ function App() {
             <div><strong>Total precio público:</strong> ${formatoMoneda(totalPrecioPublico)}</div>
             <div><strong>Total valor comisionable:</strong> ${formatoMoneda(totalValorComisionable)}</div>
             <div><strong>Total 30%:</strong> ${formatoMoneda(total30)}</div>
+            <div><strong>Total 33%:</strong> ${formatoMoneda(total33)}</div>
             <div><strong>Total 42%:</strong> ${formatoMoneda(total42)}</div>
           </div>
 
@@ -518,6 +606,8 @@ function App() {
 
     ventana.document.close();
   };
+
+  const telefonoCentroServicio = "8007024840";
 
   return (
     <div style={pagina}>
@@ -575,23 +665,6 @@ function App() {
           </div>
 
           <div style={gridControles}>
-            {modo === "compraInicial" && (
-              <div style={controlCard}>
-                <label style={labelControl}>Paquete de Ingreso</label>
-                <select
-                  value={paqueteSeleccionado}
-                  onChange={(e) => setPaqueteSeleccionado(Number(e.target.value))}
-                  style={selectEstilo}
-                >
-                  <option value={100}>100 puntos</option>
-                  <option value={200}>200 puntos</option>
-                  <option value={300}>300 puntos</option>
-                  <option value={400}>400 puntos</option>
-                  <option value={500}>500 puntos</option>
-                </select>
-              </div>
-            )}
-
             <div style={controlCard}>
               <label style={labelControl}>Filtrar por categoría</label>
               <select
@@ -620,11 +693,17 @@ function App() {
 
             <div style={controlInfoCard}>
               <div style={controlInfoNumero}>
-                {categoriaSeleccionada === "TODAS"
-                  ? "Todas"
-                  : categoriaSeleccionada}
+                {modo === "compraInicial"
+                  ? paqueteActual.nombre
+                  : categoriaSeleccionada === "TODAS"
+                    ? "Todas"
+                    : categoriaSeleccionada}
               </div>
-              <div style={controlInfoTexto}>Categoría visible</div>
+              <div style={controlInfoTexto}>
+                {modo === "compraInicial"
+                  ? "Paquete detectado automáticamente"
+                  : "Categoría visible"}
+              </div>
             </div>
           </div>
 
@@ -663,7 +742,9 @@ function App() {
           />
           <div>
             <div style={{ ...semaforoTitulo, color: estado.colorTexto }}>
-              Semáforo de puntos
+              {modo === "compraInicial"
+                ? "Lectura automática de compra inicial"
+                : "Semáforo de puntos"}
             </div>
             <div style={{ ...semaforoTexto, color: estado.colorTexto }}>
               {estado.texto}
@@ -747,6 +828,10 @@ function App() {
                     <MiniDato
                       label="30%"
                       valor={formatoMoneda(item.subtotal30)}
+                    />
+                    <MiniDato
+                      label="33%"
+                      valor={formatoMoneda(item.subtotal33)}
                     />
                     <MiniDato
                       label="42%"
@@ -833,6 +918,10 @@ function App() {
                       <MiniDato
                         label="30%"
                         valor={formatoMoneda(item.subtotal30)}
+                      />
+                      <MiniDato
+                        label="33%"
+                        valor={formatoMoneda(item.subtotal33)}
                       />
                       <MiniDato
                         label="42%"
@@ -985,7 +1074,9 @@ function App() {
               <div style={infoCard}>
                 <div style={miniBadge}>Teléfono</div>
                 <h3 style={infoCardTitulo}>Centro de servicio</h3>
-                <p style={infoCardDato}>800 702 4840</p>
+                <a href={`tel:${telefonoCentroServicio}`} style={telefonoLink}>
+                  800 702 4840
+                </a>
                 <p style={infoCardTexto}>
                   Lunes a viernes de 8:00 a 20:00 hrs.
                 </p>
@@ -1076,193 +1167,385 @@ function App() {
               boxShadow: `0 18px 40px rgba(0,0,0,0.18)`,
             }}
           >
-            <div style={resumenVisibleSiempre}>
-              <div style={resumenVisibleMiniDatos}>
-                <div style={resumenVisibleDato}>
-                  <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
-                    Puntos
-                  </span>
-                  <span style={{ ...resumenVisibleValor, color: estado.colorTexto }}>
-                    {totalPuntos}
-                  </span>
-                </div>
-
-                <div style={resumenVisibleDato}>
-                  <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
-                    30%
-                  </span>
-                  <span
-                    style={{
-                      ...resumenVisibleValorMoneda,
-                      color: estado.colorTexto,
-                    }}
-                  >
-                    {formatoMoneda(total30)}
-                  </span>
-                </div>
-
-                <div style={resumenVisibleDato}>
-                  <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
-                    42%
-                  </span>
-                  <span
-                    style={{
-                      ...resumenVisibleValorMoneda,
-                      color: estado.colorTexto,
-                    }}
-                  >
-                    {formatoMoneda(total42)}
-                  </span>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setResumenContraido(!resumenContraido)}
-                style={botonToggleResumen}
-              >
-                {resumenContraido ? "▼ Mostrar" : "▲ Ocultar"}
-              </button>
-            </div>
-
-            {!resumenContraido && (
+            {modo === "compraInicial" ? (
               <>
-                <div style={resumenFlotanteFila}>
-                  <div
-                    style={{
-                      ...resumenFlotanteMini,
-                      border: `1px solid ${estado.colorBorde}`,
-                      backgroundColor: "rgba(255,255,255,0.55)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        ...resumenFlotanteLabel,
-                        color: estado.colorTexto,
-                      }}
-                    >
-                      Puntos
+                <div style={resumenVisibleSiempre}>
+                  <div style={resumenVisibleMiniDatos}>
+                    <div style={resumenVisibleDato}>
+                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
+                        Puntos
+                      </span>
+                      <span style={{ ...resumenVisibleValor, color: estado.colorTexto }}>
+                        {totalPuntos}
+                      </span>
                     </div>
-                    <div
-                      style={{
-                        ...resumenFlotanteValor,
-                        color: estado.colorTexto,
-                      }}
-                    >
-                      {totalPuntos}
-                    </div>
-                  </div>
 
-                  <div
-                    style={{
-                      ...resumenFlotanteMini,
-                      border: `1px solid ${estado.colorBorde}`,
-                      backgroundColor: "rgba(255,255,255,0.55)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        ...resumenFlotanteLabel,
-                        color: estado.colorTexto,
-                      }}
-                    >
-                      Unidades
+                    <div style={resumenVisibleDato}>
+                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
+                        Paquete
+                      </span>
+                      <span
+                        style={{
+                          ...resumenVisibleValorMoneda,
+                          color: estado.colorTexto,
+                          fontWeight: "bold",
+                          fontSize: "14px",
+                        }}
+                      >
+                        {paqueteActual.nombre}
+                      </span>
                     </div>
-                    <div
-                      style={{
-                        ...resumenFlotanteValor,
-                        color: estado.colorTexto,
-                      }}
-                    >
-                      {totalUnidades}
+
+                    <div style={resumenVisibleDato}>
+                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
+                        Descuento
+                      </span>
+                      <span
+                        style={{
+                          ...resumenVisibleValorMoneda,
+                          color: estado.colorTexto,
+                        }}
+                      >
+                        {paqueteActual.descuento}%
+                      </span>
                     </div>
                   </div>
 
-                  <div
-                    style={{
-                      ...resumenFlotanteMini,
-                      border: `1px solid ${estado.colorBorde}`,
-                      backgroundColor: "rgba(255,255,255,0.55)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        ...resumenFlotanteLabel,
-                        color: estado.colorTexto,
-                      }}
-                    >
-                      30%
-                    </div>
-                    <div
-                      style={{
-                        ...resumenFlotanteValorMoneda,
-                        color: estado.colorTexto,
-                      }}
-                    >
-                      {formatoMoneda(total30)}
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      ...resumenFlotanteMini,
-                      border: `1px solid ${estado.colorBorde}`,
-                      backgroundColor: "rgba(255,255,255,0.55)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        ...resumenFlotanteLabel,
-                        color: estado.colorTexto,
-                      }}
-                    >
-                      42%
-                    </div>
-                    <div
-                      style={{
-                        ...resumenFlotanteValorMoneda,
-                        color: estado.colorTexto,
-                      }}
-                    >
-                      {formatoMoneda(total42)}
-                    </div>
-                  </div>
-                </div>
-
-                <div style={resumenFlotanteMensaje}>
-                  <span style={{ color: estado.colorTexto, fontWeight: "bold" }}>
-                    {estado.texto}
-                  </span>
-                </div>
-
-                <div style={resumenFlotanteBotonesGrid}>
                   <button
-                    onClick={irAPedidoActual}
-                    style={botonResumenFlotantePrimario}
+                    onClick={() => setResumenContraido(!resumenContraido)}
+                    style={botonToggleResumen}
                   >
-                    Ver pedido
-                  </button>
-
-                  <button
-                    onClick={descargarPDFPedido}
-                    style={botonResumenFlotanteAccion}
-                  >
-                    PDF
-                  </button>
-
-                  <button
-                    onClick={imprimirFormulario}
-                    style={botonResumenFlotanteAccion}
-                  >
-                    Imprimir
-                  </button>
-
-                  <button
-                    onClick={irArriba}
-                    style={botonResumenFlotanteSecundario}
-                  >
-                    Subir
+                    {resumenContraido ? "▼ Mostrar" : "▲ Ocultar"}
                   </button>
                 </div>
+
+                {!resumenContraido && (
+                  <>
+                    <div style={resumenCompraInicialGrande}>
+                      <div
+                        style={{
+                          ...resumenCompraInicialTitulo,
+                          color: estado.colorTexto,
+                        }}
+                      >
+                        {paqueteActual.nombre}
+                      </div>
+                      <div
+                        style={{
+                          ...resumenCompraInicialSubtitulo,
+                          color: estado.colorTexto,
+                        }}
+                      >
+                        Descuento actual: {paqueteActual.descuento}%
+                      </div>
+                    </div>
+
+                    <div style={resumenFlotanteFilaCompraInicial}>
+                      <div
+                        style={{
+                          ...resumenFlotanteMini,
+                          border: `1px solid ${estado.colorBorde}`,
+                          backgroundColor: "rgba(255,255,255,0.55)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            ...resumenFlotanteLabel,
+                            color: estado.colorTexto,
+                          }}
+                        >
+                          Puntos
+                        </div>
+                        <div
+                          style={{
+                            ...resumenFlotanteValor,
+                            color: estado.colorTexto,
+                          }}
+                        >
+                          {totalPuntos}
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          ...resumenFlotanteMini,
+                          border: `1px solid ${estado.colorBorde}`,
+                          backgroundColor: "rgba(255,255,255,0.55)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            ...resumenFlotanteLabel,
+                            color: estado.colorTexto,
+                          }}
+                        >
+                          Precio público
+                        </div>
+                        <div
+                          style={{
+                            ...resumenFlotanteValorMoneda,
+                            color: estado.colorTexto,
+                          }}
+                        >
+                          {formatoMoneda(totalPrecioPublico)}
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          ...resumenFlotanteMini,
+                          border: `1px solid ${estado.colorBorde}`,
+                          backgroundColor: "rgba(255,255,255,0.55)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            ...resumenFlotanteLabel,
+                            color: estado.colorTexto,
+                          }}
+                        >
+                          Total con {paqueteActual.descuento}%
+                        </div>
+                        <div
+                          style={{
+                            ...resumenFlotanteValorMoneda,
+                            color: estado.colorTexto,
+                          }}
+                        >
+                          {formatoMoneda(paqueteActual.totalConDescuento)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={resumenFlotanteMensaje}>
+                      <span style={{ color: estado.colorTexto, fontWeight: "bold" }}>
+                        {estado.siguienteMensaje}
+                      </span>
+                    </div>
+
+                    <div style={resumenFlotanteBotonesGrid}>
+                      <button
+                        onClick={irAPedidoActual}
+                        style={botonResumenFlotantePrimario}
+                      >
+                        Ver pedido
+                      </button>
+
+                      <button
+                        onClick={descargarPDFPedido}
+                        style={botonResumenFlotanteAccion}
+                      >
+                        PDF
+                      </button>
+
+                      <button
+                        onClick={imprimirFormulario}
+                        style={botonResumenFlotanteAccion}
+                      >
+                        Imprimir
+                      </button>
+
+                      <button
+                        onClick={irArriba}
+                        style={botonResumenFlotanteSecundario}
+                      >
+                        Subir
+                      </button>
+                    </div>
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                <div style={resumenVisibleSiempre}>
+                  <div style={resumenVisibleMiniDatos}>
+                    <div style={resumenVisibleDato}>
+                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
+                        Puntos
+                      </span>
+                      <span style={{ ...resumenVisibleValor, color: estado.colorTexto }}>
+                        {totalPuntos}
+                      </span>
+                    </div>
+
+                    <div style={resumenVisibleDato}>
+                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
+                        30%
+                      </span>
+                      <span
+                        style={{
+                          ...resumenVisibleValorMoneda,
+                          color: estado.colorTexto,
+                        }}
+                      >
+                        {formatoMoneda(total30)}
+                      </span>
+                    </div>
+
+                    <div style={resumenVisibleDato}>
+                      <span style={{ ...resumenVisibleLabel, color: estado.colorTexto }}>
+                        42%
+                      </span>
+                      <span
+                        style={{
+                          ...resumenVisibleValorMoneda,
+                          color: estado.colorTexto,
+                        }}
+                      >
+                        {formatoMoneda(total42)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setResumenContraido(!resumenContraido)}
+                    style={botonToggleResumen}
+                  >
+                    {resumenContraido ? "▼ Mostrar" : "▲ Ocultar"}
+                  </button>
+                </div>
+
+                {!resumenContraido && (
+                  <>
+                    <div style={resumenFlotanteFila}>
+                      <div
+                        style={{
+                          ...resumenFlotanteMini,
+                          border: `1px solid ${estado.colorBorde}`,
+                          backgroundColor: "rgba(255,255,255,0.55)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            ...resumenFlotanteLabel,
+                            color: estado.colorTexto,
+                          }}
+                        >
+                          Puntos
+                        </div>
+                        <div
+                          style={{
+                            ...resumenFlotanteValor,
+                            color: estado.colorTexto,
+                          }}
+                        >
+                          {totalPuntos}
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          ...resumenFlotanteMini,
+                          border: `1px solid ${estado.colorBorde}`,
+                          backgroundColor: "rgba(255,255,255,0.55)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            ...resumenFlotanteLabel,
+                            color: estado.colorTexto,
+                          }}
+                        >
+                          Unidades
+                        </div>
+                        <div
+                          style={{
+                            ...resumenFlotanteValor,
+                            color: estado.colorTexto,
+                          }}
+                        >
+                          {totalUnidades}
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          ...resumenFlotanteMini,
+                          border: `1px solid ${estado.colorBorde}`,
+                          backgroundColor: "rgba(255,255,255,0.55)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            ...resumenFlotanteLabel,
+                            color: estado.colorTexto,
+                          }}
+                        >
+                          30%
+                        </div>
+                        <div
+                          style={{
+                            ...resumenFlotanteValorMoneda,
+                            color: estado.colorTexto,
+                          }}
+                        >
+                          {formatoMoneda(total30)}
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          ...resumenFlotanteMini,
+                          border: `1px solid ${estado.colorBorde}`,
+                          backgroundColor: "rgba(255,255,255,0.55)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            ...resumenFlotanteLabel,
+                            color: estado.colorTexto,
+                          }}
+                        >
+                          42%
+                        </div>
+                        <div
+                          style={{
+                            ...resumenFlotanteValorMoneda,
+                            color: estado.colorTexto,
+                          }}
+                        >
+                          {formatoMoneda(total42)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={resumenFlotanteMensaje}>
+                      <span style={{ color: estado.colorTexto, fontWeight: "bold" }}>
+                        {estado.texto}
+                      </span>
+                    </div>
+
+                    <div style={resumenFlotanteBotonesGrid}>
+                      <button
+                        onClick={irAPedidoActual}
+                        style={botonResumenFlotantePrimario}
+                      >
+                        Ver pedido
+                      </button>
+
+                      <button
+                        onClick={descargarPDFPedido}
+                        style={botonResumenFlotanteAccion}
+                      >
+                        PDF
+                      </button>
+
+                      <button
+                        onClick={imprimirFormulario}
+                        style={botonResumenFlotanteAccion}
+                      >
+                        Imprimir
+                      </button>
+
+                      <button
+                        onClick={irArriba}
+                        style={botonResumenFlotanteSecundario}
+                      >
+                        Subir
+                      </button>
+                    </div>
+                  </>
+                )}
               </>
             )}
           </div>
@@ -1940,6 +2223,7 @@ const infoCardTexto = {
 };
 
 const infoCardDato = {
+  display: "block",
   margin: "6px 0",
   color: "#c2410c",
   fontWeight: "bold",
@@ -1955,6 +2239,15 @@ const infoCardLink = {
   borderRadius: "12px",
   backgroundColor: "#ffffff",
   border: "1px solid #fdc9a3",
+};
+
+const telefonoLink = {
+  display: "inline-block",
+  margin: "6px 0",
+  color: "#c2410c",
+  fontWeight: "bold",
+  textDecoration: "none",
+  fontSize: "18px",
 };
 
 const leyendaItem = {
@@ -2089,6 +2382,14 @@ const resumenFlotanteFila = {
   marginBottom: "10px",
 };
 
+const resumenFlotanteFilaCompraInicial = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr 1fr",
+  gap: "10px",
+  marginTop: "10px",
+  marginBottom: "10px",
+};
+
 const resumenFlotanteMini = {
   borderRadius: "14px",
   padding: "10px",
@@ -2108,6 +2409,26 @@ const resumenFlotanteValorMoneda = {
   fontSize: "13px",
   fontWeight: "bold",
   lineHeight: 1.35,
+};
+
+const resumenCompraInicialGrande = {
+  marginTop: "10px",
+  marginBottom: "10px",
+  padding: "12px 14px",
+  borderRadius: "16px",
+  backgroundColor: "rgba(255,255,255,0.50)",
+};
+
+const resumenCompraInicialTitulo = {
+  fontSize: "22px",
+  fontWeight: "bold",
+  lineHeight: 1.2,
+};
+
+const resumenCompraInicialSubtitulo = {
+  marginTop: "4px",
+  fontSize: "14px",
+  fontWeight: "bold",
 };
 
 const resumenFlotanteMensaje = {
