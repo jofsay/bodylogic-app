@@ -249,7 +249,7 @@ function App(){
             <div style={cc}><label style={lb}>Perfil</label><select value={perfilUsuario} onChange={e=>setPerfilUsuario(e.target.value)} style={sel}><option value="distribuidor">Distribuidor Independiente</option><option value="clientePreferente">Cliente Preferente</option></select></div>
             <div style={cc}><label style={lb}>Categoría</label><select value={categoriaSeleccionada} onChange={e=>setCategoriaSeleccionada(e.target.value)} style={sel}>{categorias.map(c=><option key={c} value={c}>{c}</option>)}</select></div>
             <div style={cc}><label style={lb}>Buscar</label><div style={{position:"relative"}}><input type="text" value={busqueda} onChange={e=>setBusqueda(e.target.value)} placeholder="Ej. Omega 3, 4045156..." style={{...inp,paddingLeft:"36px"}}/><span style={{position:"absolute",left:"11px",top:"50%",transform:"translateY(-50%)",fontSize:"15px",opacity:.35,pointerEvents:"none"}}>🔍</span></div></div>
-            <div style={{...ic,animation:"blScaleIn .35s ease both",animationDelay:".1s"}}><div style={{fontSize:"18px",fontWeight:800,color:T.orange700,fontFamily:T.fontDisplay}}>{isD?"Distribuidor":"Cliente Preferente"}</div><div style={{marginTop:"4px",color:T.textMuted,fontSize:"12px"}}>{isD?"Ingreso y recompra":"Descuento progresivo"}</div></div>
+            <div style={{...ic,animation:"blScaleIn .35s ease both",animationDelay:".1s"}}><div style={{fontSize:"18px",fontWeight:800,color:T.orange700,fontFamily:T.fontDisplay}}>{isD?"Distribuidor":"Cliente Preferente"}</div><div style={{marginTop:"4px",color:T.textMuted,fontSize:"12px"}}>{isD?"Compra inicial o Recompra":"Descuento progresivo"}</div></div>
           </div>
 
           {isD?(
