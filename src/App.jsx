@@ -428,7 +428,7 @@ function App() {
   const [filaActiva,      setFilaActiva]       = useState("");
   const [busqueda,        setBusqueda]         = useState("");
   const [esMovil,         setEsMovil]          = useState(window.innerWidth <= 768);
-  const [vistaMovil,      setVistaMovil]       = useState(window.innerWidth <= 768 ? "cards" : "tabla");
+  const [vistaMovil,      setVistaMovil]       = useState(window.innerWidth <= 768 ? "tarjetas" : "tabla");
   const [resumenContraido, setResumenContraido] = useState(false);
   const [descargandoArchivo, setDescargandoArchivo] = useState("");
 
@@ -798,7 +798,7 @@ function App() {
 
             {esMovil && (
               <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
-                <Btn variant={vistaMovil === "cards" ? "active" : "ghost"} onClick={() => setVistaMovil("cards")}>Cards</Btn>
+                <Btn variant={vistaMovil === "tarjetas" ? "active" : "ghost"} onClick={() => setVistaMovil("tarjetas")}>Tarjetas</Btn>
                 <Btn variant={vistaMovil === "tabla" ? "active" : "ghost"} onClick={() => setVistaMovil("tabla")}>Tabla</Btn>
               </div>
             )}
@@ -867,7 +867,7 @@ function App() {
                 action={<div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}><Btn variant="primary" size="sm" onClick={descargarPDFPedido}>↓ PDF del pedido</Btn><Btn variant="orange" size="sm" onClick={imprimirFormulario}>⎙ Imprimir</Btn></div>}
               />
             </div>
-            {esMovil && vistaMovil === "cards" ? (
+            {esMovil && vistaMovil === "tarjetas" ? (
               <div style={{ padding: "0 14px 14px", display: "grid", gap: "11px" }}>
                 {filasCalculadas.map((item) => {
                   const activa = filaActiva === item.codigo;
