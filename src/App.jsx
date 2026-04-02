@@ -13,35 +13,53 @@ const injectGlobalStyles = () => {
   style.textContent = `
     @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=Playfair+Display:wght@600;700;800&display=swap');
     *,*::before,*::after{box-sizing:border-box}
-    html{scroll-behavior:smooth}
-    body{margin:0;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+    html{scroll-behavior:smooth;-webkit-tap-highlight-color:transparent}
+    body{margin:0;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overscroll-behavior-y:none}
+
     ::-webkit-scrollbar{width:5px;height:5px}
     ::-webkit-scrollbar-track{background:transparent}
-    ::-webkit-scrollbar-thumb{background:rgba(234,88,12,0.22);border-radius:99px}
-    ::-webkit-scrollbar-thumb:hover{background:rgba(234,88,12,0.45)}
-    button,select,input,a{transition:all 0.22s cubic-bezier(0.25,0.46,0.45,0.94);font-family:'DM Sans',sans-serif}
-    button:active:not(:disabled){transform:scale(0.96)!important}
-    button:disabled{opacity:0.55;cursor:not-allowed}
-    select:focus,input:focus,button:focus-visible{outline:none;border-color:#ea580c!important;box-shadow:0 0 0 3px rgba(234,88,12,0.14),0 2px 8px rgba(234,88,12,0.08)!important}
+    ::-webkit-scrollbar-thumb{background:rgba(234,88,12,0.2);border-radius:99px}
+    ::-webkit-scrollbar-thumb:hover{background:rgba(234,88,12,0.4)}
+
+    button,select,input,a{transition:all 0.2s cubic-bezier(0.22,0.61,0.36,1);font-family:'DM Sans',sans-serif}
+    button:active:not(:disabled){transform:scale(0.95)!important;transition-duration:0.08s!important}
+    button:disabled{opacity:0.45;cursor:not-allowed;filter:grayscale(0.3)}
+    select:focus,input:focus,button:focus-visible{outline:none;border-color:#ea580c!important;box-shadow:0 0 0 3px rgba(234,88,12,0.12),0 4px 12px rgba(234,88,12,0.06)!important}
     input[type="number"]{-moz-appearance:textfield}
     input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-outer-spin-button{opacity:0;height:0}
     input[type="number"]:hover::-webkit-inner-spin-button,input[type="number"]:hover::-webkit-outer-spin-button{opacity:1;height:28px}
-    ::selection{background:rgba(234,88,12,0.18);color:#7c2d12}
-    @keyframes blFadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-    @keyframes blScaleIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
-    @keyframes blPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.15);opacity:0.85}}
-    @keyframes blSlideDown{from{opacity:0;transform:translateY(-6px);max-height:0}to{opacity:1;transform:translateY(0);max-height:1200px}}
+    ::selection{background:rgba(234,88,12,0.15);color:#7c2d12}
+
+    @keyframes blFadeUp{from{opacity:0;transform:translateY(18px) scale(0.99)}to{opacity:1;transform:translateY(0) scale(1)}}
+    @keyframes blScaleIn{from{opacity:0;transform:scale(0.93)}to{opacity:1;transform:scale(1)}}
+    @keyframes blPulse{0%,100%{transform:scale(1);opacity:1;box-shadow:0 0 0 0 currentColor}50%{transform:scale(1.12);opacity:0.9;box-shadow:0 0 12px -2px currentColor}}
+    @keyframes blSlideDown{from{opacity:0;transform:translateY(-8px);max-height:0;padding-top:0;padding-bottom:0}to{opacity:1;transform:translateY(0);max-height:1400px;padding-top:inherit;padding-bottom:inherit}}
     @keyframes blShine{0%{background-position:-200% center}100%{background-position:200% center}}
-    .bl-section{animation:blFadeUp 0.45s cubic-bezier(0.25,0.46,0.45,0.94) both}
-    .bl-d1{animation-delay:.06s}.bl-d2{animation-delay:.12s}.bl-d3{animation-delay:.18s}.bl-d4{animation-delay:.24s}.bl-d5{animation-delay:.30s}.bl-d6{animation-delay:.36s}
-    .bl-card{transition:transform .24s cubic-bezier(.25,.46,.45,.94),box-shadow .24s cubic-bezier(.25,.46,.45,.94),border-color .24s}
-    .bl-card:hover{transform:translateY(-3px);box-shadow:0 14px 36px rgba(124,45,18,.10)}
-    .bl-expand{animation:blSlideDown .35s cubic-bezier(.25,.46,.45,.94) both;overflow:hidden}
-    .bl-progress-bar{transition:width .7s cubic-bezier(.25,.46,.45,.94)}
-    .bl-btn-hover:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(234,88,12,.15)}
-    .bl-shine{background:linear-gradient(90deg,transparent 30%,rgba(255,255,255,.12) 50%,transparent 70%);background-size:200% 100%;animation:blShine 3s ease-in-out infinite}
-    .bl-semaforo{animation:blPulse 2.5s cubic-bezier(.4,0,.6,1) infinite}
-    @media(max-width:768px){.bl-desktop-only{display:none!important}button,select,input{min-height:44px}select{font-size:16px!important}}
+    @keyframes blFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+    @keyframes blRipple{0%{box-shadow:0 0 0 0 rgba(234,88,12,0.25)}100%{box-shadow:0 0 0 12px rgba(234,88,12,0)}}
+    @keyframes blGradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+    @keyframes blCountPop{0%{transform:scale(1)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
+
+    .bl-section{animation:blFadeUp 0.5s cubic-bezier(0.22,0.61,0.36,1) both}
+    .bl-d1{animation-delay:.07s}.bl-d2{animation-delay:.14s}.bl-d3{animation-delay:.21s}.bl-d4{animation-delay:.28s}.bl-d5{animation-delay:.35s}.bl-d6{animation-delay:.42s}
+
+    .bl-card{transition:transform .25s cubic-bezier(.22,.61,.36,1),box-shadow .25s cubic-bezier(.22,.61,.36,1),border-color .25s,background .3s}
+    .bl-card:hover{transform:translateY(-3px);box-shadow:0 16px 40px rgba(124,45,18,.11)}
+    @media(max-width:768px){.bl-card:hover{transform:none;box-shadow:none}.bl-card:active{transform:scale(0.985);transition-duration:.1s}}
+
+    .bl-expand{animation:blSlideDown .38s cubic-bezier(.22,.61,.36,1) both;overflow:hidden}
+    .bl-progress-bar{transition:width .8s cubic-bezier(.22,.61,.36,1)}
+    .bl-btn-hover:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(234,88,12,.14)}
+    .bl-shine{background:linear-gradient(90deg,transparent 25%,rgba(255,255,255,.10) 50%,transparent 75%);background-size:200% 100%;animation:blShine 4s ease-in-out infinite}
+    .bl-semaforo{animation:blPulse 2.8s cubic-bezier(.4,0,.6,1) infinite}
+    .bl-float-glass{backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4)}
+    .bl-count-pop{animation:blCountPop .25s ease}
+
+    @media(max-width:768px){
+      .bl-desktop-only{display:none!important}
+      button,select,input{min-height:46px;font-size:15px}
+      select{font-size:16px!important}
+    }
     @media(min-width:769px){.bl-mobile-only{display:none!important}}
   `;
   document.head.appendChild(style);
@@ -53,30 +71,35 @@ const injectGlobalStyles = () => {
 const T={orange900:"#5f250f",orange800:"#7c2d12",orange700:"#9a3412",orange600:"#c2410c",orange500:"#ea580c",orange400:"#fb923c",orange300:"#fdba74",orange200:"#fed7aa",orange100:"#ffedd5",orange50:"#fff7ed",cream50:"#fffdf9",cream100:"#fffaf5",cream200:"#fff4ea",cream300:"#fff1e6",cream400:"#ffe4cf",cream500:"#fde2cc",cream600:"#fde4d3",cream700:"#fdc9a3",text:"#5b4d43",textDark:"#7c2d12",textMuted:"#7c6f64",red500:"#dc2626",red100:"#fee2e2",redBorder:"#ef4444",redText:"#991b1b",yellow500:"#d97706",yellow100:"#fef3c7",yellowBorder:"#f59e0b",yellowText:"#92400e",green500:"#65a30d",green100:"#ecfccb",greenBorder:"#84cc16",greenText:"#3f6212",white:"#ffffff",black:"#111827",
 fontDisplay:"'Playfair Display',Georgia,serif",fontBody:"'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif",
 r:{xs:"8px",sm:"12px",md:"16px",lg:"22px",xl:"28px",pill:"999px"},
-s:{xs:"0 1px 3px rgba(124,45,18,.03)",sm:"0 2px 8px rgba(124,45,18,.05)",md:"0 8px 24px rgba(124,45,18,.07)",lg:"0 16px 48px rgba(124,45,18,.09)",xl:"0 24px 64px rgba(194,65,12,.16)",glow:"0 0 0 3px rgba(234,88,12,.14)",inner:"inset 0 1px 2px rgba(124,45,18,.06)"}};
+s:{xxs:"0 1px 2px rgba(124,45,18,.02)",xs:"0 1px 4px rgba(124,45,18,.04)",sm:"0 3px 10px rgba(124,45,18,.05)",md:"0 8px 28px rgba(124,45,18,.07)",lg:"0 18px 52px rgba(124,45,18,.09)",xl:"0 28px 72px rgba(194,65,12,.14)",glow:"0 0 0 3px rgba(234,88,12,.12)",inner:"inset 0 2px 4px rgba(124,45,18,.05)",glass:"0 8px 32px rgba(0,0,0,.12)"}};
 
 /* ═══════════════════════════════════════════════════════════════
    REUSABLE COMPONENTS
    ═══════════════════════════════════════════════════════════════ */
 function MiniDato({label,value,highlight,large}){
-  return <div style={{backgroundColor:highlight?"rgba(255,237,213,.6)":"rgba(255,255,255,.85)",border:`1px solid ${highlight?T.orange300:T.cream500}`,borderRadius:T.r.sm,padding:large?"12px 14px":"9px 11px",transition:"all .2s ease",backdropFilter:"blur(4px)"}}>
-    <div style={{fontSize:"10px",color:T.textMuted,marginBottom:"3px",fontWeight:600,letterSpacing:".4px",textTransform:"uppercase"}}>{label}</div>
-    <div style={{fontSize:large?"16px":"13px",fontWeight:700,color:highlight?T.orange600:T.textDark,lineHeight:1.3}}>{value}</div>
+  return <div style={{backgroundColor:highlight?"rgba(255,237,213,.55)":"rgba(255,255,255,.80)",border:`1px solid ${highlight?T.orange300:T.cream500}`,borderRadius:T.r.sm,padding:large?"14px 16px":"10px 12px",transition:"all .25s cubic-bezier(.22,.61,.36,1)",backdropFilter:"blur(4px)",position:"relative",overflow:"hidden"}}>
+    {highlight&&<div style={{position:"absolute",top:0,left:0,right:0,height:"3px",background:`linear-gradient(90deg,${T.orange400},${T.orange500})`,borderRadius:"3px 3px 0 0"}}/>}
+    <div style={{fontSize:large?"11px":"10px",color:T.textMuted,marginBottom:large?"5px":"3px",fontWeight:600,letterSpacing:".5px",textTransform:"uppercase"}}>{label}</div>
+    <div className={large?"bl-count-pop":""} style={{fontSize:large?"18px":"13px",fontWeight:800,color:highlight?T.orange600:T.textDark,lineHeight:1.25,fontFamily:large?T.fontDisplay:T.fontBody}}>{value}</div>
   </div>;
 }
 
 function ProgressBar({current,target,label,colorStart=T.orange400,colorEnd=T.orange500}){
   const pct=target>0?Math.min((current/target)*100,100):0;
+  const done=pct>=100;
   return <div style={{marginTop:"10px"}}>
-    {label&&<div style={{display:"flex",justifyContent:"space-between",fontSize:"11px",color:T.textMuted,marginBottom:"6px",fontWeight:600}}><span>{label}</span><span style={{fontWeight:800,color:pct>=100?T.green500:T.orange600}}>{Math.round(pct)}%</span></div>}
-    <div style={{height:"6px",borderRadius:"99px",backgroundColor:"rgba(253,226,204,.6)",overflow:"hidden",boxShadow:T.s.inner}}>
-      <div className="bl-progress-bar" style={{height:"100%",width:`${pct}%`,borderRadius:"99px",background:pct>=100?`linear-gradient(90deg,${T.green500},#84cc16)`:`linear-gradient(90deg,${colorStart},${colorEnd})`,boxShadow:pct>=100?"0 0 8px rgba(101,163,13,.3)":"0 0 8px rgba(234,88,12,.2)"}}/>
+    {label&&<div style={{display:"flex",justifyContent:"space-between",fontSize:"11px",color:T.textMuted,marginBottom:"6px",fontWeight:600}}><span style={{maxWidth:"70%",lineHeight:1.3}}>{label}</span><span className={done?"bl-count-pop":""} style={{fontWeight:800,color:done?T.green500:T.orange600,fontSize:done?"13px":"11px"}}>{done?"✓ 100%":`${Math.round(pct)}%`}</span></div>}
+    <div style={{height:"7px",borderRadius:"99px",backgroundColor:"rgba(253,226,204,.5)",overflow:"hidden",boxShadow:T.s.inner,position:"relative"}}>
+      <div className="bl-progress-bar" style={{height:"100%",width:`${pct}%`,borderRadius:"99px",background:done?`linear-gradient(90deg,#4ade80,${T.green500})`:`linear-gradient(90deg,${colorStart},${colorEnd})`,boxShadow:done?"0 0 10px rgba(74,222,128,.35)":"0 0 10px rgba(234,88,12,.18)",position:"relative"}}/>
     </div>
   </div>;
 }
 
 function SectionCard({children,style:extra,className="",delay=0}){
-  return <section className={`bl-section ${delay>0?`bl-d${delay}`:""} ${className}`.trim()} style={{backgroundColor:"rgba(255,255,255,.92)",borderRadius:T.r.xl,padding:"clamp(18px,3vw,28px)",boxShadow:T.s.lg,border:`1px solid ${T.cream600}`,marginBottom:"18px",backdropFilter:"blur(12px)",...extra}}>{children}</section>;
+  return <section className={`bl-section ${delay>0?`bl-d${delay}`:""} ${className}`.trim()} style={{backgroundColor:"rgba(255,255,255,.88)",borderRadius:T.r.xl,padding:"clamp(18px,3.5vw,30px)",boxShadow:T.s.lg,border:`1px solid rgba(253,228,211,.7)`,marginBottom:"18px",backdropFilter:"blur(14px) saturate(1.2)",WebkitBackdropFilter:"blur(14px) saturate(1.2)",position:"relative",overflow:"hidden",...extra}}>
+    <div style={{position:"absolute",top:0,left:"5%",right:"5%",height:"1px",background:`linear-gradient(90deg,transparent,${T.orange300},transparent)`,opacity:.5}}/>
+    {children}
+  </section>;
 }
 
 function Badge({children,style:s}){
@@ -84,11 +107,11 @@ function Badge({children,style:s}){
 }
 
 function Btn({children,onClick,active,ghost,danger,style:s,...rest}){
-  const base={padding:"11px 20px",borderRadius:T.r.sm,cursor:"pointer",fontWeight:active?700:600,fontSize:"14px",letterSpacing:"-.2px"};
-  const variant=danger?{border:"1.5px solid #fecaca",backgroundColor:"#fff5f5",color:"#b91c1c",boxShadow:"none"}
+  const base={padding:"11px 20px",borderRadius:T.r.sm,cursor:"pointer",fontWeight:active?700:600,fontSize:"14px",letterSpacing:"-.1px",position:"relative",overflow:"hidden"};
+  const variant=danger?{border:"1.5px solid #fca5a5",backgroundColor:"rgba(255,241,242,.9)",color:"#b91c1c",boxShadow:T.s.xxs}
     :ghost?{border:`1px solid ${T.cream500}`,backgroundColor:"transparent",color:T.textMuted,boxShadow:"none"}
-    :active?{border:`2px solid ${T.orange500}`,background:`linear-gradient(135deg,${T.orange400},${T.orange500})`,color:T.white,boxShadow:"0 6px 24px rgba(234,88,12,.22)"}
-    :{border:`1px solid ${T.cream500}`,background:"rgba(255,255,255,.8)",color:T.textDark,boxShadow:T.s.xs};
+    :active?{border:`2px solid ${T.orange500}`,background:`linear-gradient(135deg,${T.orange400} 0%,${T.orange500} 100%)`,color:T.white,boxShadow:`0 6px 24px rgba(234,88,12,.25),inset 0 1px 0 rgba(255,255,255,.2)`,textShadow:"0 1px 2px rgba(0,0,0,.1)"}
+    :{border:`1px solid ${T.cream500}`,background:`linear-gradient(180deg,rgba(255,255,255,.95),rgba(255,250,245,.9))`,color:T.textDark,boxShadow:T.s.xs};
   return <button onClick={onClick} className="bl-btn-hover" style={{...base,...variant,...s}} {...rest}>{children}</button>;
 }
 
@@ -227,14 +250,18 @@ function App(){
   );
 
   return (
-    <div style={{minHeight:"100vh",background:`radial-gradient(ellipse at 20% 0%,rgba(255,237,213,.7) 0%,rgba(255,247,237,.6) 25%,${T.cream100} 50%,${T.cream50} 100%)`,padding:"clamp(12px,3vw,22px)",paddingBottom:"190px",fontFamily:T.fontBody,position:"relative",overflow:"hidden",color:T.text}}>
-      <div style={{position:"absolute",top:"-120px",right:"-80px",width:"350px",height:"350px",borderRadius:"50%",background:"radial-gradient(circle,rgba(251,146,60,.18) 0%,transparent 70%)",pointerEvents:"none"}}/>
-      <div style={{position:"absolute",bottom:"8%",left:"-60px",width:"240px",height:"240px",borderRadius:"50%",background:"radial-gradient(circle,rgba(249,115,22,.07) 0%,transparent 72%)",pointerEvents:"none"}}/>
+    <div style={{minHeight:"100vh",background:`radial-gradient(ellipse at 15% -5%,rgba(255,237,213,.75) 0%,rgba(255,247,237,.55) 22%,${T.cream100} 48%,${T.cream50} 100%)`,padding:"clamp(10px,3vw,22px)",paddingBottom:"200px",fontFamily:T.fontBody,position:"relative",overflow:"hidden",color:T.text}}>
+      <div style={{position:"absolute",inset:0,background:"url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.018'/%3E%3C/svg%3E\")",pointerEvents:"none",zIndex:0}}/>
+      <div style={{position:"absolute",top:"-100px",right:"-60px",width:"400px",height:"400px",borderRadius:"50%",background:"radial-gradient(circle,rgba(251,146,60,.15) 0%,rgba(251,146,60,.05) 40%,transparent 70%)",pointerEvents:"none",zIndex:0}}/>
+      <div style={{position:"absolute",bottom:"5%",left:"-50px",width:"280px",height:"280px",borderRadius:"50%",background:"radial-gradient(circle,rgba(249,115,22,.06) 0%,transparent 70%)",pointerEvents:"none",zIndex:0}}/>
+      <div style={{position:"absolute",top:"40%",right:"10%",width:"180px",height:"180px",borderRadius:"50%",background:"radial-gradient(circle,rgba(253,186,116,.08) 0%,transparent 70%)",pointerEvents:"none",zIndex:0}}/>
       <div style={{maxWidth:"1500px",margin:"0 auto",position:"relative",zIndex:1}}>
 
         {/* HERO */}
-        <header className="bl-section" style={{borderRadius:T.r.xl,overflow:"hidden",background:`linear-gradient(135deg,${T.orange900} 0%,#8f3412 18%,${T.orange600} 42%,${T.orange500} 70%,${T.orange400} 100%)`,boxShadow:T.s.xl,marginBottom:"18px"}}>
-          <div className="bl-shine" style={{background:"radial-gradient(circle at top right,rgba(255,255,255,.18),transparent 50%),linear-gradient(180deg,rgba(255,255,255,.05),rgba(0,0,0,.08))",padding:"clamp(22px,5vw,44px)",color:T.white}}>
+        <header className="bl-section" style={{borderRadius:T.r.xl,overflow:"hidden",background:`linear-gradient(135deg,${T.orange900} 0%,#7a2e10 15%,${T.orange600} 40%,${T.orange500} 65%,${T.orange400} 85%,#fbbf6a 100%)`,boxShadow:T.s.xl,marginBottom:"18px",position:"relative"}}>
+          <div style={{position:"absolute",top:"-40px",right:"-40px",width:"200px",height:"200px",borderRadius:"50%",background:"rgba(255,255,255,.06)",pointerEvents:"none"}}/>
+          <div style={{position:"absolute",bottom:"-30px",left:"20%",width:"120px",height:"120px",borderRadius:"50%",background:"rgba(255,255,255,.04)",pointerEvents:"none"}}/>
+          <div className="bl-shine" style={{background:"radial-gradient(circle at 85% 20%,rgba(255,255,255,.20),transparent 45%),radial-gradient(circle at 15% 80%,rgba(255,255,255,.06),transparent 40%),linear-gradient(180deg,rgba(255,255,255,.04),rgba(0,0,0,.10))",padding:"clamp(24px,5vw,48px)",color:T.white,position:"relative",zIndex:1}}>
             <Badge style={{backgroundColor:"rgba(255,255,255,.14)",color:"#fff",border:"1px solid rgba(255,255,255,.22)",fontSize:"12px",fontWeight:600}}>Plataforma de Apoyo Comercial</Badge>
             <h1 style={{margin:"14px 0 0",fontSize:"clamp(30px,7vw,50px)",lineHeight:1.05,fontFamily:T.fontDisplay,fontWeight:800,letterSpacing:"-.6px",textShadow:"0 3px 16px rgba(0,0,0,.18)"}}>BodyLogic</h1>
             <p style={{marginTop:"10px",maxWidth:"640px",fontSize:"clamp(13px,2.5vw,16px)",lineHeight:1.65,color:"rgba(255,255,255,.90)"}}>Centro avanzado de cálculo de puntos, validación comercial, documentos oficiales y gestión operativa para asociados.</p>
@@ -249,7 +276,7 @@ function App(){
             <div style={cc}><label style={lb}>Perfil</label><select value={perfilUsuario} onChange={e=>setPerfilUsuario(e.target.value)} style={sel}><option value="distribuidor">Distribuidor Independiente</option><option value="clientePreferente">Cliente Preferente</option></select></div>
             <div style={cc}><label style={lb}>Categoría</label><select value={categoriaSeleccionada} onChange={e=>setCategoriaSeleccionada(e.target.value)} style={sel}>{categorias.map(c=><option key={c} value={c}>{c}</option>)}</select></div>
             <div style={cc}><label style={lb}>Buscar</label><div style={{position:"relative"}}><input type="text" value={busqueda} onChange={e=>setBusqueda(e.target.value)} placeholder="Ej. Omega 3, 4045156..." style={{...inp,paddingLeft:"36px"}}/><span style={{position:"absolute",left:"11px",top:"50%",transform:"translateY(-50%)",fontSize:"15px",opacity:.35,pointerEvents:"none"}}>🔍</span></div></div>
-            <div style={{...ic,animation:"blScaleIn .35s ease both",animationDelay:".1s"}}><div style={{fontSize:"18px",fontWeight:800,color:T.orange700,fontFamily:T.fontDisplay}}>{isD?"Distribuidor":"Cliente Preferente"}</div><div style={{marginTop:"4px",color:T.textMuted,fontSize:"12px"}}>{isD?"Compra inicial o Recompra mensual":"Descuento progresivo"}</div></div>
+            <div style={{...ic,animation:"blScaleIn .35s ease both",animationDelay:".1s"}}><div style={{fontSize:"18px",fontWeight:800,color:T.orange700,fontFamily:T.fontDisplay}}>{isD?"Distribuidor":"Cliente Preferente"}</div><div style={{marginTop:"4px",color:T.textMuted,fontSize:"12px"}}>{isD?"Ingreso y recompra":"Descuento progresivo"}</div></div>
           </div>
 
           {isD?(
@@ -285,9 +312,10 @@ function App(){
         </SectionCard>
 
         {/* SEMÁFORO */}
-        <section className="bl-section bl-d2" key={`s-${animKey}-${estado.colorSemaforo}`} style={{display:"flex",gap:"14px",alignItems:"center",borderRadius:T.r.lg,padding:"18px 22px",marginBottom:"18px",backgroundColor:estado.colorFondo,border:`2px solid ${estado.colorBorde}`,boxShadow:T.s.md,transition:"all .4s cubic-bezier(.25,.46,.45,.94)"}}>
-          <div className="bl-semaforo" style={{width:"16px",height:"16px",borderRadius:"50%",flexShrink:0,backgroundColor:estado.colorSemaforo,boxShadow:`0 0 0 5px ${estado.colorFondo},0 0 16px ${estado.colorSemaforo}50`}}/>
-          <div style={{flex:1}}><div style={{fontSize:"14px",fontWeight:700,color:estado.colorTexto,lineHeight:1.3}}>{isCP?"Cliente Preferente":modo==="compraInicial"?"Compra inicial":programaRecompra==="lealtad"?"Lealtad":"Lealtad Acelerado"}</div><div style={{marginTop:"3px",lineHeight:1.5,color:estado.colorTexto,fontSize:"13px",opacity:.9}}>{estado.texto}</div></div>
+        <section className="bl-section bl-d2" key={`s-${animKey}-${estado.colorSemaforo}`} style={{display:"flex",gap:"14px",alignItems:"center",borderRadius:T.r.lg,padding:"18px 22px",marginBottom:"18px",backgroundColor:estado.colorFondo,border:`2px solid ${estado.colorBorde}`,boxShadow:T.s.md,transition:"all .4s cubic-bezier(.22,.61,.36,1)",position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",left:0,top:"10%",bottom:"10%",width:"4px",borderRadius:"0 4px 4px 0",backgroundColor:estado.colorSemaforo,boxShadow:`0 0 8px ${estado.colorSemaforo}40`}}/>
+          <div className="bl-semaforo" style={{width:"14px",height:"14px",borderRadius:"50%",flexShrink:0,backgroundColor:estado.colorSemaforo,boxShadow:`0 0 0 4px ${estado.colorFondo},0 0 16px ${estado.colorSemaforo}45`,marginLeft:"6px"}}/>
+          <div style={{flex:1}}><div style={{fontSize:"13px",fontWeight:700,color:estado.colorTexto,lineHeight:1.3,letterSpacing:"-.1px"}}>{isCP?"Cliente Preferente":modo==="compraInicial"?"Compra inicial":programaRecompra==="lealtad"?"Lealtad":"Lealtad Acelerado"}</div><div style={{marginTop:"4px",lineHeight:1.55,color:estado.colorTexto,fontSize:"13px",opacity:.88}}>{estado.texto}</div></div>
         </section>
 
         {/* PEDIDO ACTUAL */}
@@ -330,7 +358,9 @@ function App(){
 
         {/* RESUMEN FLOTANTE MÓVIL */}
         {esMovil&&(
-          <div style={{position:"fixed",left:"8px",right:"8px",bottom:"8px",zIndex:999,borderRadius:T.r.lg,padding:"12px 14px",backgroundColor:estado.colorFondo,border:`1.5px solid ${estado.colorBorde}`,boxShadow:"0 -6px 36px rgba(0,0,0,.18)",backdropFilter:"blur(16px)",color:estado.colorTexto,transition:"all .35s cubic-bezier(.25,.46,.45,.94)"}}>
+          <div className="bl-float-glass" style={{position:"fixed",left:"6px",right:"6px",bottom:"6px",zIndex:999,borderRadius:"18px",padding:"14px 16px",backgroundColor:`${estado.colorFondo}ee`,border:`1.5px solid ${estado.colorBorde}`,boxShadow:`0 -8px 40px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.3)`,color:estado.colorTexto,transition:"all .35s cubic-bezier(.22,.61,.36,1)",paddingBottom:"max(14px, env(safe-area-inset-bottom, 14px))"}}>
+            {/* Handle bar */}
+            <div style={{width:"32px",height:"3px",borderRadius:"3px",backgroundColor:estado.colorTexto,opacity:.2,margin:"0 auto 10px"}}/>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:"8px"}}>
               <div style={{display:"flex",gap:"14px",alignItems:"center",flexWrap:"wrap"}}>
                 {isCP?(<><FS l="Perfil" v="CP" c={estado.colorTexto}/><FS l="Acum." v={puntosAcumuladosClientePreferente} c={estado.colorTexto} big/><FS l="Desc." v={`${descuentoClientePreferenteActual}%`} c={estado.colorTexto}/></>)
@@ -338,11 +368,11 @@ function App(){
                 :programaRecompra==="lealtad"?(<><FS l="Prog." v="Lealtad" c={estado.colorTexto}/><FS l="Mes" v={mesLealtad} c={estado.colorTexto} big/><FS l="Desc." v={`${descuentoLealtadActual}%`} c={estado.colorTexto}/></>)
                 :(<><FS l="Prog." v="Acelerado" c={estado.colorTexto}/><FS l="Acum." v={totalAcumuladoAcelerado} c={estado.colorTexto} big/><FS l="Desc." v={`${descuentoAceleradoActual}%`} c={estado.colorTexto}/></>)}
               </div>
-              <button onClick={()=>setResumenContraido(!resumenContraido)} style={{padding:"8px 11px",borderRadius:T.r.xs,border:`1px solid ${estado.colorBorde}`,backgroundColor:"rgba(255,255,255,.55)",color:T.textDark,fontWeight:700,cursor:"pointer",fontSize:"12px",transition:"transform .2s",transform:resumenContraido?"rotate(0)":"rotate(180deg)"}}>▼</button>
+              <button onClick={()=>setResumenContraido(!resumenContraido)} style={{padding:"8px 12px",borderRadius:"10px",border:`1px solid ${estado.colorBorde}`,backgroundColor:"rgba(255,255,255,.50)",color:T.textDark,fontWeight:700,cursor:"pointer",fontSize:"13px",transition:"transform .25s cubic-bezier(.22,.61,.36,1),background .2s",transform:resumenContraido?"rotate(0)":"rotate(180deg)",backdropFilter:"blur(4px)",lineHeight:1}}>{resumenContraido?"▼":"▼"}</button>
             </div>
             {!resumenContraido&&(
               <div className="bl-expand">
-                <div style={{margin:"10px 0 8px",padding:"9px 12px",borderRadius:T.r.sm,backgroundColor:"rgba(255,255,255,.40)"}}><div style={{fontSize:"16px",fontWeight:800,lineHeight:1.2,color:estado.colorTexto}}>{isCP?"Cliente Preferente":modo==="compraInicial"?paqueteActual.nombre:programaRecompra==="lealtad"?(estado.continuidad?"Lealtad sostenida":"Secuencia comprometida"):"Lealtad Acelerado"}</div><div style={{marginTop:"3px",fontSize:"12px",fontWeight:700,color:estado.colorTexto,opacity:.85}}>Descuento: {descuentoActual}%</div></div>
+                <div style={{margin:"10px 0 8px",padding:"10px 14px",borderRadius:"12px",backgroundColor:"rgba(255,255,255,.35)",position:"relative",overflow:"hidden",backdropFilter:"blur(4px)"}}><div style={{position:"absolute",left:0,top:0,bottom:0,width:"3px",background:`linear-gradient(180deg,${estado.colorSemaforo},${estado.colorBorde})`,borderRadius:"3px 0 0 3px"}}/><div style={{paddingLeft:"8px"}}><div style={{fontSize:"17px",fontWeight:800,lineHeight:1.15,color:estado.colorTexto,fontFamily:T.fontDisplay}}>{isCP?"Cliente Preferente":modo==="compraInicial"?paqueteActual.nombre:programaRecompra==="lealtad"?(estado.continuidad?"Lealtad sostenida":"Secuencia comprometida"):"Lealtad Acelerado"}</div><div style={{marginTop:"3px",fontSize:"12px",fontWeight:700,color:estado.colorTexto,opacity:.80}}>Descuento actual: {descuentoActual}%</div></div></div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"6px",marginBottom:"8px"}}>
                   <FC l={isCP?"Pts acum.":modo==="compraInicial"?"Puntos":programaRecompra==="lealtad"?"Pts pers.":"Pts periodo"} v={isCP?puntosAcumuladosClientePreferente:modo==="compraInicial"?totalPuntos:programaRecompra==="lealtad"?totalPuntos:Number(puntosPersonalesAcelerado||0)+Number(puntosGrupalesAcelerado||0)} num e={estado}/>
                   <FC l="P. público" v={formatoMoneda(totalPrecioPublico)} e={estado}/>
@@ -364,7 +394,7 @@ function App(){
   );
 }
 
-function FS({l,v,c,big}){return<div style={{display:"flex",flexDirection:"column"}}><span style={{fontSize:"9px",color:c,opacity:.75,fontWeight:600,letterSpacing:".3px",textTransform:"uppercase"}}>{l}</span><span style={{fontSize:big?"17px":"12px",fontWeight:700,color:c}}>{v}</span></div>;}
-function FC({l,v,num,e}){return<div style={{borderRadius:T.r.xs,padding:"7px 8px",border:`1px solid ${e.colorBorde}`,backgroundColor:"rgba(255,255,255,.45)"}}><div style={{fontSize:"9px",marginBottom:"2px",color:e.colorTexto,fontWeight:600,letterSpacing:".3px",textTransform:"uppercase"}}>{l}</div><div style={{fontSize:num?"16px":"11px",fontWeight:700,color:e.colorTexto,lineHeight:1.3}}>{v}</div></div>;}
+function FS({l,v,c,big}){return<div style={{display:"flex",flexDirection:"column",gap:"1px"}}><span style={{fontSize:"9px",color:c,opacity:.65,fontWeight:700,letterSpacing:".5px",textTransform:"uppercase"}}>{l}</span><span style={{fontSize:big?"18px":"12px",fontWeight:800,color:c,fontFamily:big?T.fontDisplay:T.fontBody,lineHeight:1.1}}>{v}</span></div>;}
+function FC({l,v,num,e}){return<div style={{borderRadius:"10px",padding:"8px 10px",border:`1px solid ${e.colorBorde}`,backgroundColor:"rgba(255,255,255,.40)",backdropFilter:"blur(4px)",position:"relative",overflow:"hidden"}}>{num&&<div style={{position:"absolute",top:0,left:0,right:0,height:"2px",background:`linear-gradient(90deg,${e.colorSemaforo}80,transparent)`,borderRadius:"2px"}}/>}<div style={{fontSize:"9px",marginBottom:"3px",color:e.colorTexto,fontWeight:700,letterSpacing:".4px",textTransform:"uppercase",opacity:.75}}>{l}</div><div style={{fontSize:num?"17px":"11px",fontWeight:800,color:e.colorTexto,lineHeight:1.2,fontFamily:num?T.fontDisplay:T.fontBody}}>{v}</div></div>;}
 
 export default App;
