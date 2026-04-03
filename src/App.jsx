@@ -112,18 +112,18 @@ function App() {
           <div className="bl-shine" style={{ padding: "clamp(24px,5vw,48px)", color: T.white, position: "relative", zIndex: 1 }}>
             <Badge style={{ backgroundColor: "rgba(255,255,255,.14)", color: "#fff", border: "1px solid rgba(255,255,255,.22)" }}>Plataforma de Apoyo Comercial</Badge>
             <h1 style={{ margin: "14px 0 0", fontSize: "clamp(30px,7vw,50px)", lineHeight: 1.05, fontFamily: T.fontDisplay, fontWeight: 800, letterSpacing: "-.6px", textShadow: "0 3px 16px rgba(0,0,0,.18)" }}>BodyLogic</h1>
-            <p style={{ marginTop: "10px", maxWidth: "640px", fontSize: "clamp(13px,2.5vw,16px)", lineHeight: 1.65, color: "rgba(255,255,255,.90)" }}>Centro avanzado de cálculo de puntos, validación comercial, documentos oficiales y gestión operativa para asociados.</p>
+            <p style={{ marginTop: "10px", maxWidth: "640px", fontSize: "clamp(13px,2.5vw,16px)", lineHeight: 1.65, color: "rgba(255,255,255,.90)" }}>Centro avanzado de cálculo de puntos y gestión operativa para asociados.</p>
             <div style={{ display: "inline-block", marginTop: "14px", padding: "11px 16px", borderRadius: T.r.md, backgroundColor: "rgba(255,255,255,.10)", border: "1px solid rgba(255,255,255,.18)", color: "#fff7ed", lineHeight: 1.5, fontSize: "12px", backdropFilter: "blur(6px)", maxWidth: "640px" }}>Este material ha sido creado por el líder Jorge Francisco Sánchez Yerenas para el apoyo de su comunidad empresarial BodyLogic.</div>
           </div>
         </header>
 
         {/* ══ PANEL DE CONTROL ══ */}
         <SectionCard delay={1} key={`p-${animKey}`}>
-          <div style={{ marginBottom: "18px" }}><h2 style={secTitle}>Panel de control</h2><p style={secSub}>Configura perfil, modo y filtra productos.</p></div>
+          <div style={{ marginBottom: "18px" }}><h2 style={secTitle}>Panel de control</h2><p style={secSub}>Elige tu perfil y filtra los productos de tu pedido.</p></div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: "12px" }}>
             <div style={cc}><label style={lb}>Perfil</label><select value={perfilUsuario} onChange={(e) => setPerfilUsuario(e.target.value)} style={sel}><option value="distribuidor">Distribuidor Independiente</option><option value="clientePreferente">Cliente Preferente</option></select></div>
             <div style={cc}><label style={lb}>Categoría</label><select value={order.categoriaSeleccionada} onChange={(e) => order.setCategoriaSeleccionada(e.target.value)} style={sel}>{categorias.map((c) => <option key={c} value={c}>{c}</option>)}</select></div>
-            <div style={cc}><label style={lb}>Buscar</label><div style={{ position: "relative" }}><input type="text" value={order.busqueda} onChange={(e) => order.setBusqueda(e.target.value)} placeholder="Ej. Omega 3, 4045156..." style={{ ...inp, paddingLeft: "36px" }} /><span style={{ position: "absolute", left: "11px", top: "50%", transform: "translateY(-50%)", fontSize: "15px", opacity: .35, pointerEvents: "none" }}>🔍</span></div></div>
+            <div style={cc}><label style={lb}>Buscar</label><div style={{ position: "relative" }}><input type="text" value={order.busqueda} onChange={(e) => order.setBusqueda(e.target.value)} placeholder="Ej. Omega 3" style={{ ...inp, paddingLeft: "36px" }} /><span style={{ position: "absolute", left: "11px", top: "50%", transform: "translateY(-50%)", fontSize: "15px", opacity: .35, pointerEvents: "none" }}>🔍</span></div></div>
             <div style={{ ...ic, animation: "blScaleIn .35s ease both", animationDelay: ".1s" }}><div style={{ fontSize: "18px", fontWeight: 800, color: T.orange700, fontFamily: T.fontDisplay }}>{isD ? "Distribuidor" : "Cliente Preferente"}</div><div style={{ marginTop: "4px", color: T.textMuted, fontSize: "12px" }}>{isD ? "Ingreso y recompra" : "Descuento progresivo"}</div></div>
           </div>
 
