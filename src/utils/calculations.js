@@ -15,7 +15,7 @@ export const mensajeVentana15Dias = (dentro) =>
 export const obtenerMensajesBase = (totalPuntos) => {
   const msgs = [];
   if (totalPuntos < 100) {
-    msgs.push({ tipo: "calificacion", cumple: false, texto: `Te faltan ${100 - totalPuntos} puntos para calificar este mes y tener derecho a recibir comisiones.` });
+    msgs.push({ tipo: "calificacion", cumple: false, texto: `Te faltan ${100 - totalPuntos} puntos para calificar y tener derecho a recibir las comisiones de este mes.` });
   } else {
     msgs.push({ tipo: "calificacion", cumple: true, texto: "¡Felicidades! Has cubierto tu calificación mensual de 100 puntos y tienes derecho a recibir comisiones por las compras generadas en tu red durante este mes." });
   }
@@ -55,10 +55,10 @@ export const obtenerPaqueteCompraInicial = (puntos, totales) => {
 
 export const obtenerMensajeCompraInicial = (totalPuntos, paquete) => {
   const st = (cf, ct, cb, cs) => ({ colorFondo: cf, colorTexto: ct, colorBorde: cb, colorSemaforo: cs });
-  if (totalPuntos < 100) { const f = 100 - totalPuntos; return { texto: `Te faltan ${f} puntos para iniciar con el paquete de 100 puntos.`, ...st("#fee2e2","#991b1b","#ef4444","#dc2626"), siguienteMensaje: `Te faltan ${f} puntos para iniciar (${paquete.siguientePaquete}).` }; }
-  if (totalPuntos >= 500) return { texto: "Ya alcanzaste el paquete de 500 puntos y el 42% de descuento. ¡Nivel más alto!", ...st("#ecfccb","#3f6212","#84cc16","#65a30d"), siguienteMensaje: "Paquete más alto de compra inicial." };
+  if (totalPuntos < 100) { const f = 100 - totalPuntos; return { texto: `Te faltan ${f} puntos para el paquete inicial de 100 puntos.`, ...st("#fee2e2","#991b1b","#ef4444","#dc2626"), siguienteMensaje: `Te faltan ${f} puntos para iniciar (${paquete.siguientePaquete}).` }; }
+  if (totalPuntos >= 500) return { texto: "Ya alcanzaste el paquete de 500 puntos y el 42% de descuento. ¡FELICIDADES!", ...st("#ecfccb","#3f6212","#84cc16","#65a30d"), siguienteMensaje: "Paquete 500 completado. ¡FELICIDADES!" };
   const f = paquete.siguienteObjetivo - totalPuntos;
-  return { texto: `${paquete.nombre} con ${paquete.descuento}%. Te faltan ${f} pts para ${paquete.siguientePaquete}.`, ...st("#fef3c7","#92400e","#f59e0b","#d97706"), siguienteMensaje: `Te faltan ${f} pts para ${paquete.siguientePaquete}.` };
+  return { texto: `${paquete.nombre} con ${paquete.descuento}%. Te faltan ${f} pts para el ${paquete.siguientePaquete}.`, ...st("#fef3c7","#92400e","#f59e0b","#d97706"), siguienteMensaje: `Te faltan ${f} pts para el ${paquete.siguientePaquete}.` };
 };
 
 // ─── Membresía (Paquete 500) ─────────────────────────────────
@@ -68,9 +68,9 @@ export const obtenerMensajeMembresia = (totalPuntos, dentroPrimeros15) => {
   const bad = (t, m1, m2) => ({ texto: t, colorFondo: "#fee2e2", colorTexto: "#991b1b", colorBorde: "#ef4444", colorSemaforo: "#dc2626", mensajePrincipal: m1, mensajeSecundario: m2, continuidad: false });
 
   if (!dentroPrimeros15) {
-    return bad("Compra fuera del periodo de Lealtad.", "Tu compra se realizó fuera del periodo del Programa de Lealtad.", totalPuntos >= 100 ? "Calificas para comisiones, pero no mantienes beneficios de lealtad." : `Te faltan ${100 - totalPuntos} pts para calificar a comisiones.`);
+    return bad("Compra fuera del periodo de Lealtad.", "Tu compra se realizó fuera del periodo del Programa de Lealtad.", totalPuntos >= 100 ? "Calificas para comisiones, pero no mantienes beneficios del Programa de Lealtad." : `Te faltan ${100 - totalPuntos} pts para calificar y tener derecho a recibir las comisiones de este mes.`);
   }
-  if (totalPuntos < 100) return bad(`Te faltan ${100 - totalPuntos} pts para calificar.`, `Te faltan ${100 - totalPuntos} pts para calificar a comisiones.`, `Además, te faltan ${200 - totalPuntos} pts para mantener el 42%.`);
+  if (totalPuntos < 100) return bad(`Te faltan ${100 - totalPuntos} pts para calificar.`, `Te faltan ${100 - totalPuntos} pts para calificar y tener derecho a recibir las comisiones de este mes.`, `Además, te faltan ${200 - totalPuntos} pts para mantener el 42% de descuento.`);
   if (totalPuntos < 200) return warn("Calificaste para comisiones, pero no mantienes el 42%.", "✔ Ya calificaste para comisiones.", `Te faltan ${200 - totalPuntos} pts para mantener el 42% de descuento.`);
   return ok("Mantienes tu 42% de descuento.", "✔ Calificación cubierta y 42% mantenido.", "Has superado 200 pts. Tu descuento del 42% está activo.");
 };
@@ -84,9 +84,9 @@ export const obtenerMensajeLealtad = (totalPuntos, mesLealtad, dentroPrimeros15,
   const ok = (t, m1, m2, c) => ({ texto: t, colorFondo: "#ecfccb", colorTexto: "#3f6212", colorBorde: "#84cc16", colorSemaforo: "#65a30d", mensajePrincipal: m1, mensajeSecundario: m2, continuidad: c });
   const bad = (t, m1, m2) => ({ texto: t, colorFondo: "#fee2e2", colorTexto: "#991b1b", colorBorde: "#ef4444", colorSemaforo: "#dc2626", mensajePrincipal: m1, mensajeSecundario: m2, continuidad: false });
   const c100 = totalPuntos >= 100;
-  if (!dentroPrimeros15) return bad("Compra fuera del periodo de Lealtad. Reinicia tu secuencia.", "Esta compra no sostiene tu avance y reinicia tu secuencia.", c100 ? "Aunque cubriste 100 pts, fuera de los primeros 15 días no conservas continuidad." : `Te faltan ${100 - totalPuntos} pts para calificación.`);
-  if (!c100) return bad(`Te faltan ${100 - totalPuntos} pts para calificación.`, `Te faltan ${100 - totalPuntos} pts para calificación de 100 pts.`, "Necesitas mínimo 100 pts personales en los primeros 15 días.");
-  if (siguiente) { const p = siguiente.mesesFaltantes === 1 ? "mes" : "meses"; return ok(`Mes ${mesLealtad} en Lealtad con ${descuento}%.`, "✔ Calificación cubierta en el Programa de Lealtad.", `Te faltan ${siguiente.mesesFaltantes} ${p} para llegar al ${siguiente.etiqueta}.`, true); }
+  if (!dentroPrimeros15) return bad("Compra fuera del periodo del Programa de Lealtad. Reinicia tu secuencia.", "Esta compra no sostiene tu avance y reinicia tu secuencia.", c100 ? "Aunque cubriste 100 pts, fuera de los primeros 15 días del mes no conservas continuidad en el Programa de Lealtad." : `Te faltan ${100 - totalPuntos} pts para calificar y tener derecho a recibir las comisiones de este mes.`);
+  if (!c100) return bad(`Te faltan ${100 - totalPuntos} pts para calificar y tener derecho a recibir las comisiones de este mes.`, `Te faltan ${100 - totalPuntos} pts para calificar y tener derecho a recibir las comisiones de este mes.`, "Necesitas mínimo 100 pts personales en los primeros 15 días.");
+  if (siguiente) { const p = siguiente.mesesFaltantes === 1 ? "mes" : "meses"; return ok(`Mes ${mesLealtad} en Lealtad con ${descuento}%.`, "✔ Calificación cubierta en el Programa de Lealtad.", `Te faltan ${siguiente.mesesFaltantes} ${p} para llegar al ${siguiente.etiqueta} de descuento.`, true); }
   return ok(`Tramo máximo de Lealtad con ${descuento}%.`, "✔ Calificación cubierta en el Programa de Lealtad.", "Tramo más alto del Programa de Lealtad.", true);
 };
 

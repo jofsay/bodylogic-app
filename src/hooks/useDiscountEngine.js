@@ -13,9 +13,6 @@ export function useDiscountEngine({
   const dentroPrimeros15 = useMemo(() => C.detectarPrimeros15Dias(), []);
   const mensajeVentana = C.mensajeVentana15Dias(dentroPrimeros15);
 
-  // ── Base messages (calificación 100 + mantenimiento 200) ──
-  const mensajesBase = useMemo(() => C.obtenerMensajesBase(totalPuntos), [totalPuntos]);
-
   // ── Compra Inicial ──
   const paqueteActual = useMemo(() => C.obtenerPaqueteCompraInicial(totalPuntos, totales), [totalPuntos, totales]);
 
@@ -51,14 +48,23 @@ export function useDiscountEngine({
   const totalSegunDescuentoCP = C.obtenerTotalSegunDescuentoCP(descuentoCP, totales);
   const siguienteNivelCP = C.obtenerSiguienteNivelCP(puntosAcumuladosCP);
 
+  // ── Context-aware base messages (calificación + conditional 42% maintenance) ──
+  const mensajesBase = useMemo(
+    () => C.obtenerMensajesBase(totalPuntos, programaRecompra, mesLealtad, totalAcumuladoAcelerado),
+    [totalPuntos, programaRecompra, mesLealtad, totalAcumuladoAcelerado]
+  );
+
   // ── Unified status ──
   const estado = useMemo(() => {
     if (perfilUsuario === "clientePreferente") return C.obtenerMensajeClientePreferente(puntosAcumuladosCP);
     if (modo === "compraInicial") return C.obtenerMensajeCompraInicial(totalPuntos, paqueteActual);
     if (programaRecompra === "membresia") return mensajeMembresia;
     if (programaRecompra === "lealtad") return C.obtenerMensajeLealtad(totalPuntos, mesLealtad, dentroPrimeros15, descuentoLealtadActual, siguienteEscalonLealtad);
-    return C.obtenerMensajeAcelerado(totalAcumuladoAcelerado, descuentoAceleradoActual, siguienteEscalonAcelerado, dentroPrimeros15, totalPuntos);
-  }, [perfilUsuario, modo, programaRecompra, totalPuntos, paqueteActual, mensajeMembresia, mesLealtad, dentroPrimeros15, descuentoLealtadActual, siguienteEscalonLealtad, totalAcumuladoAcelerado, descuentoAceleradoActual, siguienteEscalonAcelerado, puntosAcumuladosCP]);
+    return C.obtenerMensajeAcelerado(totalAcumuladoAcelerado, descuentoAceleradoActual, siguienteEscalonAcelerado, dentroPrimeros15, totalPuntos, puntosBaseInicial || 0);
+  }, [perfilUsuario, modo, programaRecompra, totalPuntos, paqueteActual, mensajeMembresia,
+      mesLealtad, dentroPrimeros15, descuentoLealtadActual, siguienteEscalonLealtad,
+      totalAcumuladoAcelerado, descuentoAceleradoActual, siguienteEscalonAcelerado,
+      puntosAcumuladosCP, puntosBaseInicial]);
 
   const descuentoActual =
     perfilUsuario === "clientePreferente" ? descuentoCP
