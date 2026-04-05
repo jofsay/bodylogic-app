@@ -27,7 +27,7 @@ export function useDiscountEngine({
   const totalSegunDescuentoLealtad = C.obtenerTotalSegunDescuento(descuentoLealtadActual, totales);
   const siguienteEscalonLealtad = C.obtenerSiguienteEscalonLealtad(mesLealtad);
 
-  // ── Acelerado (Puntos en Comunidad) ──
+  // ── Comunidad (Puntos en Comunidad) ──
   const totalAcumuladoAcelerado = useMemo(
     () => C.calcularAcumuladoComunidad({
       puntosPersonales: puntosPersonalesAcelerado,
@@ -48,10 +48,18 @@ export function useDiscountEngine({
   const totalSegunDescuentoCP = C.obtenerTotalSegunDescuentoCP(descuentoCP, totales);
   const siguienteNivelCP = C.obtenerSiguienteNivelCP(puntosAcumuladosCP);
 
-  // ── Context-aware base messages (calificación + conditional 42% maintenance) ──
+  // ── ¿Ya alcanzó el 42%? — determines if 200 pts are required ──
+  const ya42 = useMemo(() => {
+    if (programaRecompra === "membresia") return true;           // Membresía: siempre 42%
+    if (programaRecompra === "lealtad") return mesLealtad >= 18; // Lealtad: mes 18+
+    if (programaRecompra === "acelerado") return totalAcumuladoAcelerado >= 5001; // Comunidad: 5001+
+    return false;
+  }, [programaRecompra, mesLealtad, totalAcumuladoAcelerado]);
+
+  // ── Context-aware base messages ──
   const mensajesBase = useMemo(
-    () => C.obtenerMensajesBase(totalPuntos, programaRecompra, mesLealtad, totalAcumuladoAcelerado),
-    [totalPuntos, programaRecompra, mesLealtad, totalAcumuladoAcelerado]
+    () => C.obtenerMensajesBase(totalPuntos, ya42),
+    [totalPuntos, ya42]
   );
 
   // ── Unified status ──
@@ -92,7 +100,7 @@ export function useDiscountEngine({
   })();
 
   return {
-    paqueteActual, dentroPrimeros15, mensajeVentana, mensajesBase, mensajeMembresia,
+    paqueteActual, dentroPrimeros15, mensajeVentana, mensajesBase, mensajeMembresia, ya42,
     descuentoLealtadActual, totalSegunDescuentoLealtad, siguienteEscalonLealtad,
     totalAcumuladoAcelerado, descuentoAceleradoActual, totalSegunDescuentoAcelerado, siguienteEscalonAcelerado,
     puntosAcumuladosCP, descuentoCP, totalSegunDescuentoCP, siguienteNivelCP,
