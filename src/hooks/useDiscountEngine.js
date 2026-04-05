@@ -3,13 +3,12 @@ import * as C from "../utils/calculations";
 
 export function useDiscountEngine({
   perfilUsuario, modo, programaRecompra, mesLealtad,
-  puntosPersonalesAcelerado, puntosGrupalesAcelerado, acumuladoPrevioAcelerado,
-  puntosBaseInicial, reiniciadoComunidad,
+  puntosPersonalesAcelerado, puntosClientesPreferentes, puntosGrupalesAcelerado,
+  puntosBaseInicial,
   acumuladoPrevioClientePreferente, totales,
 }) {
   const { totalPuntos } = totales;
 
-  // ── Auto-detect 15-day window ──
   const dentroPrimeros15 = useMemo(() => C.detectarPrimeros15Dias(), []);
   const mensajeVentana = C.mensajeVentana15Dias(dentroPrimeros15);
 
@@ -17,26 +16,23 @@ export function useDiscountEngine({
   const paqueteActual = useMemo(() => C.obtenerPaqueteCompraInicial(totalPuntos, totales), [totalPuntos, totales]);
 
   // ── Membresía ──
-  const mensajeMembresia = useMemo(
-    () => C.obtenerMensajeMembresia(totalPuntos, dentroPrimeros15),
-    [totalPuntos, dentroPrimeros15]
-  );
+  const mensajeMembresia = useMemo(() => C.obtenerMensajeMembresia(totalPuntos, dentroPrimeros15), [totalPuntos, dentroPrimeros15]);
 
   // ── Lealtad (Puntos Personales y CP) ──
   const descuentoLealtadActual = C.obtenerDescuentoLealtad(mesLealtad);
   const totalSegunDescuentoLealtad = C.obtenerTotalSegunDescuento(descuentoLealtadActual, totales);
   const siguienteEscalonLealtad = C.obtenerSiguienteEscalonLealtad(mesLealtad);
 
-  // ── Comunidad (Puntos en Comunidad) ──
+  // ── Comunidad: personales + CP + grupales + base + pedido ──
   const totalAcumuladoAcelerado = useMemo(
     () => C.calcularAcumuladoComunidad({
       puntosPersonales: puntosPersonalesAcelerado,
+      puntosClientesPreferentes: puntosClientesPreferentes,
       puntosGrupales: puntosGrupalesAcelerado,
-      acumuladoPrevio: acumuladoPrevioAcelerado,
       puntosBaseInicial: puntosBaseInicial || 0,
-      reiniciado: reiniciadoComunidad || false,
+      puntosPedidoActual: totalPuntos,
     }),
-    [puntosPersonalesAcelerado, puntosGrupalesAcelerado, acumuladoPrevioAcelerado, puntosBaseInicial, reiniciadoComunidad]
+    [puntosPersonalesAcelerado, puntosClientesPreferentes, puntosGrupalesAcelerado, puntosBaseInicial, totalPuntos]
   );
   const descuentoAceleradoActual = C.obtenerDescuentoAcelerado(totalAcumuladoAcelerado);
   const totalSegunDescuentoAcelerado = C.obtenerTotalSegunDescuento(descuentoAceleradoActual, totales);
@@ -48,19 +44,15 @@ export function useDiscountEngine({
   const totalSegunDescuentoCP = C.obtenerTotalSegunDescuentoCP(descuentoCP, totales);
   const siguienteNivelCP = C.obtenerSiguienteNivelCP(puntosAcumuladosCP);
 
-  // ── ¿Ya alcanzó el 42%? — determines if 200 pts are required ──
+  // ── ya42 flag ──
   const ya42 = useMemo(() => {
-    if (programaRecompra === "membresia") return true;           // Membresía: siempre 42%
-    if (programaRecompra === "lealtad") return mesLealtad >= 18; // Lealtad: mes 18+
-    if (programaRecompra === "acelerado") return totalAcumuladoAcelerado >= 5001; // Comunidad: 5001+
+    if (programaRecompra === "membresia") return true;
+    if (programaRecompra === "lealtad") return mesLealtad >= 18;
+    if (programaRecompra === "acelerado") return totalAcumuladoAcelerado >= 3001;
     return false;
   }, [programaRecompra, mesLealtad, totalAcumuladoAcelerado]);
 
-  // ── Context-aware base messages ──
-  const mensajesBase = useMemo(
-    () => C.obtenerMensajesBase(totalPuntos, ya42),
-    [totalPuntos, ya42]
-  );
+  const mensajesBase = useMemo(() => C.obtenerMensajesBase(totalPuntos, ya42), [totalPuntos, ya42]);
 
   // ── Unified status ──
   const estado = useMemo(() => {
@@ -74,19 +66,8 @@ export function useDiscountEngine({
       totalAcumuladoAcelerado, descuentoAceleradoActual, siguienteEscalonAcelerado,
       puntosAcumuladosCP, puntosBaseInicial]);
 
-  const descuentoActual =
-    perfilUsuario === "clientePreferente" ? descuentoCP
-    : modo === "compraInicial" ? paqueteActual.descuento
-    : programaRecompra === "membresia" ? 42
-    : programaRecompra === "lealtad" ? descuentoLealtadActual
-    : descuentoAceleradoActual;
-
-  const totalConDescuento =
-    perfilUsuario === "clientePreferente" ? totalSegunDescuentoCP
-    : modo === "compraInicial" ? paqueteActual.totalConDescuento
-    : programaRecompra === "membresia" ? totales.total42
-    : programaRecompra === "lealtad" ? totalSegunDescuentoLealtad
-    : totalSegunDescuentoAcelerado;
+  const descuentoActual = perfilUsuario === "clientePreferente" ? descuentoCP : modo === "compraInicial" ? paqueteActual.descuento : programaRecompra === "membresia" ? 42 : programaRecompra === "lealtad" ? descuentoLealtadActual : descuentoAceleradoActual;
+  const totalConDescuento = perfilUsuario === "clientePreferente" ? totalSegunDescuentoCP : modo === "compraInicial" ? paqueteActual.totalConDescuento : programaRecompra === "membresia" ? totales.total42 : programaRecompra === "lealtad" ? totalSegunDescuentoLealtad : totalSegunDescuentoAcelerado;
 
   const obtenerPrecio = (item) => C.obtenerPrecioActual(item, perfilUsuario, descuentoCP, paqueteActual.descuento, modo, descuentoLealtadActual, descuentoAceleradoActual, programaRecompra);
   const obtenerSubtotal = (item) => C.obtenerSubtotalPedido(item, perfilUsuario, descuentoCP, paqueteActual.descuento, modo, descuentoLealtadActual, descuentoAceleradoActual, programaRecompra);
