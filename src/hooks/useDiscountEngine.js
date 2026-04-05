@@ -3,7 +3,7 @@ import * as C from "../utils/calculations";
 
 export function useDiscountEngine({
   perfilUsuario, modo, programaRecompra, mesLealtad,
-  puntosPersonalesAcelerado, puntosClientesPreferentes, puntosGrupalesAcelerado,
+  puntosPersonalesAcelerado, puntosGrupalesAcelerado,
   puntosBaseInicial,
   acumuladoPrevioClientePreferente, totales,
 }) {
@@ -23,16 +23,15 @@ export function useDiscountEngine({
   const totalSegunDescuentoLealtad = C.obtenerTotalSegunDescuento(descuentoLealtadActual, totales);
   const siguienteEscalonLealtad = C.obtenerSiguienteEscalonLealtad(mesLealtad);
 
-  // ── Comunidad: personales + CP + grupales + base + pedido ──
+  // ── Comunidad: personales + grupales + base + pedido ──
   const totalAcumuladoAcelerado = useMemo(
     () => C.calcularAcumuladoComunidad({
       puntosPersonales: puntosPersonalesAcelerado,
-      puntosClientesPreferentes: puntosClientesPreferentes,
       puntosGrupales: puntosGrupalesAcelerado,
       puntosBaseInicial: puntosBaseInicial || 0,
       puntosPedidoActual: totalPuntos,
     }),
-    [puntosPersonalesAcelerado, puntosClientesPreferentes, puntosGrupalesAcelerado, puntosBaseInicial, totalPuntos]
+    [puntosPersonalesAcelerado, puntosGrupalesAcelerado, puntosBaseInicial, totalPuntos]
   );
   const descuentoAceleradoActual = C.obtenerDescuentoAcelerado(totalAcumuladoAcelerado);
   const totalSegunDescuentoAcelerado = C.obtenerTotalSegunDescuento(descuentoAceleradoActual, totales);

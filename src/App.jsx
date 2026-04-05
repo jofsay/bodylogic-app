@@ -17,12 +17,9 @@ function App() {
   const [modo, setModo] = useState("compraInicial");
   const [programaRecompra, setProgramaRecompra] = useState("membresia");
   const [mesLealtad, setMesLealtad] = useState(1);
-  // Comunidad — 3 campos + selector de paquete inicial
   const [puntosPersonalesAcelerado, setPuntosPersonalesAcelerado] = useState(0);
-  const [puntosClientesPreferentes, setPuntosClientesPreferentes] = useState(0);
   const [puntosGrupalesAcelerado, setPuntosGrupalesAcelerado] = useState(0);
   const [puntosBaseInicial, setPuntosBaseInicial] = useState(500);
-  // Cliente Preferente
   const [acumuladoPrevioClientePreferente, setAcumuladoPrevioClientePreferente] = useState(0);
   const [descargandoArchivo, setDescargandoArchivo] = useState("");
   const [resumenContraido, setResumenContraido] = useState(false);
@@ -32,7 +29,7 @@ function App() {
   const order = useOrder();
   const engine = useDiscountEngine({
     perfilUsuario, modo, programaRecompra, mesLealtad,
-    puntosPersonalesAcelerado, puntosClientesPreferentes, puntosGrupalesAcelerado,
+    puntosPersonalesAcelerado, puntosGrupalesAcelerado,
     puntosBaseInicial,
     acumuladoPrevioClientePreferente, totales: order.totales,
   });
@@ -49,11 +46,10 @@ function App() {
   const irAPedidoActual = useCallback(() => { document.getElementById("pedido-actual")?.scrollIntoView({ behavior: "smooth", block: "start" }); }, []);
   const irArriba = useCallback(() => window.scrollTo({ top: 0, behavior: "smooth" }), []);
 
-  // ── LIMPIAR TODO — borra absolutamente todo lo editable ──
+  // ── LIMPIAR TODO — reinicia absolutamente todo ──
   const limpiarTodo = useCallback(() => {
     order.vaciarPedido();
     setPuntosPersonalesAcelerado(0);
-    setPuntosClientesPreferentes(0);
     setPuntosGrupalesAcelerado(0);
     setAcumuladoPrevioClientePreferente(0);
   }, [order]);
@@ -96,7 +92,6 @@ function App() {
       <div style={{ position: "absolute", bottom: "5%", left: "-50px", width: "280px", height: "280px", borderRadius: "50%", background: "radial-gradient(circle,rgba(249,115,22,.06) 0%,transparent 70%)", pointerEvents: "none", zIndex: 0 }} />
       <div style={{ maxWidth: "1500px", margin: "0 auto", position: "relative", zIndex: 1 }}>
 
-        {/* ══ HERO ══ */}
         <header className="bl-section" style={{ borderRadius: T.r.xl, overflow: "hidden", background: `linear-gradient(135deg,${T.orange900} 0%,#7a2e10 15%,${T.orange600} 40%,${T.orange500} 65%,${T.orange400} 85%,#fbbf6a 100%)`, boxShadow: T.s.xl, marginBottom: "18px", position: "relative" }}>
           <div className="bl-shine" style={{ padding: "clamp(24px,5vw,48px)", color: T.white, position: "relative", zIndex: 1 }}>
             <Badge style={{ backgroundColor: "rgba(255,255,255,.14)", color: "#fff", border: "1px solid rgba(255,255,255,.22)" }}>Plataforma de Apoyo Comercial</Badge>
@@ -106,7 +101,6 @@ function App() {
           </div>
         </header>
 
-        {/* ══ PANEL DE CONTROL ══ */}
         <SectionCard delay={1} key={`p-${animKey}`}>
           <div style={{ marginBottom: "18px" }}><h2 style={secTitle}>Panel de control</h2><p style={secSub}>Configura perfil, modo y filtra productos.</p></div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: "12px" }}>
@@ -168,7 +162,6 @@ function App() {
                     ) : (
                       <>
                         <div style={cc}><label style={lb}>Puntos personales acumulados</label><input type="number" min="0" value={puntosPersonalesAcelerado} onChange={(e) => setPuntosPersonalesAcelerado(Number(e.target.value || 0))} style={inp} /></div>
-                        <div style={cc}><label style={lb}>Puntos de Clientes Preferentes</label><input type="number" min="0" value={puntosClientesPreferentes} onChange={(e) => setPuntosClientesPreferentes(Number(e.target.value || 0))} style={inp} /></div>
                         <div style={cc}><label style={lb}>Puntos grupales acumulados</label><input type="number" min="0" value={puntosGrupalesAcelerado} onChange={(e) => setPuntosGrupalesAcelerado(Number(e.target.value || 0))} style={inp} /></div>
                         <div style={cc}>
                           <label style={lb}>Paquete inicial</label>
@@ -184,7 +177,7 @@ function App() {
                           <div style={{ fontSize: "22px", fontWeight: 800, color: T.orange600 }}>{engine.totalAcumuladoAcelerado} pts</div>
                           <div style={{ marginTop: "3px", color: T.textMuted, fontSize: "12px" }}>Acumulado total → {engine.descuentoAceleradoActual}%</div>
                           <div style={{ marginTop: "6px", fontSize: "11px", color: T.textMuted, lineHeight: 1.4 }}>
-                            Personales: {puntosPersonalesAcelerado} + CP: {puntosClientesPreferentes} + Grupales: {puntosGrupalesAcelerado} + Base: {puntosBaseInicial} + Pedido: {totales.totalPuntos}
+                            Personales: {puntosPersonalesAcelerado} + Grupales: {puntosGrupalesAcelerado} + Base: {puntosBaseInicial} + Pedido: {totales.totalPuntos}
                           </div>
                           {engine.siguienteEscalonAcelerado && <ProgressBar current={engine.totalAcumuladoAcelerado} target={engine.siguienteEscalonAcelerado.meta} label={`${engine.totalAcumuladoAcelerado}/${engine.siguienteEscalonAcelerado.meta} → ${engine.siguienteEscalonAcelerado.etiqueta}`} />}
                         </div>
@@ -195,32 +188,50 @@ function App() {
               </div>
             </div>
           ) : (
+            /* ══ CLIENTE PREFERENTE — rediseñado con mensajes claros ══ */
             <div key={`cp-${animKey}`} style={{ animation: "blFadeUp .3s ease both" }}>
               <div style={{ display: "flex", gap: "8px", margin: "16px 0" }}><Btn onClick={limpiarTodo} ghost>Limpiar</Btn></div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: "12px" }}>
                 <div style={cc}><label style={lb}>Puntos acumulados previos</label><input type="number" min="0" value={acumuladoPrevioClientePreferente} onChange={(e) => setAcumuladoPrevioClientePreferente(Number(e.target.value || 0))} style={inp} /></div>
-                <div style={{ ...ic, animation: "blScaleIn .3s ease both" }}><div style={{ fontSize: "30px", fontWeight: 800, color: T.orange600 }}>{engine.descuentoCP}%</div><div style={{ marginTop: "3px", color: T.textMuted, fontSize: "12px" }}>Descuento actual</div></div>
-                <div style={{ ...ic, animation: "blScaleIn .3s ease both", animationDelay: ".08s" }}><div style={{ fontSize: "26px", fontWeight: 800, color: T.orange600 }}>{engine.puntosAcumuladosCP}</div><div style={{ marginTop: "3px", color: T.textMuted, fontSize: "12px" }}>Pts acumulados</div>{engine.siguienteNivelCP && <ProgressBar current={engine.puntosAcumuladosCP} target={engine.siguienteNivelCP.meta} label={`${engine.puntosAcumuladosCP}/${engine.siguienteNivelCP.meta} → ${engine.siguienteNivelCP.etiqueta}`} />}</div>
-                <div style={{ ...ic, animation: "blScaleIn .3s ease both", animationDelay: ".16s" }}><div style={{ fontSize: "18px", fontWeight: 700, color: T.orange700 }}>{engine.siguienteNivelCP ? `${engine.siguienteNivelCP.meta - engine.puntosAcumuladosCP} pts` : "Nivel máximo"}</div><div style={{ marginTop: "4px", color: T.textMuted, fontSize: "12px" }}>{engine.siguienteNivelCP ? `Faltan → ${engine.siguienteNivelCP.etiqueta}` : "Ya en 20%"}</div></div>
+                <div style={{ ...ic, animation: "blScaleIn .3s ease both" }}>
+                  <div style={{ fontSize: "13px", fontWeight: 700, color: T.orange700, marginBottom: "4px" }}>Puntos acumulados</div>
+                  <div style={{ fontSize: "30px", fontWeight: 800, color: T.orange600 }}>{engine.puntosAcumuladosCP}</div>
+                </div>
+                <div style={{ ...ic, animation: "blScaleIn .3s ease both", animationDelay: ".08s" }}>
+                  <div style={{ fontSize: "13px", fontWeight: 700, color: T.orange700, marginBottom: "4px" }}>Descuento actual</div>
+                  <div style={{ fontSize: "30px", fontWeight: 800, color: T.orange600 }}>{engine.descuentoCP}%</div>
+                </div>
+                <div style={{ ...ic, animation: "blScaleIn .3s ease both", animationDelay: ".16s" }}>
+                  {engine.siguienteNivelCP ? (
+                    <>
+                      <div style={{ fontSize: "13px", fontWeight: 700, color: T.orange700, marginBottom: "4px" }}>Progreso al siguiente nivel</div>
+                      <div style={{ fontSize: "18px", fontWeight: 800, color: T.orange600 }}>Te faltan {engine.siguienteNivelCP.meta - engine.puntosAcumuladosCP} pts</div>
+                      <div style={{ marginTop: "3px", color: T.textMuted, fontSize: "12px" }}>Para alcanzar el {engine.siguienteNivelCP.etiqueta} de descuento</div>
+                      <ProgressBar current={engine.puntosAcumuladosCP} target={engine.siguienteNivelCP.meta} label={`${engine.puntosAcumuladosCP}/${engine.siguienteNivelCP.meta} → ${engine.siguienteNivelCP.etiqueta}`} />
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: "13px", fontWeight: 700, color: T.green500, marginBottom: "4px" }}>Nivel máximo alcanzado</div>
+                      <div style={{ fontSize: "18px", fontWeight: 800, color: T.green500 }}>20%</div>
+                      <div style={{ marginTop: "3px", color: T.textMuted, fontSize: "12px" }}>Has alcanzado el nivel máximo de Cliente Preferente</div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           )}
           {esMovil && <div style={{ display: "flex", gap: "6px", marginTop: "14px" }}><Btn onClick={() => setVistaMovil("cards")} active={vistaMovil === "cards"} style={{ flex: 1, fontSize: "13px", padding: "10px" }}>Tarjetas</Btn><Btn onClick={() => setVistaMovil("tabla")} active={vistaMovil === "tabla"} style={{ flex: 1, fontSize: "13px", padding: "10px" }}>Tabla</Btn></div>}
         </SectionCard>
 
-        {/* ══ SEMÁFORO ══ */}
         <section className="bl-section bl-d2" key={`s-${animKey}`} style={{ display: "flex", gap: "14px", alignItems: "center", borderRadius: T.r.lg, padding: "18px 22px", marginBottom: "18px", backgroundColor: estado.colorFondo, border: `2px solid ${estado.colorBorde}`, boxShadow: T.s.md, transition: "all .4s cubic-bezier(.22,.61,.36,1)", position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", left: 0, top: "10%", bottom: "10%", width: "4px", borderRadius: "0 4px 4px 0", backgroundColor: estado.colorSemaforo, boxShadow: `0 0 8px ${estado.colorSemaforo}40` }} />
           <div className="bl-semaforo" style={{ width: "14px", height: "14px", borderRadius: "50%", flexShrink: 0, backgroundColor: estado.colorSemaforo, boxShadow: `0 0 0 4px ${estado.colorFondo},0 0 16px ${estado.colorSemaforo}45`, marginLeft: "6px" }} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: "13px", fontWeight: 700, color: estado.colorTexto, lineHeight: 1.3 }}>
-              {isCP ? "Cliente Preferente" : modo === "compraInicial" ? "Compra inicial" : programaRecompra === "membresia" ? "Membresía (Paquete 500)" : programaRecompra === "lealtad" ? "Pts Personales y CP" : "Pts en Comunidad"}
-            </div>
+            <div style={{ fontSize: "13px", fontWeight: 700, color: estado.colorTexto, lineHeight: 1.3 }}>{isCP ? "Cliente Preferente" : modo === "compraInicial" ? "Compra inicial" : programaRecompra === "membresia" ? "Membresía (Paquete 500)" : programaRecompra === "lealtad" ? "Pts Personales y CP" : "Pts en Comunidad"}</div>
             <div style={{ marginTop: "4px", lineHeight: 1.55, color: estado.colorTexto, fontSize: "13px", opacity: .88 }}>{estado.texto}</div>
           </div>
         </section>
 
-        {/* ══ PEDIDO ACTUAL ══ */}
         <SectionCard delay={3}>
           <div id="pedido-actual" style={{ marginBottom: "14px" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "10px" }}><div><h2 style={secTitle}>Pedido actual</h2><p style={secSub}>Productos capturados.</p></div>{productosSeleccionados.length > 0 && <Btn onClick={limpiarTodo} danger style={{ fontSize: "12px", padding: "9px 14px" }}>Vaciar pedido</Btn>}</div></div>
           {productosSeleccionados.length === 0 ? <div style={{ padding: "28px", borderRadius: T.r.lg, backgroundColor: "rgba(255,250,245,.6)", border: `2px dashed ${T.cream700}`, color: T.textMuted, textAlign: "center", fontSize: "14px" }}>Aún no has agregado productos.</div> : (
@@ -235,7 +246,6 @@ function App() {
           )}
         </SectionCard>
 
-        {/* ══ TABLA MAESTRA ══ */}
         <SectionCard delay={4}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "10px", marginBottom: "14px" }}><div><h2 style={secTitle}>Tabla maestra</h2><p style={secSub}><strong>{filasCalculadas.length}</strong> producto(s){order.categoriaSeleccionada !== "TODAS" ? ` en "${order.categoriaSeleccionada}"` : ""}</p></div><div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}><Btn onClick={handlePDF} active style={{ fontSize: "13px", padding: "9px 16px" }}>PDF</Btn><Btn onClick={handlePrint} style={{ fontSize: "13px", padding: "9px 16px" }}>Imprimir</Btn></div></div>
           {esMovil && vistaMovil === "cards" ? (
@@ -249,16 +259,12 @@ function App() {
           : renderTable(["Cat.","Cód.","Producto","Contenido","Uds.","Pts","Sub.pts","P.púb.","Sub.púb.","V.com.","Sub.com."],(item,idx)=><tr key={item.codigo} ref={(el)=>{order.productRefs.current[item.codigo]=el;}} onClick={()=>order.setFilaActiva(item.codigo)} style={{backgroundColor:rowBg(item,idx),cursor:"pointer",transition:"background-color .18s"}}><td style={tdS}>{item.categoria}</td><td style={tdS}>{item.codigo}</td><td style={{...tdS,color:T.textDark,fontWeight:600}}>{item.producto}</td><td style={tdS}>{item.contenido}</td><td style={tdS}><input type="number" min="0" value={item.unidades} onChange={(e)=>order.cambiarCantidad(item.codigo,e.target.value)} onFocus={()=>order.setFilaActiva(item.codigo)} style={inpT}/></td><td style={tdS}>{item.puntos}</td><td style={tdS}>{item.subtotalPuntos}</td><td style={tdS}>{formatoMoneda(item.precioPublico)}</td><td style={tdS}>{formatoMoneda(item.subtotalPrecioPublico)}</td><td style={tdS}>{formatoMoneda(item.valorComisionable)}</td><td style={tdS}>{formatoMoneda(item.subtotalValorComisionable)}</td></tr>,()=><tr style={{background:`linear-gradient(180deg,${T.cream100},${T.cream300})`}}><td style={tdT}/><td style={tdT}/><td style={{...tdT,fontWeight:700}}>TOTAL</td><td style={tdT}/><td style={{...tdT,fontWeight:700}}>{totales.totalUnidades}</td><td style={tdT}/><td style={{...tdT,fontWeight:700,backgroundColor:estado.colorFondo,color:estado.colorTexto,border:`2px solid ${estado.colorBorde}`,borderRadius:"6px"}}>{totales.totalPuntos}</td><td style={tdT}/><td style={{...tdT,fontWeight:700}}>{formatoMoneda(totales.totalPrecioPublico)}</td><td style={tdT}/><td style={{...tdT,fontWeight:700}}>{formatoMoneda(totales.totalValorComisionable)}</td></tr>)}
         </SectionCard>
 
-        {/* ══ INFO ══ */}
         <SectionCard delay={5}><h2 style={secTitle}>3 formas de adquirir</h2><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:"12px",marginTop:"14px"}}><div className="bl-card" style={{background:`linear-gradient(135deg,${T.orange50},${T.orange100})`,border:`1px solid ${T.orange300}`,borderRadius:T.r.lg,padding:"16px"}}><Badge>Web</Badge><h3 style={{margin:"8px 0 6px",color:T.textDark,fontSize:"16px",fontWeight:700}}>Sitio web</h3><p style={{margin:0,color:T.textMuted,fontSize:"13px"}}>Ingresa a:</p><a href="https://www.bodylogicglobal.com" target="_blank" rel="noreferrer" className="bl-btn-hover" style={{display:"inline-block",marginTop:"8px",color:T.orange600,fontWeight:700,textDecoration:"none",padding:"9px 14px",borderRadius:T.r.sm,backgroundColor:T.white,border:`1px solid ${T.cream700}`,fontSize:"13px"}}>bodylogicglobal.com ↗</a></div><div className="bl-card" style={{background:`linear-gradient(180deg,${T.cream100},${T.cream200})`,border:`1px solid ${T.cream500}`,borderRadius:T.r.lg,padding:"16px"}}><Badge>Teléfono</Badge><h3 style={{margin:"8px 0 6px",color:T.textDark,fontSize:"16px",fontWeight:700}}>Centro de servicio</h3><a href="tel:8007024840" style={{display:"inline-block",color:T.orange600,fontWeight:700,textDecoration:"none",fontSize:"17px"}}>800 702 4840</a><p style={{margin:"4px 0 0",color:T.textMuted,fontSize:"12px",lineHeight:1.5}}>L-V 8:00–20:00 · S 9:00–14:00</p></div><div className="bl-card" style={{background:`linear-gradient(180deg,${T.cream100},${T.cream200})`,border:`1px solid ${T.cream500}`,borderRadius:T.r.lg,padding:"16px"}}><Badge>Presencial</Badge><h3 style={{margin:"8px 0 6px",color:T.textDark,fontSize:"16px",fontWeight:700}}>CAD</h3><p style={{margin:0,color:T.textMuted,fontSize:"13px",lineHeight:1.5}}>Tu CAD más cercano.</p></div></div></SectionCard>
 
-        {/* ══ LEYENDAS ══ */}
         <SectionCard delay={5} style={{background:`linear-gradient(180deg,${T.orange50},rgba(255,244,234,.5))`,border:`1px solid ${T.cream700}`}}><h2 style={{...secTitle,marginBottom:"12px"}}>Leyendas</h2>{["Los puntos corresponden al valor en puntos de cada producto.",isD&&"El valor comisionable = 89% del precio con descuento sin IVA.","Herramientas de negocio no generan puntos ni V.C.","Valida siempre con la lista vigente de la empresa."].filter(Boolean).map((t,i)=><div key={i} style={{padding:"10px 14px",borderRadius:T.r.sm,backgroundColor:"rgba(255,255,255,.65)",border:`1px solid ${T.orange200}`,color:T.orange700,lineHeight:1.55,fontSize:"13px",marginBottom:i<3?"8px":0}}>{t}</div>)}</SectionCard>
 
-        {/* ══ DOCUMENTOS ══ */}
         <SectionCard delay={6}><h2 style={secTitle}>Documentos</h2><p style={{...secSub,marginBottom:"14px"}}>{isCP?"Para Cliente Preferente.":"Archivos oficiales."}</p><div style={{display:"grid",gap:"10px"}}>{documentosVisibles.map((doc,i)=>{const dl=descargandoArchivo===doc.archivo;return(<div key={doc.archivo} className="bl-card" style={{background:`linear-gradient(180deg,${T.cream100},${T.cream200})`,border:`1px solid ${T.cream500}`,borderRadius:T.r.lg,padding:"14px",animation:`blFadeUp .3s ease both`,animationDelay:`${i*.05}s`}}><div style={{display:"flex",gap:"10px",alignItems:"flex-start"}}><span style={{fontSize:"22px",lineHeight:1}}>{doc.icono}</span><div style={{flex:1}}><div style={{fontWeight:700,fontSize:"15px",color:T.textDark}}>{doc.nombre}</div><div style={{marginTop:"3px",color:T.textMuted,fontSize:"12px",lineHeight:1.5}}>{doc.descripcion}</div><div style={{marginTop:"3px",color:T.orange500,fontSize:"11px",fontWeight:500}}>{doc.archivo}</div></div></div><Btn onClick={()=>handleDescargar(doc.archivo,doc.nombre)} active style={{marginTop:"10px",fontSize:"12px",padding:"9px 16px",width:"100%"}} disabled={dl}>{dl?"Descargando...":doc.tipo==="membresia"?"Descargar y rellenar":"Descargar PDF"}</Btn></div>);})}</div></SectionCard>
 
-        {/* ══ RESUMEN FLOTANTE MÓVIL ══ */}
         {esMovil && (
           <div className="bl-float-glass" style={{position:"fixed",left:"6px",right:"6px",bottom:"6px",zIndex:999,borderRadius:"18px",padding:"14px 16px",backgroundColor:`${estado.colorFondo}ee`,border:`1.5px solid ${estado.colorBorde}`,boxShadow:`0 -8px 40px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.3)`,color:estado.colorTexto,transition:"all .35s cubic-bezier(.22,.61,.36,1)",paddingBottom:"max(14px, env(safe-area-inset-bottom, 14px))"}}>
             <div style={{width:"32px",height:"3px",borderRadius:"3px",backgroundColor:estado.colorTexto,opacity:.2,margin:"0 auto 10px"}}/>

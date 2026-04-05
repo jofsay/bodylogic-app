@@ -8,14 +8,14 @@
  * ¿Cuándo se alcanza el 42%?
  *   Membresía:           siempre (Paquete 500)
  *   Pts Personales y CP: mes 18+
- *   Pts en Comunidad:    acumulado total >= 3001
+ *   Pts en Comunidad:    acumulado total >= 3001 (automático, sin validación extra)
  *
  * COMUNIDAD — suma:
- *   personales + clientesPreferentes + grupales + paqueteInicial + pedidoActual
+ *   personales + grupales + paqueteInicial + pedidoActual
  *   Escala: 1-500→30% | 501-1500→35% | 1501-3000→40% | 3001+→42%
  *
- * REINICIO INTERNO (no visible):
- *   Pierde 42% → regresa al paqueteEquivalente, nunca a 0.
+ * CLIENTE PREFERENTE — acumulación 12 meses:
+ *   0-149→10% | 150-649→15% | 650+→20%
  */
 
 // ─── Auto-detect first 15 days ───────────────────────────────
@@ -147,65 +147,107 @@ export const obtenerSiguienteEscalonAcelerado = (acum) => {
   return null;
 };
 
-/** Suma: personales + CP + grupales + base + pedido */
-export const calcularAcumuladoComunidad = ({ puntosPersonales, puntosClientesPreferentes, puntosGrupales, puntosBaseInicial, puntosPedidoActual }) => {
+/** Suma: personales + grupales + paqueteInicial + pedidoActual */
+export const calcularAcumuladoComunidad = ({ puntosPersonales, puntosGrupales, puntosBaseInicial, puntosPedidoActual }) => {
   return Math.max(0,
     Number(puntosPersonales || 0) +
-    Number(puntosClientesPreferentes || 0) +
     Number(puntosGrupales || 0) +
     Number(puntosBaseInicial || 0) +
     Number(puntosPedidoActual || 0)
   );
 };
 
-/** Paquete equivalente — para reinicio interno, nunca a 0 */
+/** Paquete equivalente — para reinicio interno */
 export const obtenerPaqueteEquivalente = (puntos) => {
-  if (puntos >= 500) return 500;
-  if (puntos >= 400) return 400;
-  if (puntos >= 300) return 300;
-  if (puntos >= 200) return 200;
-  if (puntos >= 100) return 100;
-  return 0;
+  if (puntos >= 500) return 500; if (puntos >= 400) return 400;
+  if (puntos >= 300) return 300; if (puntos >= 200) return 200;
+  if (puntos >= 100) return 100; return 0;
 };
 
+/**
+ * Comunidad: cuando acum >= 3001, el 42% se alcanza AUTOMÁTICAMENTE.
+ * No hay validación adicional de "200 pts del pedido" para Comunidad.
+ * Solo se valida calificación (100 pts) para comisiones cuando aún no tiene 42%.
+ */
 export const obtenerMensajeAcelerado = (acum, desc, sig, dentroPrimeros15, totalPuntos, puntosBaseInicial = 0) => {
   const ok = (t, m1, m2) => ({ texto: t, colorFondo: "#ecfccb", colorTexto: "#3f6212", colorBorde: "#84cc16", colorSemaforo: "#65a30d", mensajePrincipal: m1, mensajeSecundario: m2 });
   const warn = (t, m1, m2) => ({ texto: t, colorFondo: "#fef3c7", colorTexto: "#92400e", colorBorde: "#f59e0b", colorSemaforo: "#d97706", mensajePrincipal: m1, mensajeSecundario: m2 });
   const bad = (t, m1, m2) => ({ texto: t, colorFondo: "#fee2e2", colorTexto: "#991b1b", colorBorde: "#ef4444", colorSemaforo: "#dc2626", mensajePrincipal: m1, mensajeSecundario: m2 });
 
-  if (acum <= 0) return bad("Captura tus puntos para evaluar.", "Ingresa tus puntos personales, de Clientes Preferentes y grupales.", "");
+  if (acum <= 0) return bad("Captura tus puntos para evaluar.", "Ingresa tus puntos personales y grupales acumulados.", "");
 
-  const ya42 = acum >= 3001;
-  const ptsRequeridos = ya42 ? 200 : 100;
-
-  if (!dentroPrimeros15 && totalPuntos < ptsRequeridos) {
+  // Fuera de 15 días sin calificación → reinicio
+  if (!dentroPrimeros15 && totalPuntos < 100) {
     const baseEquiv = obtenerPaqueteEquivalente(puntosBaseInicial);
     const baseDesc = obtenerDescuentoAcelerado(baseEquiv);
     return bad(
-      `Fuera de ventana de 15 días sin ${ptsRequeridos} pts → reinicio a base inicial.`,
+      `Fuera de ventana de 15 días sin calificación → reinicio a base inicial.`,
       `⚠ Reinicio de progreso. Tu base inicial (Paquete ${baseEquiv}) te coloca en ${baseDesc}%.`,
-      `Acumulado se reinicia a ${baseEquiv} pts (tu paquete de ingreso). Nunca a cero.`
+      `Acumulado se reinicia a ${baseEquiv} pts. Nunca a cero.`
     );
   }
 
-  if (ya42) {
-    if (totalPuntos < 200) return warn(`Acumulado: ${acum} pts → 42%. Pero no mantienes el descuento.`, `✔ Has alcanzado 3001+ pts → 42% de descuento.`, `Te faltan ${200 - totalPuntos} pts para mantener el 42% este mes.`);
-    return ok(`¡${acum} pts acumulados → 42% de descuento mantenido!`, "¡Felicidades! Has alcanzado 3001+ pts y mantienes el 42%.", "Tu descuento del 42% está activo con 200+ pts este mes.");
+  // >= 3001 → 42% automático, sin validación extra
+  if (acum >= 3001) {
+    return ok(
+      `¡Has alcanzado el 42% de descuento! Acumulado: ${acum} pts.`,
+      `✔ Has alcanzado el 42% de descuento con ${acum} pts acumulados.`,
+      "Tu descuento del 42% está activo."
+    );
   }
 
-  if (totalPuntos < 100) return bad(`Acumulado: ${acum} pts → ${desc}%. Pero no calificas.`, `Tu acumulado comunitario es ${acum} pts → ${desc}% de descuento.`, `Te faltan ${100 - totalPuntos} pts para calificar este mes.`);
-  if (sig) { const f = sig.meta - acum; return (desc >= 35 ? warn : ok)(`Acumulado: ${acum} pts → ${desc}% de descuento.`, `✔ Calificación cubierta. Acumulado: ${acum} pts → ${desc}%.`, `Te faltan ${f} pts para llegar al ${sig.etiqueta}.`); }
-  return ok(`${acum} pts acumulados → ${desc}%.`, `✔ Calificación cubierta. ${desc}% de descuento.`, "");
+  // < 3001 → felicitar por el descuento actual
+  if (totalPuntos < 100) {
+    return bad(
+      `Acumulado: ${acum} pts → ${desc}% de descuento. Pero no calificas este mes.`,
+      `Tu acumulado comunitario es ${acum} pts → ${desc}% de descuento.`,
+      `Te faltan ${100 - totalPuntos} pts para calificar este mes.`
+    );
+  }
+
+  if (sig) {
+    const f = sig.meta - acum;
+    return (desc >= 35 ? warn : ok)(
+      `Acumulado: ${acum} pts → ${desc}% de descuento.`,
+      `✔ Calificación cubierta. Tu acumulado es ${acum} pts → ${desc}% de descuento.`,
+      `Te faltan ${f} pts para alcanzar el ${sig.etiqueta}.`
+    );
+  }
+
+  return ok(`${acum} pts → ${desc}%.`, `✔ Calificación cubierta. ${desc}% de descuento.`, "");
 };
 
 // ─── Cliente Preferente ──────────────────────────────────────
+// 0-149→10% | 150-649→15% | 650+→20% (acumulación 12 meses)
 export const obtenerDescuentoClientePreferente = (p) => { if (p >= 650) return 20; if (p >= 150) return 15; return 10; };
 export const obtenerSiguienteNivelCP = (p) => { if (p < 150) return { meta: 150, etiqueta: "15%" }; if (p < 650) return { meta: 650, etiqueta: "20%" }; return null; };
 export const obtenerTotalSegunDescuentoCP = (d, t) => d === 10 ? t.total10 : d === 15 ? t.total15 : t.total20;
+
 export const obtenerMensajeClientePreferente = (acum) => {
-  if (acum < 150) { const f = 150 - acum; return { texto: `10% de descuento. Faltan ${f} pts → 15%.`, colorFondo: "#fee2e2", colorTexto: "#991b1b", colorBorde: "#ef4444", colorSemaforo: "#dc2626", mensajePrincipal: "Descuento actual: 10%.", mensajeSecundario: `Faltan ${f} pts → 15%.` }; }
-  if (acum < 650) { const f = 650 - acum; return { texto: `15% de descuento. Faltan ${f} pts → 20%.`, colorFondo: "#fef3c7", colorTexto: "#92400e", colorBorde: "#f59e0b", colorSemaforo: "#d97706", mensajePrincipal: "Descuento actual: 15%.", mensajeSecundario: `Faltan ${f} pts → 20%.` }; }
-  return { texto: "¡20% de descuento! Nivel máximo.", colorFondo: "#ecfccb", colorTexto: "#3f6212", colorBorde: "#84cc16", colorSemaforo: "#65a30d", mensajePrincipal: "Descuento actual: 20%.", mensajeSecundario: "Nivel máximo de Cliente Preferente." };
+  if (acum < 150) {
+    const f = 150 - acum;
+    return {
+      texto: `Puntos acumulados: ${acum}. Descuento actual: 10%. Te faltan ${f} puntos para alcanzar el 15% de descuento.`,
+      colorFondo: "#fee2e2", colorTexto: "#991b1b", colorBorde: "#ef4444", colorSemaforo: "#dc2626",
+      mensajePrincipal: `Puntos acumulados: ${acum} — Descuento actual: 10%.`,
+      mensajeSecundario: `Te faltan ${f} puntos para alcanzar el 15% de descuento.`,
+    };
+  }
+  if (acum < 650) {
+    const f = 650 - acum;
+    return {
+      texto: `Puntos acumulados: ${acum}. Descuento actual: 15%. Te faltan ${f} puntos para alcanzar el 20% de descuento.`,
+      colorFondo: "#fef3c7", colorTexto: "#92400e", colorBorde: "#f59e0b", colorSemaforo: "#d97706",
+      mensajePrincipal: `Puntos acumulados: ${acum} — Descuento actual: 15%.`,
+      mensajeSecundario: `Te faltan ${f} puntos para alcanzar el 20% de descuento.`,
+    };
+  }
+  return {
+    texto: `Puntos acumulados: ${acum}. ¡Descuento actual: 20%! Nivel máximo alcanzado.`,
+    colorFondo: "#ecfccb", colorTexto: "#3f6212", colorBorde: "#84cc16", colorSemaforo: "#65a30d",
+    mensajePrincipal: `Puntos acumulados: ${acum} — ¡Descuento actual: 20%!`,
+    mensajeSecundario: "Has alcanzado el nivel máximo de Cliente Preferente.",
+  };
 };
 
 // ─── Price resolution ────────────────────────────────────────
