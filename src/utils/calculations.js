@@ -1,46 +1,51 @@
 /**
- * BodyLogic Discount & Points Calculation Engine.
+ * BodyLogic — Motor de Cálculo Unificado del Programa de Lealtad.
  *
- * REGLA UNIVERSAL:
- *   ANTES de 42%  → calificar con 100 pts (primeros 15 días)
- *   DESPUÉS de 42% → calificar con 200 pts para mantenerlo
+ * LÓGICA UNIFICADA — el sistema detecta automáticamente qué aplica:
  *
- * ¿Cuándo se alcanza el 42%?
- *   Membresía:           siempre (Paquete 500)
- *   Pts Personales y CP: mes 18+
- *   Pts en Comunidad:    acumulado total >= 3001 (automático, sin validación extra)
+ *   Prioridad 1: Membresía (paquete 500) → 42% si mantiene 200 pts/mes
+ *   Prioridad 2: Comunidad (con red)     → escala por acumulado, 42% en 3001+
+ *   Prioridad 3: Progresiva (sin red)    → escala por meses consecutivos
  *
- * COMUNIDAD — suma:
- *   personales + grupales + paqueteInicial + pedidoActual
- *   Escala: 1-500→30% | 501-1500→35% | 1501-3000→40% | 3001+→42%
+ * REGLA DE CALIFICACIÓN QUINCENAL:
+ *   - Primera quincena (días 1-15): debe hacer ≥100 pts
+ *   - Todo el mes: debe completar ≥200 pts (solo si ya tiene 42%)
+ *   - Los 200 pts pueden venir de: personales + CP del mes
+ *   - Si ya pasó el día 15, se pregunta manualmente si cumplió la 1ra quincena
  *
- * CLIENTE PREFERENTE — acumulación 12 meses:
- *   0-149→10% | 150-649→15% | 650+→20%
+ * ESCALAS:
+ *   Comunidad: 1-500→30% | 501-1500→35% | 1501-3000→40% | 3001+→42%
+ *   Progresiva: M1→30% | M2-3→33% | M4-5→35% | M6-11→37% | M12-17→40% | M18+→42%
+ *   CP: 0-149→10% | 150-649→15% | 650+→20%
  */
 
-// ─── Auto-detect first 15 days ───────────────────────────────
+// ─── Fecha ───────────────────────────────────────────────────
 export const detectarPrimeros15Dias = () => new Date().getDate() <= 15;
 
-export const mensajeVentana15Dias = (dentro) =>
-  dentro
-    ? "Estás dentro de los primeros 15 días del mes. Tus compras sí participan en el Programa de Lealtad."
-    : "Estás fuera de los primeros 15 días del mes. Las compras realizadas en este periodo no participan en el Programa de Lealtad y pueden provocar el reinicio de tus beneficios.";
-
-// ─── Base messages ───────────────────────────────────────────
-export const obtenerMensajesBase = (totalPuntos, ya42) => {
+// ─── Mensajes de primera quincena y puntos mensuales ─────────
+export const generarMensajesQuincenales = (puntosMes, cumplioQuincena, ya42) => {
   const msgs = [];
-  if (totalPuntos < 100) {
-    msgs.push({ tipo: "calificacion", cumple: false, texto: `Te faltan ${100 - totalPuntos} puntos para calificar este mes y tener derecho a recibir comisiones.` });
+
+  // 100 pts primera quincena
+  if (cumplioQuincena) {
+    msgs.push({ tipo: "quincena", cumple: true, texto: "✔ Ya cumpliste los primeros 100 puntos requeridos por el Programa de Lealtad en esta primera quincena." });
   } else {
-    msgs.push({ tipo: "calificacion", cumple: true, texto: "¡Felicidades! Has cubierto tu calificación mensual de 100 puntos y tienes derecho a recibir comisiones." });
-  }
-  if (ya42) {
-    if (totalPuntos < 200) {
-      msgs.push({ tipo: "mantenimiento42", cumple: false, texto: `Te faltan ${200 - totalPuntos} puntos para mantener el 42% de descuento.` });
+    if (puntosMes < 100) {
+      msgs.push({ tipo: "quincena", cumple: false, texto: `Te faltan ${100 - puntosMes} puntos para alcanzar los primeros 100 puntos requeridos en esta primera quincena.` });
     } else {
-      msgs.push({ tipo: "mantenimiento42", cumple: true, texto: "¡Felicidades! Has superado los 200 puntos de compra mensual y mantienes el 42% de descuento." });
+      msgs.push({ tipo: "quincena", cumple: true, texto: "✔ Ya cumpliste los primeros 100 puntos requeridos por el Programa de Lealtad en esta primera quincena." });
     }
   }
+
+  // 200 pts mensuales — solo si ya tiene 42%
+  if (ya42) {
+    if (puntosMes < 200) {
+      msgs.push({ tipo: "mensual", cumple: false, texto: `Te faltan ${200 - puntosMes} puntos para completar los 200 puntos mensuales requeridos para mantener tu descuento.` });
+    } else {
+      msgs.push({ tipo: "mensual", cumple: true, texto: "✔ ¡Ya completaste los 200 puntos mensuales requeridos para mantener tu descuento!" });
+    }
+  }
+
   return msgs;
 };
 
@@ -90,26 +95,22 @@ export const obtenerMensajeCompraInicial = (totalPuntos, paquete) => {
   return { texto: `${paquete.nombre} con ${paquete.descuento}%. Te faltan ${f} pts para ${paquete.siguientePaquete}.`, ...st("#fef3c7","#92400e","#f59e0b","#d97706"), siguienteMensaje: `Te faltan ${f} pts para ${paquete.siguientePaquete}.` };
 };
 
-// ─── Membresía ───────────────────────────────────────────────
-export const obtenerMensajeMembresia = (totalPuntos, dentroPrimeros15) => {
-  const ok = (t, m1, m2) => ({ texto: t, colorFondo: "#ecfccb", colorTexto: "#3f6212", colorBorde: "#84cc16", colorSemaforo: "#65a30d", mensajePrincipal: m1, mensajeSecundario: m2, continuidad: true });
-  const warn = (t, m1, m2) => ({ texto: t, colorFondo: "#fef3c7", colorTexto: "#92400e", colorBorde: "#f59e0b", colorSemaforo: "#d97706", mensajePrincipal: m1, mensajeSecundario: m2, continuidad: true });
-  const bad = (t, m1, m2) => ({ texto: t, colorFondo: "#fee2e2", colorTexto: "#991b1b", colorBorde: "#ef4444", colorSemaforo: "#dc2626", mensajePrincipal: m1, mensajeSecundario: m2, continuidad: false });
-  if (!dentroPrimeros15) return bad("Compra fuera del periodo de Lealtad.", "Tu compra se realizó fuera del periodo del Programa de Lealtad.", totalPuntos >= 100 ? "Calificas para comisiones, pero no mantienes beneficios de lealtad." : `Te faltan ${100 - totalPuntos} pts para calificar a comisiones.`);
-  if (totalPuntos < 100) return bad(`Te faltan ${100 - totalPuntos} pts para calificar.`, `Te faltan ${100 - totalPuntos} pts para calificar a comisiones.`, `Además, te faltan ${200 - totalPuntos} pts para mantener el 42%.`);
-  if (totalPuntos < 200) return warn("Calificaste para comisiones, pero no mantienes el 42%.", "✔ Ya calificaste para comisiones.", `Te faltan ${200 - totalPuntos} pts para mantener el 42% de descuento.`);
-  return ok("Mantienes tu 42% de descuento.", "✔ Calificación cubierta y 42% mantenido.", "Has superado 200 pts. Tu descuento del 42% está activo.");
-};
-
-// ─── Puntos Personales y CP ──────────────────────────────────
+// ─── Escalas de descuento ────────────────────────────────────
 export const obtenerDescuentoLealtad = (mes) => {
   if (mes <= 1) return 30; if (mes <= 3) return 33; if (mes <= 5) return 35;
   if (mes <= 11) return 37; if (mes <= 17) return 40; return 42;
 };
+
+export const obtenerDescuentoAcelerado = (acum) => {
+  if (acum >= 3001) return 42; if (acum >= 1501) return 40;
+  if (acum >= 501) return 35; if (acum >= 1) return 30; return 0;
+};
+
 export const obtenerTotalSegunDescuento = (desc, tot) => {
   const m = { 30: "total30", 33: "total33", 35: "total35", 37: "total37", 40: "total40", 42: "total42" };
   return tot[m[desc]] || 0;
 };
+
 export const obtenerSiguienteEscalonLealtad = (mes) => {
   if (mes < 2) return { etiqueta: "33%", mesesFaltantes: 2 - mes };
   if (mes < 4) return { etiqueta: "35%", mesesFaltantes: 4 - mes };
@@ -119,27 +120,6 @@ export const obtenerSiguienteEscalonLealtad = (mes) => {
   return null;
 };
 
-export const obtenerMensajeLealtad = (totalPuntos, mesLealtad, dentroPrimeros15, descuento, siguiente) => {
-  const ok = (t, m1, m2, c) => ({ texto: t, colorFondo: "#ecfccb", colorTexto: "#3f6212", colorBorde: "#84cc16", colorSemaforo: "#65a30d", mensajePrincipal: m1, mensajeSecundario: m2, continuidad: c });
-  const warn = (t, m1, m2) => ({ texto: t, colorFondo: "#fef3c7", colorTexto: "#92400e", colorBorde: "#f59e0b", colorSemaforo: "#d97706", mensajePrincipal: m1, mensajeSecundario: m2, continuidad: true });
-  const bad = (t, m1, m2) => ({ texto: t, colorFondo: "#fee2e2", colorTexto: "#991b1b", colorBorde: "#ef4444", colorSemaforo: "#dc2626", mensajePrincipal: m1, mensajeSecundario: m2, continuidad: false });
-  const c100 = totalPuntos >= 100;
-  if (!dentroPrimeros15) return bad("Compra fuera del periodo de Lealtad. Reinicia tu secuencia.", "Esta compra no sostiene tu avance y reinicia tu secuencia.", c100 ? "Aunque cubriste 100 pts, fuera de los primeros 15 días no conservas continuidad." : `Te faltan ${100 - totalPuntos} pts para calificación.`);
-  if (!c100) return bad(`Te faltan ${100 - totalPuntos} pts para calificación.`, `Te faltan ${100 - totalPuntos} pts para calificación de 100 pts.`, "Necesitas mínimo 100 pts personales en los primeros 15 días.");
-  if (mesLealtad >= 18) {
-    if (totalPuntos < 200) return warn(`Mes ${mesLealtad} — Calificaste para comisiones, pero no mantienes el 42%.`, "✔ Calificación de 100 pts cubierta.", `Te faltan ${200 - totalPuntos} pts para mantener el 42% de descuento.`);
-    return ok(`Mes ${mesLealtad} — ¡42% de descuento mantenido!`, "✔ Calificación cubierta y 42% de descuento mantenido.", "Has superado 200 pts. Tu descuento del 42% está activo este mes.", true);
-  }
-  if (siguiente) { const p = siguiente.mesesFaltantes === 1 ? "mes" : "meses"; return ok(`Mes ${mesLealtad} — ${descuento}% de descuento.`, `✔ Calificación cubierta. Tu descuento actual es ${descuento}%.`, `Te faltan ${siguiente.mesesFaltantes} ${p} consecutivos para llegar al ${siguiente.etiqueta}.`, true); }
-  return ok(`Mes ${mesLealtad} — ${descuento}% de descuento.`, `✔ Calificación cubierta. Tu descuento actual es ${descuento}%.`, "Continúa comprando cada mes en los primeros 15 días para avanzar.", true);
-};
-
-// ─── Puntos en Comunidad ─────────────────────────────────────
-// Escala: 1-500→30% | 501-1500→35% | 1501-3000→40% | 3001+→42%
-export const obtenerDescuentoAcelerado = (acum) => {
-  if (acum >= 3001) return 42; if (acum >= 1501) return 40;
-  if (acum >= 501) return 35; if (acum >= 1) return 30; return 0;
-};
 export const obtenerSiguienteEscalonAcelerado = (acum) => {
   if (acum < 501) return { meta: 501, etiqueta: "35%" };
   if (acum < 1501) return { meta: 1501, etiqueta: "40%" };
@@ -147,124 +127,191 @@ export const obtenerSiguienteEscalonAcelerado = (acum) => {
   return null;
 };
 
-/** Suma: personales + grupales + paqueteInicial + pedidoActual */
 export const calcularAcumuladoComunidad = ({ puntosPersonales, puntosGrupales, puntosBaseInicial, puntosPedidoActual }) => {
-  return Math.max(0,
-    Number(puntosPersonales || 0) +
-    Number(puntosGrupales || 0) +
-    Number(puntosBaseInicial || 0) +
-    Number(puntosPedidoActual || 0)
-  );
+  return Math.max(0, Number(puntosPersonales || 0) + Number(puntosGrupales || 0) + Number(puntosBaseInicial || 0) + Number(puntosPedidoActual || 0));
 };
 
-/** Paquete equivalente — para reinicio interno */
 export const obtenerPaqueteEquivalente = (puntos) => {
   if (puntos >= 500) return 500; if (puntos >= 400) return 400;
   if (puntos >= 300) return 300; if (puntos >= 200) return 200;
   if (puntos >= 100) return 100; return 0;
 };
 
+// ═════════════════════════════════════════════════════════════
+// RESOLUCIÓN UNIFICADA DE DESCUENTO
+// ═════════════════════════════════════════════════════════════
 /**
- * Comunidad: cuando acum >= 3001, el 42% se alcanza AUTOMÁTICAMENTE.
- * No hay validación adicional de "200 pts del pedido" para Comunidad.
- * Solo se valida calificación (100 pts) para comisiones cuando aún no tiene 42%.
+ * Determina el descuento final y mensajes según prioridad:
+ *   P1: Membresía 500 → 42% si cumple mantenimiento
+ *   P2: Comunidad ≥3001 → 42% automático
+ *   P3: Progresiva por meses → según escalera
+ *
+ * @param {Object} params
+ * @param {number} params.paqueteInicial - 100/200/300/400/500
+ * @param {boolean} params.tieneRed
+ * @param {number} params.puntosMes - personales + CP del mes (incluye pedido)
+ * @param {number} params.puntosPersonalesAcum - para comunidad
+ * @param {number} params.puntosGrupalesAcum - para comunidad
+ * @param {number} params.mesProgresivo - mes actual en modalidad progresiva
+ * @param {boolean} params.cumplioQuincena - ¿hizo 100 pts en 1ra quincena?
+ * @param {boolean} params.fueReseteado
  */
-export const obtenerMensajeAcelerado = (acum, desc, sig, dentroPrimeros15, totalPuntos, puntosBaseInicial = 0) => {
+export const resolverDescuento = ({
+  paqueteInicial, tieneRed, puntosMes,
+  puntosPersonalesAcum, puntosGrupalesAcum,
+  mesProgresivo, cumplioQuincena, fueReseteado,
+}) => {
   const ok = (t, m1, m2) => ({ texto: t, colorFondo: "#ecfccb", colorTexto: "#3f6212", colorBorde: "#84cc16", colorSemaforo: "#65a30d", mensajePrincipal: m1, mensajeSecundario: m2 });
   const warn = (t, m1, m2) => ({ texto: t, colorFondo: "#fef3c7", colorTexto: "#92400e", colorBorde: "#f59e0b", colorSemaforo: "#d97706", mensajePrincipal: m1, mensajeSecundario: m2 });
   const bad = (t, m1, m2) => ({ texto: t, colorFondo: "#fee2e2", colorTexto: "#991b1b", colorBorde: "#ef4444", colorSemaforo: "#dc2626", mensajePrincipal: m1, mensajeSecundario: m2 });
 
-  if (acum <= 0) return bad("Captura tus puntos para evaluar.", "Ingresa tus puntos personales y grupales acumulados.", "");
-
-  // Fuera de 15 días sin calificación → reinicio
-  if (!dentroPrimeros15 && totalPuntos < 100) {
-    const baseEquiv = obtenerPaqueteEquivalente(puntosBaseInicial);
-    const baseDesc = obtenerDescuentoAcelerado(baseEquiv);
-    return bad(
-      `Fuera de ventana de 15 días sin calificación → reinicio a base inicial.`,
-      `⚠ Reinicio de progreso. Tu base inicial (Paquete ${baseEquiv}) te coloca en ${baseDesc}%.`,
-      `Acumulado se reinicia a ${baseEquiv} pts. Nunca a cero.`
-    );
+  // ── PRIORIDAD 1: Membresía 500 ──
+  if (paqueteInicial === 500 && !fueReseteado) {
+    if (!cumplioQuincena) {
+      return { descuento: 42, mantiene42: false, modalidad: "membresia", ...bad(
+        "No cumpliste los 100 pts en la primera quincena. No conservas el 42% este mes.",
+        "No se cumplió el requisito de 100 pts en la primera quincena.",
+        "Para conservar el 42%, necesitas al menos 100 pts en los primeros 15 días de cada mes."
+      )};
+    }
+    if (puntosMes >= 200) {
+      return { descuento: 42, mantiene42: true, modalidad: "membresia", ...ok(
+        "Mantienes tu 42% de descuento por Membresía.",
+        "✔ Membresía 500 activa. 42% de descuento mantenido.",
+        `Has completado ${puntosMes} pts este mes. Requisito de 200 pts cubierto.`
+      )};
+    }
+    if (puntosMes >= 100) {
+      return { descuento: 42, mantiene42: false, modalidad: "membresia", ...warn(
+        "Cumpliste los 100 pts de la primera quincena. Aún faltan puntos para completar los 200 mensuales.",
+        "✔ Primera quincena cubierta (100+ pts).",
+        `Te faltan ${200 - puntosMes} pts para completar los 200 pts mensuales y mantener el 42%.`
+      )};
+    }
+    return { descuento: 42, mantiene42: false, modalidad: "membresia", ...bad(
+      `Te faltan ${100 - puntosMes} pts para los primeros 100 pts requeridos.`,
+      `Membresía 500 activa. Te faltan ${100 - puntosMes} pts para la calificación quincenal.`,
+      "Necesitas al menos 100 pts en la primera quincena y 200 pts totales en el mes."
+    )};
   }
 
-  // >= 3001 → 42% automático, sin validación extra
-  if (acum >= 3001) {
-    return ok(
-      `¡Has alcanzado el 42% de descuento! Acumulado: ${acum} pts.`,
-      `✔ Has alcanzado el 42% de descuento con ${acum} pts acumulados.`,
-      "Tu descuento del 42% está activo."
-    );
+  // ── PRIORIDAD 2: Comunidad (con red) ──
+  if (tieneRed) {
+    const acum = calcularAcumuladoComunidad({ puntosPersonales: puntosPersonalesAcum, puntosGrupales: puntosGrupalesAcum, puntosBaseInicial: paqueteInicial, puntosPedidoActual: puntosMes });
+    const desc = obtenerDescuentoAcelerado(acum);
+    const sig = obtenerSiguienteEscalonAcelerado(acum);
+
+    if (acum >= 3001) {
+      // Ya tiene 42% — validar mantenimiento
+      if (!cumplioQuincena) {
+        return { descuento: desc, mantiene42: false, modalidad: "comunidad", acumulado: acum, ...bad(
+          "Alcanzaste 3001+ pts pero no cumpliste los 100 pts en la primera quincena.",
+          `Acumulado: ${acum} pts → 42%. Pero no conservas el beneficio este mes.`,
+          "Se requieren 100 pts en la primera quincena para mantener el 42%."
+        )};
+      }
+      if (puntosMes >= 200) {
+        return { descuento: desc, mantiene42: true, modalidad: "comunidad", acumulado: acum, ...ok(
+          `¡42% de descuento activo! Acumulado: ${acum} pts.`,
+          `✔ Acumulado: ${acum} pts → 42% de descuento. Mantenimiento cubierto.`,
+          `Has completado ${puntosMes} pts este mes.`
+        )};
+      }
+      return { descuento: desc, mantiene42: false, modalidad: "comunidad", acumulado: acum, ...warn(
+        `Acumulado: ${acum} pts → 42%. Faltan pts para completar 200 mensuales.`,
+        `✔ Primera quincena cubierta. Acumulado: ${acum} pts → 42%.`,
+        `Te faltan ${200 - puntosMes} pts para completar los 200 pts mensuales.`
+      )};
+    }
+
+    // Aún no tiene 42% — solo necesita 100 pts
+    if (!cumplioQuincena && puntosMes < 100) {
+      return { descuento: desc, mantiene42: false, modalidad: "comunidad", acumulado: acum, ...bad(
+        `Acumulado: ${acum} pts → ${desc}%. No calificas este mes.`,
+        `Acumulado comunitario: ${acum} pts → ${desc}% de descuento.`,
+        `Te faltan ${100 - puntosMes} pts para calificar.`
+      )};
+    }
+
+    if (sig) {
+      const f = sig.meta - acum;
+      return { descuento: desc, mantiene42: false, modalidad: "comunidad", acumulado: acum, ...(desc >= 35 ? warn : ok)(
+        `Acumulado: ${acum} pts → ${desc}% de descuento.`,
+        `✔ Calificación cubierta. Acumulado: ${acum} pts → ${desc}%.`,
+        `Te faltan ${f} pts para alcanzar el ${sig.etiqueta}.`
+      )};
+    }
+
+    return { descuento: desc, mantiene42: false, modalidad: "comunidad", acumulado: acum, ...ok(
+      `Acumulado: ${acum} pts → ${desc}%.`, `✔ ${desc}% de descuento.`, ""
+    )};
   }
 
-  // < 3001 → felicitar por el descuento actual
-  if (totalPuntos < 100) {
-    return bad(
-      `Acumulado: ${acum} pts → ${desc}% de descuento. Pero no calificas este mes.`,
-      `Tu acumulado comunitario es ${acum} pts → ${desc}% de descuento.`,
-      `Te faltan ${100 - totalPuntos} pts para calificar este mes.`
-    );
+  // ── PRIORIDAD 3: Progresiva por meses (sin red) ──
+  const desc = obtenerDescuentoLealtad(mesProgresivo);
+  const sig = obtenerSiguienteEscalonLealtad(mesProgresivo);
+
+  if (!cumplioQuincena) {
+    return { descuento: desc, mantiene42: false, modalidad: "progresiva", ...bad(
+      "No se cumplió el requisito de 100 pts en la primera quincena. Se reinicia la secuencia.",
+      "No conservas tu avance en el Programa de Lealtad.",
+      "Necesitas al menos 100 pts en los primeros 15 días de cada mes."
+    )};
   }
 
+  // Mes 18+: necesita 200 pts para mantener 42%
+  if (mesProgresivo >= 18) {
+    if (puntosMes >= 200) {
+      return { descuento: 42, mantiene42: true, modalidad: "progresiva", ...ok(
+        `Mes ${mesProgresivo} — ¡42% de descuento mantenido!`,
+        "✔ Calificación cubierta y 42% mantenido.",
+        `Has completado ${puntosMes} pts este mes.`
+      )};
+    }
+    return { descuento: 42, mantiene42: false, modalidad: "progresiva", ...warn(
+      `Mes ${mesProgresivo} — Calificaste en la quincena, pero faltan pts para mantener el 42%.`,
+      "✔ Primera quincena cubierta.",
+      `Te faltan ${200 - puntosMes} pts para completar los 200 pts mensuales.`
+    )};
+  }
+
+  // Meses 1-17: solo 100 pts
   if (sig) {
-    const f = sig.meta - acum;
-    return (desc >= 35 ? warn : ok)(
-      `Acumulado: ${acum} pts → ${desc}% de descuento.`,
-      `✔ Calificación cubierta. Tu acumulado es ${acum} pts → ${desc}% de descuento.`,
-      `Te faltan ${f} pts para alcanzar el ${sig.etiqueta}.`
-    );
+    const p = sig.mesesFaltantes === 1 ? "mes" : "meses";
+    return { descuento: desc, mantiene42: false, modalidad: "progresiva", ...ok(
+      `Mes ${mesProgresivo} — ${desc}% de descuento.`,
+      `✔ Calificación cubierta. Tu descuento actual es ${desc}%.`,
+      `Te faltan ${sig.mesesFaltantes} ${p} consecutivos para llegar al ${sig.etiqueta}.`
+    )};
   }
 
-  return ok(`${acum} pts → ${desc}%.`, `✔ Calificación cubierta. ${desc}% de descuento.`, "");
+  return { descuento: desc, mantiene42: false, modalidad: "progresiva", ...ok(
+    `Mes ${mesProgresivo} — ${desc}%.`, `✔ ${desc}% de descuento.`, ""
+  )};
 };
 
 // ─── Cliente Preferente ──────────────────────────────────────
-// 0-149→10% | 150-649→15% | 650+→20% (acumulación 12 meses)
 export const obtenerDescuentoClientePreferente = (p) => { if (p >= 650) return 20; if (p >= 150) return 15; return 10; };
 export const obtenerSiguienteNivelCP = (p) => { if (p < 150) return { meta: 150, etiqueta: "15%" }; if (p < 650) return { meta: 650, etiqueta: "20%" }; return null; };
 export const obtenerTotalSegunDescuentoCP = (d, t) => d === 10 ? t.total10 : d === 15 ? t.total15 : t.total20;
 
 export const obtenerMensajeClientePreferente = (acum) => {
-  if (acum < 150) {
-    const f = 150 - acum;
-    return {
-      texto: `Puntos acumulados: ${acum}. Descuento actual: 10%. Te faltan ${f} puntos para alcanzar el 15% de descuento.`,
-      colorFondo: "#fee2e2", colorTexto: "#991b1b", colorBorde: "#ef4444", colorSemaforo: "#dc2626",
-      mensajePrincipal: `Puntos acumulados: ${acum} — Descuento actual: 10%.`,
-      mensajeSecundario: `Te faltan ${f} puntos para alcanzar el 15% de descuento.`,
-    };
-  }
-  if (acum < 650) {
-    const f = 650 - acum;
-    return {
-      texto: `Puntos acumulados: ${acum}. Descuento actual: 15%. Te faltan ${f} puntos para alcanzar el 20% de descuento.`,
-      colorFondo: "#fef3c7", colorTexto: "#92400e", colorBorde: "#f59e0b", colorSemaforo: "#d97706",
-      mensajePrincipal: `Puntos acumulados: ${acum} — Descuento actual: 15%.`,
-      mensajeSecundario: `Te faltan ${f} puntos para alcanzar el 20% de descuento.`,
-    };
-  }
-  return {
-    texto: `Puntos acumulados: ${acum}. ¡Descuento actual: 20%! Nivel máximo alcanzado.`,
-    colorFondo: "#ecfccb", colorTexto: "#3f6212", colorBorde: "#84cc16", colorSemaforo: "#65a30d",
-    mensajePrincipal: `Puntos acumulados: ${acum} — ¡Descuento actual: 20%!`,
-    mensajeSecundario: "Has alcanzado el nivel máximo de Cliente Preferente.",
-  };
+  if (acum < 150) { const f = 150 - acum; return { texto: `Puntos acumulados: ${acum}. Descuento actual: 10%. Te faltan ${f} puntos para alcanzar el 15%.`, colorFondo: "#fee2e2", colorTexto: "#991b1b", colorBorde: "#ef4444", colorSemaforo: "#dc2626", mensajePrincipal: `Puntos acumulados: ${acum} — Descuento actual: 10%.`, mensajeSecundario: `Te faltan ${f} puntos para alcanzar el 15% de descuento.` }; }
+  if (acum < 650) { const f = 650 - acum; return { texto: `Puntos acumulados: ${acum}. Descuento actual: 15%. Te faltan ${f} puntos para alcanzar el 20%.`, colorFondo: "#fef3c7", colorTexto: "#92400e", colorBorde: "#f59e0b", colorSemaforo: "#d97706", mensajePrincipal: `Puntos acumulados: ${acum} — Descuento actual: 15%.`, mensajeSecundario: `Te faltan ${f} puntos para alcanzar el 20% de descuento.` }; }
+  return { texto: `Puntos acumulados: ${acum}. ¡Descuento actual: 20%! Nivel máximo.`, colorFondo: "#ecfccb", colorTexto: "#3f6212", colorBorde: "#84cc16", colorSemaforo: "#65a30d", mensajePrincipal: `Puntos acumulados: ${acum} — ¡Descuento actual: 20%!`, mensajeSecundario: "Nivel máximo de Cliente Preferente." };
 };
 
 // ─── Price resolution ────────────────────────────────────────
-export const obtenerPrecioActual = (item, perfil, descCP, descPaq, modo, descLealtad, descAcel, prog) => {
+export const obtenerPrecioActual = (item, perfil, descCP, descPaq, modo, descUnificado) => {
   if (perfil === "clientePreferente") { if (descCP === 10) return item.precioCP10 ?? item.precioPublico * 0.9; if (descCP === 15) return item.precioPublico * 0.85; return item.precio20 ?? item.precioPublico * 0.8; }
   if (modo === "compraInicial") { if (descPaq === 30) return item.precio30; if (descPaq === 33) return item.precio33; if (descPaq === 42) return item.precio42; return item.precioPublico; }
-  if (prog === "membresia") return item.precio42;
-  if (prog === "lealtad") { const m = { 30: "precio30", 33: "precio33", 35: "precio35", 37: "precio37", 40: "precio40", 42: "precio42" }; return item[m[descLealtad]] || item.precioPublico; }
-  const m = { 30: "precio30", 35: "precio35", 40: "precio40", 42: "precio42" };
-  return item[m[descAcel]] || item.precioPublico;
+  const m = { 30: "precio30", 33: "precio33", 35: "precio35", 37: "precio37", 40: "precio40", 42: "precio42" };
+  return item[m[descUnificado]] || item.precioPublico;
 };
 
-export const obtenerSubtotalPedido = (item, perfil, descCP, descPaq, modo, descLealtad, descAcel, prog) => {
+export const obtenerSubtotalPedido = (item, perfil, descCP, descPaq, modo, descUnificado) => {
   if (perfil === "clientePreferente") { if (descCP === 10) return item.subtotal10; if (descCP === 15) return item.subtotal15; return item.subtotal20; }
   if (modo === "compraInicial") { if (descPaq === 30) return item.subtotal30; if (descPaq === 33) return item.subtotal33; if (descPaq === 42) return item.subtotal42; return 0; }
-  if (prog === "membresia") return item.subtotal42;
-  if (prog === "lealtad") { const m = { 30: "subtotal30", 33: "subtotal33", 35: "subtotal35", 37: "subtotal37", 40: "subtotal40", 42: "subtotal42" }; return item[m[descLealtad]] || 0; }
-  const m = { 30: "subtotal30", 35: "subtotal35", 40: "subtotal40", 42: "subtotal42" };
-  return item[m[descAcel]] || 0;
+  const m = { 30: "subtotal30", 33: "subtotal33", 35: "subtotal35", 37: "subtotal37", 40: "subtotal40", 42: "subtotal42" };
+  return item[m[descUnificado]] || 0;
 };

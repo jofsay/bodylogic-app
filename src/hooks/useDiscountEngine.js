@@ -2,87 +2,84 @@ import { useMemo } from "react";
 import * as C from "../utils/calculations";
 
 export function useDiscountEngine({
-  perfilUsuario, modo, programaRecompra, mesLealtad,
-  puntosPersonalesAcelerado, puntosGrupalesAcelerado,
-  puntosBaseInicial,
+  perfilUsuario, modo,
+  paqueteInicial, tieneRed, mesProgresivo, fueReseteado,
+  puntosPersonalesMes, puntosCPMes,
+  puntosPersonalesAcum, puntosGrupalesAcum,
+  cumplioQuincenaManual,
   acumuladoPrevioClientePreferente, totales,
 }) {
   const { totalPuntos } = totales;
 
+  // ── Auto-detect 15-day window ──
   const dentroPrimeros15 = useMemo(() => C.detectarPrimeros15Dias(), []);
-  const mensajeVentana = C.mensajeVentana15Dias(dentroPrimeros15);
+
+  // ── Total puntos del mes = personales + CP + pedido actual ──
+  const puntosMes = useMemo(
+    () => Number(puntosPersonalesMes || 0) + Number(puntosCPMes || 0) + totalPuntos,
+    [puntosPersonalesMes, puntosCPMes, totalPuntos]
+  );
+
+  // ── ¿Cumplió la primera quincena? ──
+  // Si estamos en los primeros 15 días: se determina por puntosMes >= 100
+  // Si ya pasó el día 15: se usa la respuesta manual del usuario
+  const cumplioQuincena = useMemo(() => {
+    if (dentroPrimeros15) return puntosMes >= 100;
+    return cumplioQuincenaManual;
+  }, [dentroPrimeros15, puntosMes, cumplioQuincenaManual]);
 
   // ── Compra Inicial ──
   const paqueteActual = useMemo(() => C.obtenerPaqueteCompraInicial(totalPuntos, totales), [totalPuntos, totales]);
 
-  // ── Membresía ──
-  const mensajeMembresia = useMemo(() => C.obtenerMensajeMembresia(totalPuntos, dentroPrimeros15), [totalPuntos, dentroPrimeros15]);
-
-  // ── Lealtad (Puntos Personales y CP) ──
-  const descuentoLealtadActual = C.obtenerDescuentoLealtad(mesLealtad);
-  const totalSegunDescuentoLealtad = C.obtenerTotalSegunDescuento(descuentoLealtadActual, totales);
-  const siguienteEscalonLealtad = C.obtenerSiguienteEscalonLealtad(mesLealtad);
-
-  // ── Comunidad: personales + grupales + base + pedido ──
-  const totalAcumuladoAcelerado = useMemo(
-    () => C.calcularAcumuladoComunidad({
-      puntosPersonales: puntosPersonalesAcelerado,
-      puntosGrupales: puntosGrupalesAcelerado,
-      puntosBaseInicial: puntosBaseInicial || 0,
-      puntosPedidoActual: totalPuntos,
-    }),
-    [puntosPersonalesAcelerado, puntosGrupalesAcelerado, puntosBaseInicial, totalPuntos]
-  );
-  const descuentoAceleradoActual = C.obtenerDescuentoAcelerado(totalAcumuladoAcelerado);
-  const totalSegunDescuentoAcelerado = C.obtenerTotalSegunDescuento(descuentoAceleradoActual, totales);
-  const siguienteEscalonAcelerado = C.obtenerSiguienteEscalonAcelerado(totalAcumuladoAcelerado);
-
   // ── Cliente Preferente ──
-  const puntosAcumuladosCP = Number(acumuladoPrevioClientePreferente || 0) + Number(totalPuntos || 0);
+  const puntosAcumuladosCP = Number(acumuladoPrevioClientePreferente || 0) + totalPuntos;
   const descuentoCP = C.obtenerDescuentoClientePreferente(puntosAcumuladosCP);
   const totalSegunDescuentoCP = C.obtenerTotalSegunDescuentoCP(descuentoCP, totales);
   const siguienteNivelCP = C.obtenerSiguienteNivelCP(puntosAcumuladosCP);
 
-  // ── ya42 flag ──
-  const ya42 = useMemo(() => {
-    if (programaRecompra === "membresia") return true;
-    if (programaRecompra === "lealtad") return mesLealtad >= 18;
-    if (programaRecompra === "acelerado") return totalAcumuladoAcelerado >= 3001;
-    return false;
-  }, [programaRecompra, mesLealtad, totalAcumuladoAcelerado]);
+  // ── Resolución unificada de descuento ──
+  const resultado = useMemo(() => {
+    return C.resolverDescuento({
+      paqueteInicial: paqueteInicial || 100,
+      tieneRed: tieneRed || false,
+      puntosMes,
+      puntosPersonalesAcum: puntosPersonalesAcum || 0,
+      puntosGrupalesAcum: puntosGrupalesAcum || 0,
+      mesProgresivo: mesProgresivo || 1,
+      cumplioQuincena,
+      fueReseteado: fueReseteado || false,
+    });
+  }, [paqueteInicial, tieneRed, puntosMes, puntosPersonalesAcum, puntosGrupalesAcum, mesProgresivo, cumplioQuincena, fueReseteado]);
 
-  const mensajesBase = useMemo(() => C.obtenerMensajesBase(totalPuntos, ya42), [totalPuntos, ya42]);
+  // ── Mensajes quincenales ──
+  const mensajesQuincenales = useMemo(
+    () => C.generarMensajesQuincenales(puntosMes, cumplioQuincena, resultado.descuento === 42),
+    [puntosMes, cumplioQuincena, resultado.descuento]
+  );
 
-  // ── Unified status ──
+  // ── Estado unificado para semáforo ──
   const estado = useMemo(() => {
     if (perfilUsuario === "clientePreferente") return C.obtenerMensajeClientePreferente(puntosAcumuladosCP);
     if (modo === "compraInicial") return C.obtenerMensajeCompraInicial(totalPuntos, paqueteActual);
-    if (programaRecompra === "membresia") return mensajeMembresia;
-    if (programaRecompra === "lealtad") return C.obtenerMensajeLealtad(totalPuntos, mesLealtad, dentroPrimeros15, descuentoLealtadActual, siguienteEscalonLealtad);
-    return C.obtenerMensajeAcelerado(totalAcumuladoAcelerado, descuentoAceleradoActual, siguienteEscalonAcelerado, dentroPrimeros15, totalPuntos, puntosBaseInicial || 0);
-  }, [perfilUsuario, modo, programaRecompra, totalPuntos, paqueteActual, mensajeMembresia,
-      mesLealtad, dentroPrimeros15, descuentoLealtadActual, siguienteEscalonLealtad,
-      totalAcumuladoAcelerado, descuentoAceleradoActual, siguienteEscalonAcelerado,
-      puntosAcumuladosCP, puntosBaseInicial]);
+    return resultado;
+  }, [perfilUsuario, modo, totalPuntos, paqueteActual, puntosAcumuladosCP, resultado]);
 
-  const descuentoActual = perfilUsuario === "clientePreferente" ? descuentoCP : modo === "compraInicial" ? paqueteActual.descuento : programaRecompra === "membresia" ? 42 : programaRecompra === "lealtad" ? descuentoLealtadActual : descuentoAceleradoActual;
-  const totalConDescuento = perfilUsuario === "clientePreferente" ? totalSegunDescuentoCP : modo === "compraInicial" ? paqueteActual.totalConDescuento : programaRecompra === "membresia" ? totales.total42 : programaRecompra === "lealtad" ? totalSegunDescuentoLealtad : totalSegunDescuentoAcelerado;
+  const descuentoActual = perfilUsuario === "clientePreferente" ? descuentoCP : modo === "compraInicial" ? paqueteActual.descuento : resultado.descuento;
+  const totalConDescuento = perfilUsuario === "clientePreferente" ? totalSegunDescuentoCP : modo === "compraInicial" ? paqueteActual.totalConDescuento : C.obtenerTotalSegunDescuento(resultado.descuento, totales);
 
-  const obtenerPrecio = (item) => C.obtenerPrecioActual(item, perfilUsuario, descuentoCP, paqueteActual.descuento, modo, descuentoLealtadActual, descuentoAceleradoActual, programaRecompra);
-  const obtenerSubtotal = (item) => C.obtenerSubtotalPedido(item, perfilUsuario, descuentoCP, paqueteActual.descuento, modo, descuentoLealtadActual, descuentoAceleradoActual, programaRecompra);
+  const obtenerPrecio = (item) => C.obtenerPrecioActual(item, perfilUsuario, descuentoCP, paqueteActual.descuento, modo, resultado.descuento);
+  const obtenerSubtotal = (item) => C.obtenerSubtotalPedido(item, perfilUsuario, descuentoCP, paqueteActual.descuento, modo, resultado.descuento);
 
   const textoModo = (() => {
     if (perfilUsuario === "clientePreferente") return `Cliente Preferente | ${descuentoCP}% | Acumulado ${puntosAcumuladosCP}`;
     if (modo === "compraInicial") return `Compra inicial | ${paqueteActual.nombre} | ${paqueteActual.descuento}%`;
-    if (programaRecompra === "membresia") return `Membresía (Paquete 500) | 42%`;
-    if (programaRecompra === "lealtad") return `Pts Personales y CP | Mes ${mesLealtad} | ${descuentoLealtadActual}%`;
-    return `Pts en Comunidad | Acumulado ${totalAcumuladoAcelerado} | ${descuentoAceleradoActual}%`;
+    const mod = resultado.modalidad === "membresia" ? "Membresía" : resultado.modalidad === "comunidad" ? "Comunidad" : "Progresiva";
+    return `${mod} | ${resultado.descuento}%${resultado.acumulado ? ` | Acum. ${resultado.acumulado}` : ""}`;
   })();
 
   return {
-    paqueteActual, dentroPrimeros15, mensajeVentana, mensajesBase, mensajeMembresia, ya42,
-    descuentoLealtadActual, totalSegunDescuentoLealtad, siguienteEscalonLealtad,
-    totalAcumuladoAcelerado, descuentoAceleradoActual, totalSegunDescuentoAcelerado, siguienteEscalonAcelerado,
+    paqueteActual, dentroPrimeros15, cumplioQuincena, puntosMes,
+    mensajesQuincenales, resultado,
     puntosAcumuladosCP, descuentoCP, totalSegunDescuentoCP, siguienteNivelCP,
     estado, descuentoActual, totalConDescuento, obtenerPrecio, obtenerSubtotal, textoModo,
   };

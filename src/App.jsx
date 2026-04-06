@@ -15,11 +15,19 @@ function App() {
 
   const [perfilUsuario, setPerfilUsuario] = useState("distribuidor");
   const [modo, setModo] = useState("compraInicial");
-  const [programaRecompra, setProgramaRecompra] = useState("membresia");
-  const [mesLealtad, setMesLealtad] = useState(1);
-  const [puntosPersonalesAcelerado, setPuntosPersonalesAcelerado] = useState(0);
-  const [puntosGrupalesAcelerado, setPuntosGrupalesAcelerado] = useState(0);
-  const [puntosBaseInicial, setPuntosBaseInicial] = useState(500);
+
+  // ── Recompra unificada ──
+  const [paqueteInicial, setPaqueteInicial] = useState(500);
+  const [tieneRed, setTieneRed] = useState(false);
+  const [mesProgresivo, setMesProgresivo] = useState(1);
+  const [fueReseteado, setFueReseteado] = useState(false);
+  const [puntosPersonalesMes, setPuntosPersonalesMes] = useState(0);
+  const [puntosCPMes, setPuntosCPMes] = useState(0);
+  const [puntosPersonalesAcum, setPuntosPersonalesAcum] = useState(0);
+  const [puntosGrupalesAcum, setPuntosGrupalesAcum] = useState(0);
+  const [cumplioQuincenaManual, setCumplioQuincenaManual] = useState(true);
+
+  // ── Cliente Preferente ──
   const [acumuladoPrevioClientePreferente, setAcumuladoPrevioClientePreferente] = useState(0);
   const [descargandoArchivo, setDescargandoArchivo] = useState("");
   const [resumenContraido, setResumenContraido] = useState(false);
@@ -28,40 +36,39 @@ function App() {
   const { esMovil, vistaMovil, setVistaMovil } = useResponsive();
   const order = useOrder();
   const engine = useDiscountEngine({
-    perfilUsuario, modo, programaRecompra, mesLealtad,
-    puntosPersonalesAcelerado, puntosGrupalesAcelerado,
-    puntosBaseInicial,
+    perfilUsuario, modo,
+    paqueteInicial, tieneRed, mesProgresivo, fueReseteado,
+    puntosPersonalesMes, puntosCPMes,
+    puntosPersonalesAcum, puntosGrupalesAcum,
+    cumplioQuincenaManual,
     acumuladoPrevioClientePreferente, totales: order.totales,
   });
 
-  useEffect(() => { setAnimKey((k) => k + 1); }, [perfilUsuario, modo, programaRecompra]);
+  useEffect(() => { setAnimKey((k) => k + 1); }, [perfilUsuario, modo]);
 
   const isD = perfilUsuario === "distribuidor";
   const isCP = perfilUsuario === "clientePreferente";
   const isRecompra = modo === "recompraMensual";
-  const { estado, descuentoActual, totalConDescuento, obtenerPrecio, obtenerSubtotal, textoModo, paqueteActual, dentroPrimeros15, mensajeVentana, mensajesBase } = engine;
+  const { estado, descuentoActual, totalConDescuento, obtenerPrecio, obtenerSubtotal, textoModo, paqueteActual, dentroPrimeros15, cumplioQuincena, puntosMes, mensajesQuincenales, resultado } = engine;
   const { totales, productosSeleccionados, filasCalculadas, categorias } = order;
   const documentosVisibles = useMemo(() => getVisibleDocuments(perfilUsuario), [perfilUsuario]);
 
   const irAPedidoActual = useCallback(() => { document.getElementById("pedido-actual")?.scrollIntoView({ behavior: "smooth", block: "start" }); }, []);
   const irArriba = useCallback(() => window.scrollTo({ top: 0, behavior: "smooth" }), []);
 
-  // ── LIMPIAR TODO — reinicia absolutamente todo ──
   const limpiarTodo = useCallback(() => {
     order.vaciarPedido();
-    setPuntosPersonalesAcelerado(0);
-    setPuntosGrupalesAcelerado(0);
+    setPuntosPersonalesMes(0);
+    setPuntosCPMes(0);
+    setPuntosPersonalesAcum(0);
+    setPuntosGrupalesAcum(0);
     setAcumuladoPrevioClientePreferente(0);
+    setCumplioQuincenaManual(true);
+    setFueReseteado(false);
   }, [order]);
 
-  const handlePDF = useCallback(() => {
-    generarPDFPedido({ productosSeleccionados, descuentoActual, totalUnidades: totales.totalUnidades, totalPuntos: totales.totalPuntos, totalPrecioPublico: totales.totalPrecioPublico, totalConDescuento, obtenerSubtotal, textoModo, estadoTexto: estado.texto });
-  }, [productosSeleccionados, descuentoActual, totales, totalConDescuento, obtenerSubtotal, textoModo, estado.texto]);
-
-  const handlePrint = useCallback(() => {
-    imprimirFormulario({ productosSeleccionados, descuentoActual, totalUnidades: totales.totalUnidades, totalPuntos: totales.totalPuntos, totalPrecioPublico: totales.totalPrecioPublico, totalConDescuento, obtenerSubtotal, subtitulo: textoModo, estadoTexto: estado.texto });
-  }, [productosSeleccionados, descuentoActual, totales, totalConDescuento, obtenerSubtotal, textoModo, estado.texto]);
-
+  const handlePDF = useCallback(() => { generarPDFPedido({ productosSeleccionados, descuentoActual, totalUnidades: totales.totalUnidades, totalPuntos: totales.totalPuntos, totalPrecioPublico: totales.totalPrecioPublico, totalConDescuento, obtenerSubtotal, textoModo, estadoTexto: estado.texto }); }, [productosSeleccionados, descuentoActual, totales, totalConDescuento, obtenerSubtotal, textoModo, estado.texto]);
+  const handlePrint = useCallback(() => { imprimirFormulario({ productosSeleccionados, descuentoActual, totalUnidades: totales.totalUnidades, totalPuntos: totales.totalPuntos, totalPrecioPublico: totales.totalPrecioPublico, totalConDescuento, obtenerSubtotal, subtitulo: textoModo, estadoTexto: estado.texto }); }, [productosSeleccionados, descuentoActual, totales, totalConDescuento, obtenerSubtotal, textoModo, estado.texto]);
   const handleDescargar = useCallback((archivo, nombre) => { descargarArchivo(archivo, nombre, setDescargandoArchivo, () => setDescargandoArchivo("")); }, []);
 
   const cc = { background: `linear-gradient(180deg,${T.cream100},rgba(255,247,237,.5))`, border: `1px solid ${T.cream500}`, borderRadius: T.r.lg, padding: "16px", boxShadow: T.s.xs };
@@ -86,6 +93,8 @@ function App() {
     </div>
   );
 
+  const modalidadLabel = resultado?.modalidad === "membresia" ? "Membresía (Paquete 500)" : resultado?.modalidad === "comunidad" ? "Puntos en Comunidad" : "Puntos Personales y CP";
+
   return (
     <div style={{ minHeight: "100vh", background: `radial-gradient(ellipse at 15% -5%,rgba(255,237,213,.75) 0%,rgba(255,247,237,.55) 22%,${T.cream100} 48%,${T.cream50} 100%)`, padding: "clamp(10px,3vw,22px)", paddingBottom: "200px", fontFamily: T.fontBody, position: "relative", overflow: "hidden", color: T.text }}>
       <div style={{ position: "absolute", top: "-100px", right: "-60px", width: "400px", height: "400px", borderRadius: "50%", background: "radial-gradient(circle,rgba(251,146,60,.15) 0%,transparent 70%)", pointerEvents: "none", zIndex: 0 }} />
@@ -101,8 +110,9 @@ function App() {
           </div>
         </header>
 
+        {/* ══ PANEL DE CONTROL ══ */}
         <SectionCard delay={1} key={`p-${animKey}`}>
-          <div style={{ marginBottom: "18px" }}><h2 style={secTitle}>Panel de control</h2><p style={secSub}>Configura perfil, modo y filtra productos.</p></div>
+          <div style={{ marginBottom: "18px" }}><h2 style={secTitle}>Panel de control</h2><p style={secSub}>Configura perfil, modo y datos del distribuidor.</p></div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: "12px" }}>
             <div style={cc}><label style={lb}>Perfil</label><select value={perfilUsuario} onChange={(e) => setPerfilUsuario(e.target.value)} style={sel}><option value="distribuidor">Distribuidor Independiente</option><option value="clientePreferente">Cliente Preferente</option></select></div>
             <div style={cc}><label style={lb}>Categoría</label><select value={order.categoriaSeleccionada} onChange={(e) => order.setCategoriaSeleccionada(e.target.value)} style={sel}>{categorias.map((c) => <option key={c} value={c}>{c}</option>)}</select></div>
@@ -126,96 +136,86 @@ function App() {
                   </div>
                 ) : (
                   <>
-                    <div style={cc}>
-                      <label style={lb}>Programa de Lealtad</label>
-                      <select value={programaRecompra} onChange={(e) => setProgramaRecompra(e.target.value)} style={sel}>
-                        <option value="membresia">Por Membresía (Paquete 500)</option>
-                        <option value="lealtad">Por Puntos Personales y de tus CP</option>
-                        <option value="acelerado">Por Puntos en Comunidad</option>
-                      </select>
-                    </div>
+                    {/* ══ DATOS DEL DISTRIBUIDOR ══ */}
+                    <div style={cc}><label style={lb}>Paquete de compra inicial</label><select value={paqueteInicial} onChange={(e) => setPaqueteInicial(Number(e.target.value))} style={sel}><option value={100}>Paquete 100</option><option value={200}>Paquete 200</option><option value={300}>Paquete 300</option><option value={400}>Paquete 400</option><option value={500}>Paquete 500</option></select></div>
+                    <div style={cc}><label style={lb}>¿Tiene red?</label><select value={tieneRed ? "si" : "no"} onChange={(e) => setTieneRed(e.target.value === "si")} style={sel}><option value="no">No</option><option value="si">Sí</option></select></div>
+                    <div style={cc}><label style={lb}>¿Fue reseteado?</label><select value={fueReseteado ? "si" : "no"} onChange={(e) => setFueReseteado(e.target.value === "si")} style={sel}><option value="no">No</option><option value="si">Sí</option></select></div>
+                    {!tieneRed && <div style={cc}><label style={lb}>Mes actual del programa</label><select value={mesProgresivo} onChange={(e) => setMesProgresivo(Number(e.target.value))} style={sel}>{Array.from({ length: 18 }, (_, i) => i + 1).map((m) => <option key={m} value={m}>{m === 18 ? "Mes 18+" : `Mes ${m}`}</option>)}</select></div>}
 
+                    {/* ══ PUNTOS DEL MES ══ */}
+                    <div style={cc}><label style={lb}>Puntos personales del mes</label><input type="number" min="0" value={puntosPersonalesMes} onChange={(e) => setPuntosPersonalesMes(Number(e.target.value || 0))} style={inp} /></div>
+                    <div style={cc}><label style={lb}>Puntos de Clientes Preferentes del mes</label><input type="number" min="0" value={puntosCPMes} onChange={(e) => setPuntosCPMes(Number(e.target.value || 0))} style={inp} /></div>
+
+                    {/* ══ PUNTOS ACUMULADOS (solo si tiene red) ══ */}
+                    {tieneRed && (
+                      <>
+                        <div style={cc}><label style={lb}>Puntos personales acumulados</label><input type="number" min="0" value={puntosPersonalesAcum} onChange={(e) => setPuntosPersonalesAcum(Number(e.target.value || 0))} style={inp} /></div>
+                        <div style={cc}><label style={lb}>Puntos grupales acumulados</label><input type="number" min="0" value={puntosGrupalesAcum} onChange={(e) => setPuntosGrupalesAcum(Number(e.target.value || 0))} style={inp} /></div>
+                      </>
+                    )}
+
+                    {/* ══ PREGUNTA MANUAL POST-DÍA 15 ══ */}
+                    {!dentroPrimeros15 && (
+                      <div style={{ ...cc, gridColumn: "1 / -1" }}>
+                        <label style={{ ...lb, color: T.orange700 }}>¿Hiciste al menos 100 puntos en los primeros 15 días de este mes?</label>
+                        <select value={cumplioQuincenaManual ? "si" : "no"} onChange={(e) => setCumplioQuincenaManual(e.target.value === "si")} style={{ ...sel, borderColor: T.orange400 }}>
+                          <option value="si">Sí</option>
+                          <option value="no">No</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {/* ══ FECHA AUTOMÁTICA ══ */}
                     <div style={{ ...cc, gridColumn: "1 / -1" }}>
-                      <div style={msgCard(dentroPrimeros15 ? "#ecfccb" : "#fee2e2", dentroPrimeros15 ? "#84cc16" : "#ef4444", dentroPrimeros15 ? "#3f6212" : "#991b1b")}>
-                        {dentroPrimeros15 ? "📅 " : "⚠ "}{mensajeVentana}
+                      <div style={msgCard(dentroPrimeros15 ? "#ecfccb" : "#fef3c7", dentroPrimeros15 ? "#84cc16" : "#f59e0b", dentroPrimeros15 ? "#3f6212" : "#92400e")}>
+                        {dentroPrimeros15 ? "📅 Estás dentro de los primeros 15 días del mes." : "📅 Ya pasaron los primeros 15 días del mes."}
                       </div>
                     </div>
 
-                    {mensajesBase.length > 0 && (
+                    {/* ══ MENSAJES QUINCENALES ══ */}
+                    {mensajesQuincenales.length > 0 && (
                       <div style={{ ...cc, gridColumn: "1 / -1" }}>
-                        {mensajesBase.map((m, i) => (
+                        {mensajesQuincenales.map((m, i) => (
                           <div key={i} style={msgCard(m.cumple ? "#ecfccb" : "#fee2e2", m.cumple ? "#84cc16" : "#ef4444", m.cumple ? "#3f6212" : "#991b1b")}>
-                            {m.cumple ? "✔ " : "❌ "}{m.texto}
+                            {m.texto}
                           </div>
                         ))}
                       </div>
                     )}
 
-                    {programaRecompra === "membresia" ? (
-                      <div style={{ ...ic, animation: "blScaleIn .3s ease both" }}>
-                        <div style={{ fontSize: "28px", fontWeight: 800, color: T.orange600 }}>42%</div>
-                        <div style={{ marginTop: "3px", color: T.textMuted, fontSize: "12px" }}>Descuento por Membresía</div>
-                        <ProgressBar current={totales.totalPuntos} target={200} label={`${totales.totalPuntos}/200 pts → mantener 42%`} />
+                    {/* ══ RESULTADO UNIFICADO ══ */}
+                    <div style={{ ...ic, animation: "blScaleIn .3s ease both", gridColumn: "1 / -1" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+                        <div>
+                          <div style={{ fontSize: "11px", fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: ".5px" }}>Modalidad detectada</div>
+                          <div style={{ fontSize: "18px", fontWeight: 800, color: T.orange700, fontFamily: T.fontDisplay, marginTop: "2px" }}>{modalidadLabel}</div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontSize: "11px", fontWeight: 700, color: T.textMuted, textTransform: "uppercase" }}>Descuento</div>
+                          <div style={{ fontSize: "28px", fontWeight: 800, color: T.orange600 }}>{descuentoActual}%</div>
+                        </div>
                       </div>
-                    ) : programaRecompra === "lealtad" ? (
-                      <div style={cc}><label style={lb}>Mes actual</label><select value={mesLealtad} onChange={(e) => setMesLealtad(Number(e.target.value))} style={sel}>{Array.from({ length: 18 }, (_, i) => i + 1).map((m) => <option key={m} value={m}>{m === 18 ? "Mes 18+" : `Mes ${m}`}</option>)}</select></div>
-                    ) : (
-                      <>
-                        <div style={cc}><label style={lb}>Puntos personales acumulados</label><input type="number" min="0" value={puntosPersonalesAcelerado} onChange={(e) => setPuntosPersonalesAcelerado(Number(e.target.value || 0))} style={inp} /></div>
-                        <div style={cc}><label style={lb}>Puntos grupales acumulados</label><input type="number" min="0" value={puntosGrupalesAcelerado} onChange={(e) => setPuntosGrupalesAcelerado(Number(e.target.value || 0))} style={inp} /></div>
-                        <div style={cc}>
-                          <label style={lb}>Paquete inicial</label>
-                          <select value={puntosBaseInicial} onChange={(e) => setPuntosBaseInicial(Number(e.target.value))} style={sel}>
-                            <option value={100}>Paquete 100</option>
-                            <option value={200}>Paquete 200</option>
-                            <option value={300}>Paquete 300</option>
-                            <option value={400}>Paquete 400</option>
-                            <option value={500}>Paquete 500</option>
-                          </select>
-                        </div>
-                        <div style={{ ...ic, animation: "blScaleIn .3s ease both", gridColumn: "1 / -1" }}>
-                          <div style={{ fontSize: "22px", fontWeight: 800, color: T.orange600 }}>{engine.totalAcumuladoAcelerado} pts</div>
-                          <div style={{ marginTop: "3px", color: T.textMuted, fontSize: "12px" }}>Acumulado total → {engine.descuentoAceleradoActual}%</div>
-                          <div style={{ marginTop: "6px", fontSize: "11px", color: T.textMuted, lineHeight: 1.4 }}>
-                            Personales: {puntosPersonalesAcelerado} + Grupales: {puntosGrupalesAcelerado} + Base: {puntosBaseInicial} + Pedido: {totales.totalPuntos}
-                          </div>
-                          {engine.siguienteEscalonAcelerado && <ProgressBar current={engine.totalAcumuladoAcelerado} target={engine.siguienteEscalonAcelerado.meta} label={`${engine.totalAcumuladoAcelerado}/${engine.siguienteEscalonAcelerado.meta} → ${engine.siguienteEscalonAcelerado.etiqueta}`} />}
-                        </div>
-                      </>
-                    )}
+                      <div style={{ marginTop: "8px", fontSize: "12px", color: T.textMuted }}>
+                        Puntos del mes: {puntosMes} (Personales: {puntosPersonalesMes} + CP: {puntosCPMes} + Pedido: {totales.totalPuntos})
+                        {tieneRed && resultado?.acumulado != null && <span> | Acumulado comunitario: {resultado.acumulado}</span>}
+                      </div>
+                      {resultado?.descuento === 42 && (
+                        <ProgressBar current={puntosMes} target={200} label={`${puntosMes}/200 pts mensuales`} />
+                      )}
+                    </div>
                   </>
                 )}
               </div>
             </div>
           ) : (
-            /* ══ CLIENTE PREFERENTE — rediseñado con mensajes claros ══ */
             <div key={`cp-${animKey}`} style={{ animation: "blFadeUp .3s ease both" }}>
               <div style={{ display: "flex", gap: "8px", margin: "16px 0" }}><Btn onClick={limpiarTodo} ghost>Limpiar</Btn></div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: "12px" }}>
                 <div style={cc}><label style={lb}>Puntos acumulados previos</label><input type="number" min="0" value={acumuladoPrevioClientePreferente} onChange={(e) => setAcumuladoPrevioClientePreferente(Number(e.target.value || 0))} style={inp} /></div>
-                <div style={{ ...ic, animation: "blScaleIn .3s ease both" }}>
-                  <div style={{ fontSize: "13px", fontWeight: 700, color: T.orange700, marginBottom: "4px" }}>Puntos acumulados</div>
-                  <div style={{ fontSize: "30px", fontWeight: 800, color: T.orange600 }}>{engine.puntosAcumuladosCP}</div>
-                </div>
-                <div style={{ ...ic, animation: "blScaleIn .3s ease both", animationDelay: ".08s" }}>
-                  <div style={{ fontSize: "13px", fontWeight: 700, color: T.orange700, marginBottom: "4px" }}>Descuento actual</div>
-                  <div style={{ fontSize: "30px", fontWeight: 800, color: T.orange600 }}>{engine.descuentoCP}%</div>
-                </div>
+                <div style={{ ...ic, animation: "blScaleIn .3s ease both" }}><div style={{ fontSize: "13px", fontWeight: 700, color: T.orange700, marginBottom: "4px" }}>Puntos acumulados</div><div style={{ fontSize: "30px", fontWeight: 800, color: T.orange600 }}>{engine.puntosAcumuladosCP}</div></div>
+                <div style={{ ...ic, animation: "blScaleIn .3s ease both", animationDelay: ".08s" }}><div style={{ fontSize: "13px", fontWeight: 700, color: T.orange700, marginBottom: "4px" }}>Descuento actual</div><div style={{ fontSize: "30px", fontWeight: 800, color: T.orange600 }}>{engine.descuentoCP}%</div></div>
                 <div style={{ ...ic, animation: "blScaleIn .3s ease both", animationDelay: ".16s" }}>
-                  {engine.siguienteNivelCP ? (
-                    <>
-                      <div style={{ fontSize: "13px", fontWeight: 700, color: T.orange700, marginBottom: "4px" }}>Progreso al siguiente nivel</div>
-                      <div style={{ fontSize: "18px", fontWeight: 800, color: T.orange600 }}>Te faltan {engine.siguienteNivelCP.meta - engine.puntosAcumuladosCP} pts</div>
-                      <div style={{ marginTop: "3px", color: T.textMuted, fontSize: "12px" }}>Para alcanzar el {engine.siguienteNivelCP.etiqueta} de descuento</div>
-                      <ProgressBar current={engine.puntosAcumuladosCP} target={engine.siguienteNivelCP.meta} label={`${engine.puntosAcumuladosCP}/${engine.siguienteNivelCP.meta} → ${engine.siguienteNivelCP.etiqueta}`} />
-                    </>
-                  ) : (
-                    <>
-                      <div style={{ fontSize: "13px", fontWeight: 700, color: T.green500, marginBottom: "4px" }}>Nivel máximo alcanzado</div>
-                      <div style={{ fontSize: "18px", fontWeight: 800, color: T.green500 }}>20%</div>
-                      <div style={{ marginTop: "3px", color: T.textMuted, fontSize: "12px" }}>Has alcanzado el nivel máximo de Cliente Preferente</div>
-                    </>
-                  )}
+                  {engine.siguienteNivelCP ? (<><div style={{ fontSize: "13px", fontWeight: 700, color: T.orange700, marginBottom: "4px" }}>Progreso al siguiente nivel</div><div style={{ fontSize: "18px", fontWeight: 800, color: T.orange600 }}>Te faltan {engine.siguienteNivelCP.meta - engine.puntosAcumuladosCP} pts</div><div style={{ marginTop: "3px", color: T.textMuted, fontSize: "12px" }}>Para alcanzar el {engine.siguienteNivelCP.etiqueta} de descuento</div><ProgressBar current={engine.puntosAcumuladosCP} target={engine.siguienteNivelCP.meta} label={`${engine.puntosAcumuladosCP}/${engine.siguienteNivelCP.meta} → ${engine.siguienteNivelCP.etiqueta}`} /></>) : (<><div style={{ fontSize: "13px", fontWeight: 700, color: T.green500, marginBottom: "4px" }}>Nivel máximo alcanzado</div><div style={{ fontSize: "18px", fontWeight: 800, color: T.green500 }}>20%</div></>)}
                 </div>
               </div>
             </div>
@@ -223,15 +223,17 @@ function App() {
           {esMovil && <div style={{ display: "flex", gap: "6px", marginTop: "14px" }}><Btn onClick={() => setVistaMovil("cards")} active={vistaMovil === "cards"} style={{ flex: 1, fontSize: "13px", padding: "10px" }}>Tarjetas</Btn><Btn onClick={() => setVistaMovil("tabla")} active={vistaMovil === "tabla"} style={{ flex: 1, fontSize: "13px", padding: "10px" }}>Tabla</Btn></div>}
         </SectionCard>
 
+        {/* ══ SEMÁFORO ══ */}
         <section className="bl-section bl-d2" key={`s-${animKey}`} style={{ display: "flex", gap: "14px", alignItems: "center", borderRadius: T.r.lg, padding: "18px 22px", marginBottom: "18px", backgroundColor: estado.colorFondo, border: `2px solid ${estado.colorBorde}`, boxShadow: T.s.md, transition: "all .4s cubic-bezier(.22,.61,.36,1)", position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", left: 0, top: "10%", bottom: "10%", width: "4px", borderRadius: "0 4px 4px 0", backgroundColor: estado.colorSemaforo, boxShadow: `0 0 8px ${estado.colorSemaforo}40` }} />
           <div className="bl-semaforo" style={{ width: "14px", height: "14px", borderRadius: "50%", flexShrink: 0, backgroundColor: estado.colorSemaforo, boxShadow: `0 0 0 4px ${estado.colorFondo},0 0 16px ${estado.colorSemaforo}45`, marginLeft: "6px" }} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: "13px", fontWeight: 700, color: estado.colorTexto, lineHeight: 1.3 }}>{isCP ? "Cliente Preferente" : modo === "compraInicial" ? "Compra inicial" : programaRecompra === "membresia" ? "Membresía (Paquete 500)" : programaRecompra === "lealtad" ? "Pts Personales y CP" : "Pts en Comunidad"}</div>
+            <div style={{ fontSize: "13px", fontWeight: 700, color: estado.colorTexto, lineHeight: 1.3 }}>{isCP ? "Cliente Preferente" : modo === "compraInicial" ? "Compra inicial" : modalidadLabel}</div>
             <div style={{ marginTop: "4px", lineHeight: 1.55, color: estado.colorTexto, fontSize: "13px", opacity: .88 }}>{estado.texto}</div>
           </div>
         </section>
 
+        {/* ══ PEDIDO ACTUAL ══ */}
         <SectionCard delay={3}>
           <div id="pedido-actual" style={{ marginBottom: "14px" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "10px" }}><div><h2 style={secTitle}>Pedido actual</h2><p style={secSub}>Productos capturados.</p></div>{productosSeleccionados.length > 0 && <Btn onClick={limpiarTodo} danger style={{ fontSize: "12px", padding: "9px 14px" }}>Vaciar pedido</Btn>}</div></div>
           {productosSeleccionados.length === 0 ? <div style={{ padding: "28px", borderRadius: T.r.lg, backgroundColor: "rgba(255,250,245,.6)", border: `2px dashed ${T.cream700}`, color: T.textMuted, textAlign: "center", fontSize: "14px" }}>Aún no has agregado productos.</div> : (
@@ -246,6 +248,7 @@ function App() {
           )}
         </SectionCard>
 
+        {/* ══ TABLA MAESTRA ══ */}
         <SectionCard delay={4}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "10px", marginBottom: "14px" }}><div><h2 style={secTitle}>Tabla maestra</h2><p style={secSub}><strong>{filasCalculadas.length}</strong> producto(s){order.categoriaSeleccionada !== "TODAS" ? ` en "${order.categoriaSeleccionada}"` : ""}</p></div><div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}><Btn onClick={handlePDF} active style={{ fontSize: "13px", padding: "9px 16px" }}>PDF</Btn><Btn onClick={handlePrint} style={{ fontSize: "13px", padding: "9px 16px" }}>Imprimir</Btn></div></div>
           {esMovil && vistaMovil === "cards" ? (
@@ -265,6 +268,7 @@ function App() {
 
         <SectionCard delay={6}><h2 style={secTitle}>Documentos</h2><p style={{...secSub,marginBottom:"14px"}}>{isCP?"Para Cliente Preferente.":"Archivos oficiales."}</p><div style={{display:"grid",gap:"10px"}}>{documentosVisibles.map((doc,i)=>{const dl=descargandoArchivo===doc.archivo;return(<div key={doc.archivo} className="bl-card" style={{background:`linear-gradient(180deg,${T.cream100},${T.cream200})`,border:`1px solid ${T.cream500}`,borderRadius:T.r.lg,padding:"14px",animation:`blFadeUp .3s ease both`,animationDelay:`${i*.05}s`}}><div style={{display:"flex",gap:"10px",alignItems:"flex-start"}}><span style={{fontSize:"22px",lineHeight:1}}>{doc.icono}</span><div style={{flex:1}}><div style={{fontWeight:700,fontSize:"15px",color:T.textDark}}>{doc.nombre}</div><div style={{marginTop:"3px",color:T.textMuted,fontSize:"12px",lineHeight:1.5}}>{doc.descripcion}</div><div style={{marginTop:"3px",color:T.orange500,fontSize:"11px",fontWeight:500}}>{doc.archivo}</div></div></div><Btn onClick={()=>handleDescargar(doc.archivo,doc.nombre)} active style={{marginTop:"10px",fontSize:"12px",padding:"9px 16px",width:"100%"}} disabled={dl}>{dl?"Descargando...":doc.tipo==="membresia"?"Descargar y rellenar":"Descargar PDF"}</Btn></div>);})}</div></SectionCard>
 
+        {/* ══ RESUMEN FLOTANTE ══ */}
         {esMovil && (
           <div className="bl-float-glass" style={{position:"fixed",left:"6px",right:"6px",bottom:"6px",zIndex:999,borderRadius:"18px",padding:"14px 16px",backgroundColor:`${estado.colorFondo}ee`,border:`1.5px solid ${estado.colorBorde}`,boxShadow:`0 -8px 40px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.3)`,color:estado.colorTexto,transition:"all .35s cubic-bezier(.22,.61,.36,1)",paddingBottom:"max(14px, env(safe-area-inset-bottom, 14px))"}}>
             <div style={{width:"32px",height:"3px",borderRadius:"3px",backgroundColor:estado.colorTexto,opacity:.2,margin:"0 auto 10px"}}/>
@@ -272,17 +276,15 @@ function App() {
               <div style={{display:"flex",gap:"14px",alignItems:"center",flexWrap:"wrap"}}>
                 {isCP?(<><FS l="Perfil" v="CP" c={estado.colorTexto}/><FS l="Acum." v={engine.puntosAcumuladosCP} c={estado.colorTexto} big/><FS l="Desc." v={`${engine.descuentoCP}%`} c={estado.colorTexto}/></>)
                 :modo==="compraInicial"?(<><FS l="Pts" v={totales.totalPuntos} c={estado.colorTexto} big/><FS l="Paq." v={paqueteActual.nombre.replace("Paquete ","")} c={estado.colorTexto}/><FS l="Desc." v={`${paqueteActual.descuento}%`} c={estado.colorTexto}/></>)
-                :programaRecompra==="membresia"?(<><FS l="Prog." v="Membresía" c={estado.colorTexto}/><FS l="Pts" v={totales.totalPuntos} c={estado.colorTexto} big/><FS l="Desc." v="42%" c={estado.colorTexto}/></>)
-                :programaRecompra==="lealtad"?(<><FS l="Prog." v="Pts Pers." c={estado.colorTexto}/><FS l="Mes" v={mesLealtad} c={estado.colorTexto} big/><FS l="Desc." v={`${engine.descuentoLealtadActual}%`} c={estado.colorTexto}/></>)
-                :(<><FS l="Prog." v="Comunidad" c={estado.colorTexto}/><FS l="Acum." v={engine.totalAcumuladoAcelerado} c={estado.colorTexto} big/><FS l="Desc." v={`${engine.descuentoAceleradoActual}%`} c={estado.colorTexto}/></>)}
+                :(<><FS l="Prog." v={resultado?.modalidad === "membresia" ? "Membr." : resultado?.modalidad === "comunidad" ? "Comun." : "Pers."} c={estado.colorTexto}/><FS l="Pts mes" v={puntosMes} c={estado.colorTexto} big/><FS l="Desc." v={`${descuentoActual}%`} c={estado.colorTexto}/></>)}
               </div>
               <button onClick={()=>setResumenContraido(!resumenContraido)} style={{padding:"8px 12px",borderRadius:"10px",border:`1px solid ${estado.colorBorde}`,backgroundColor:"rgba(255,255,255,.50)",color:T.textDark,fontWeight:700,cursor:"pointer",fontSize:"13px",transition:"transform .25s cubic-bezier(.22,.61,.36,1)",transform:resumenContraido?"rotate(0)":"rotate(180deg)",lineHeight:1}}>▼</button>
             </div>
             {!resumenContraido&&(
               <div className="bl-expand">
-                <div style={{margin:"10px 0 8px",padding:"10px 14px",borderRadius:"12px",backgroundColor:"rgba(255,255,255,.35)",position:"relative",overflow:"hidden",backdropFilter:"blur(4px)"}}><div style={{position:"absolute",left:0,top:0,bottom:0,width:"3px",background:`linear-gradient(180deg,${estado.colorSemaforo},${estado.colorBorde})`,borderRadius:"3px 0 0 3px"}}/><div style={{paddingLeft:"8px"}}><div style={{fontSize:"17px",fontWeight:800,lineHeight:1.15,color:estado.colorTexto,fontFamily:T.fontDisplay}}>{isCP?"Cliente Preferente":modo==="compraInicial"?paqueteActual.nombre:programaRecompra==="membresia"?"Membresía (Paquete 500)":programaRecompra==="lealtad"?(estado.continuidad?"Lealtad sostenida":"Secuencia comprometida"):"Puntos en Comunidad"}</div><div style={{marginTop:"3px",fontSize:"12px",fontWeight:700,color:estado.colorTexto,opacity:.80}}>Descuento actual: {descuentoActual}%</div></div></div>
+                <div style={{margin:"10px 0 8px",padding:"10px 14px",borderRadius:"12px",backgroundColor:"rgba(255,255,255,.35)",position:"relative",overflow:"hidden",backdropFilter:"blur(4px)"}}><div style={{position:"absolute",left:0,top:0,bottom:0,width:"3px",background:`linear-gradient(180deg,${estado.colorSemaforo},${estado.colorBorde})`,borderRadius:"3px 0 0 3px"}}/><div style={{paddingLeft:"8px"}}><div style={{fontSize:"17px",fontWeight:800,lineHeight:1.15,color:estado.colorTexto,fontFamily:T.fontDisplay}}>{isCP?"Cliente Preferente":modo==="compraInicial"?paqueteActual.nombre:modalidadLabel}</div><div style={{marginTop:"3px",fontSize:"12px",fontWeight:700,color:estado.colorTexto,opacity:.80}}>Descuento actual: {descuentoActual}%</div></div></div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"6px",marginBottom:"8px"}}>
-                  <FC l={isCP?"Pts acum.":modo==="compraInicial"?"Puntos":programaRecompra==="membresia"?"Puntos":programaRecompra==="lealtad"?"Pts pers.":"Acum. total"} v={isCP?engine.puntosAcumuladosCP:programaRecompra==="acelerado"?engine.totalAcumuladoAcelerado:totales.totalPuntos} num e={estado}/>
+                  <FC l={isCP?"Pts acum.":"Pts mes"} v={isCP?engine.puntosAcumuladosCP:puntosMes} num e={estado}/>
                   <FC l="P. público" v={formatoMoneda(totales.totalPrecioPublico)} e={estado}/>
                   <FC l={`Con ${descuentoActual}%`} v={formatoMoneda(totalConDescuento)} e={estado}/>
                 </div>
