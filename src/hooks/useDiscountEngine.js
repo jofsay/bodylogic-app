@@ -37,9 +37,9 @@ export function useDiscountEngine({
   // Resolución de descuento según flujo
   const resultado = useMemo(() => {
     if (tiene42) return { ...C.resolverTiene42(puntosMes, cumplioQuincena), modalidad: "tiene42" };
-    if (tieneRed) return C.resolverPLA(puntosPersonalesAcum, puntosGrupalesAcum, paqueteInicial, puntosMes, cumplioQuincena);
+    if (tieneRed) return C.resolverPLA(puntosPersonalesAcum, puntosGrupalesAcum, paqueteInicial, puntosMes, cumplioQuincena, totalPuntos);
     return C.resolverPL(puntosMes, mesActual || 1, cumplioQuincena);
-  }, [tiene42, tieneRed, puntosMes, cumplioQuincena, puntosPersonalesAcum, puntosGrupalesAcum, paqueteInicial, mesActual]);
+  }, [tiene42, tieneRed, puntosMes, cumplioQuincena, puntosPersonalesAcum, puntosGrupalesAcum, paqueteInicial, mesActual, totalPuntos]);
 
   // Estado unificado
   const estado = useMemo(() => {
