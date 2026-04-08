@@ -11,15 +11,25 @@ export function useDiscountEngine({
 }) {
   const { totalPuntos } = totales;
 
-  // Si es Simulador, bypass limpio
+  // BYPASS SEGURO: Si es Simulador, retorna un objeto limpio para evitar colisiones
   if (perfilUsuario === "simulador") {
     return {
       estado: { texto: "Perfil Simulador activo. Agrega productos para ver la corrida financiera con todos los porcentajes de descuento.", colorFondo: "#f0fdf4", colorTexto: "#14532d", colorBorde: "#22c55e", colorSemaforo: "#16a34a", mensajePrincipal: "Herramienta de Simulación Múltiple", mensajeSecundario: "Visualiza precio público y descuentos desde 10% hasta 42% en un solo lugar." },
-      descuentoActual: 0, totalConDescuento: totales.totalPrecioPublico,
-      obtenerPrecio: (item) => item.precioPublico,
-      obtenerSubtotal: (item) => item.subtotalPrecioPublico,
+      descuentoActual: 0,
+      totalConDescuento: totales ? totales.totalPrecioPublico : 0,
+      obtenerPrecio: (item) => item.precioPublico || 0,
+      obtenerSubtotal: (item) => item.subtotalPrecioPublico || 0,
       textoModo: "Simulador Múltiple",
-      paqueteActual: {nombre: ""}, dentroPrimeros15: true, cumplioQuincena: true, puntosMes: totales.totalPuntos, mensajesPuntos: [], resultado: {}, puntosAcumuladosCP: 0, descuentoCP: 0, totalSegunDescuentoCP: 0, siguienteNivelCP: null
+      paqueteActual: {nombre: ""},
+      dentroPrimeros15: true,
+      cumplioQuincena: true,
+      puntosMes: totales ? totales.totalPuntos : 0,
+      mensajesPuntos: [],
+      resultado: {},
+      puntosAcumuladosCP: 0,
+      descuentoCP: 0,
+      totalSegunDescuentoCP: 0,
+      siguienteNivelCP: null
     };
   }
 

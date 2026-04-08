@@ -1,20 +1,5 @@
 /**
  * BodyLogic — Motor de Cálculo del Programa de Lealtad.
- *
- * FLUJO:
- * 1. Paquete inicial (100-500)
- * 2. ¿Tiene 42%?
- * SÍ → mantener con 200 pts/mes (100 en 1ra quincena + 100 en 2da)
- * NO → ¿Tiene red?
- * NO → Programa de Lealtad (PL) — escala por meses
- * SÍ → Programa de Lealtad Acelerado (PLA) — escala por acumulado
- *
- * ESCALAS (Distribuidor):
- * PL:  M1→30% | M2-3→33% | M4-5→35% | M6-11→37% | M12-17→40% | M18+→42%
- * PLA: 1-500→30% | 501-1500→35% | 1501-3000→40% | 3001+→42%
- *
- * ESCALAS (Cliente Preferente):
- * CP: 0-149→10% | 150-649→20% | 650+→30%
  */
 
 // ─── Fecha ───────────────────────────────────────────────────
@@ -47,23 +32,31 @@ export const generarMensajesPuntos = (puntosMes, tiene42, dentroPrimeros15, cump
   return msgs;
 };
 
-// ─── Row-level calculations ──────────────────────────────────
+// ─── Row-level calculations (A prueba de fallos NaN) ─────────
 export const mapearFila = (item, cantidades) => {
   const u = Number(cantidades[item.codigo] || 0);
+  const p = Number(item.precioPublico || 0);
+  
   return {
-    ...item, unidades: u,
-    subtotalPuntos: u * item.puntos,
-    subtotalPrecioPublico: u * item.precioPublico,
-    subtotalValorComisionable: u * item.valorComisionable,
-    subtotal10: item.precioCP10 !== undefined ? u * item.precioCP10 : u * item.precioPublico * 0.9,
-    subtotal20: item.precio20 !== undefined ? u * item.precio20 : u * item.precioPublico * 0.8,
-    subtotal30: u * item.precio30, subtotal33: u * item.precio33, subtotal35: u * item.precio35,
-    subtotal37: u * item.precio37, subtotal40: u * item.precio40, subtotal42: u * item.precio42,
+    ...item,
+    unidades: u,
+    subtotalPuntos: u * Number(item.puntos || 0),
+    subtotalPrecioPublico: u * p,
+    subtotalValorComisionable: u * Number(item.valorComisionable || 0),
+    // Si no existe el precio exacto en la BD, lo calcula matemáticamente para evitar que la pantalla se quede en blanco
+    subtotal10: item.precioCP10 !== undefined ? u * item.precioCP10 : u * p * 0.9,
+    subtotal20: item.precio20 !== undefined ? u * item.precio20 : u * p * 0.8,
+    subtotal30: item.precio30 !== undefined ? u * item.precio30 : u * p * 0.7,
+    subtotal33: item.precio33 !== undefined ? u * item.precio33 : u * p * 0.67,
+    subtotal35: item.precio35 !== undefined ? u * item.precio35 : u * p * 0.65,
+    subtotal37: item.precio37 !== undefined ? u * item.precio37 : u * p * 0.63,
+    subtotal40: item.precio40 !== undefined ? u * item.precio40 : u * p * 0.60,
+    subtotal42: item.precio42 !== undefined ? u * item.precio42 : u * p * 0.58,
   };
 };
 
 export const calcularTotales = (filas) => {
-  const s = (k) => filas.reduce((a, i) => a + i[k], 0);
+  const s = (k) => filas.reduce((a, i) => a + (Number(i[k]) || 0), 0);
   return {
     totalUnidades: s("unidades"), totalPuntos: s("subtotalPuntos"),
     totalPrecioPublico: s("subtotalPrecioPublico"), totalValorComisionable: s("subtotalValorComisionable"),
@@ -167,13 +160,14 @@ export const resolverPL = (puntosMes, mesActual, cumplioQuincena) => {
   return { descuento: desc, modalidad: "PL", ...ok(`Mes ${mesActual} — ${desc}%.`, `✔ ${desc}% de descuento.`, "")};
 };
 
+// REGLA CRÍTICA DE PLA ESTRICTA: Base + Personales + Grupales + Pedido Actual
 export const resolverPLA = (puntosPersonalesAcum, puntosGrupalesAcum, paqueteInicial, puntosMes, cumplioQuincena, totalPuntosPedidoActual) => {
   const basePaquete = Number(paqueteInicial) || 0;
   const personalesAcum = Number(puntosPersonalesAcum) || 0;
   const grupalesAcum = Number(puntosGrupalesAcum) || 0;
   const pedidoActual = Number(totalPuntosPedidoActual) || 0;
 
-  // REGLA CRÍTICA: Fórmula aditiva directa. Total = Base Inicial + Personales + Grupales + Pedido Actual
+  // Suma matemática directa garantizada
   const acum = basePaquete + personalesAcum + grupalesAcum + pedidoActual;
   
   const desc = obtenerDescuentoPLA(acum);
@@ -224,7 +218,7 @@ export const resolverPLA = (puntosPersonalesAcum, puntosGrupalesAcum, paqueteIni
   )};
 };
 
-// ─── Cliente Preferente (Nueva Estructura) ───────────────────
+// ─── Cliente Preferente (Nueva Estructura 10%, 20%, 30%) ─────
 export const obtenerDescuentoClientePreferente = (p) => { if (p >= 650) return 30; if (p >= 150) return 20; return 10; };
 export const obtenerSiguienteNivelCP = (p) => { if (p < 150) return { meta: 150, etiqueta: "20%" }; if (p < 650) return { meta: 650, etiqueta: "30%" }; return null; };
 export const obtenerTotalSegunDescuentoCP = (d, t) => d === 10 ? t.total10 : d === 20 ? t.total20 : t.total30;
@@ -235,25 +229,44 @@ export const obtenerMensajeClientePreferente = (acum) => {
   return { texto: `Puntos acumulados: ${acum}. ¡Descuento actual: 30%! Nivel máximo.`, colorFondo: "#ecfccb", colorTexto: "#3f6212", colorBorde: "#84cc16", colorSemaforo: "#65a30d", mensajePrincipal: `Puntos acumulados: ${acum} — ¡Descuento actual: 30%!`, mensajeSecundario: "Nivel máximo de Cliente Preferente." };
 };
 
-// ─── Price resolution ────────────────────────────────────────
+// ─── Price resolution (A prueba de fallos) ───────────────────
 export const obtenerPrecioActual = (item, perfil, descCP, descPaq, modo, descFinal) => {
+  const p = Number(item.precioPublico || 0);
   if (perfil === "clientePreferente") {
-    if (descCP === 10) return item.precioCP10 ?? item.precioPublico * 0.9;
-    if (descCP === 20) return item.precio20 ?? item.precioPublico * 0.8;
-    return item.precio30 ?? item.precioPublico * 0.7;
+    if (descCP === 10) return item.precioCP10 !== undefined ? item.precioCP10 : p * 0.9;
+    if (descCP === 20) return item.precio20 !== undefined ? item.precio20 : p * 0.8;
+    return item.precio30 !== undefined ? item.precio30 : p * 0.7;
   }
-  if (modo === "compraInicial") { if (descPaq === 30) return item.precio30; if (descPaq === 33) return item.precio33; if (descPaq === 42) return item.precio42; return item.precioPublico; }
-  const m = { 30: "precio30", 33: "precio33", 35: "precio35", 37: "precio37", 40: "precio40", 42: "precio42" };
-  return item[m[descFinal]] || item.precioPublico;
+  if (modo === "compraInicial") { 
+    if (descPaq === 30) return item.precio30 !== undefined ? item.precio30 : p * 0.7; 
+    if (descPaq === 33) return item.precio33 !== undefined ? item.precio33 : p * 0.67; 
+    if (descPaq === 42) return item.precio42 !== undefined ? item.precio42 : p * 0.58; 
+    return p; 
+  }
+  
+  const mapa = {
+    30: item.precio30 !== undefined ? item.precio30 : p * 0.7,
+    33: item.precio33 !== undefined ? item.precio33 : p * 0.67,
+    35: item.precio35 !== undefined ? item.precio35 : p * 0.65,
+    37: item.precio37 !== undefined ? item.precio37 : p * 0.63,
+    40: item.precio40 !== undefined ? item.precio40 : p * 0.60,
+    42: item.precio42 !== undefined ? item.precio42 : p * 0.58,
+  };
+  return mapa[descFinal] !== undefined ? mapa[descFinal] : p;
 };
 
 export const obtenerSubtotalPedido = (item, perfil, descCP, descPaq, modo, descFinal) => {
   if (perfil === "clientePreferente") {
-    if (descCP === 10) return item.subtotal10;
-    if (descCP === 20) return item.subtotal20;
-    return item.subtotal30;
+    if (descCP === 10) return item.subtotal10 || 0;
+    if (descCP === 20) return item.subtotal20 || 0;
+    return item.subtotal30 || 0;
   }
-  if (modo === "compraInicial") { if (descPaq === 30) return item.subtotal30; if (descPaq === 33) return item.subtotal33; if (descPaq === 42) return item.subtotal42; return 0; }
+  if (modo === "compraInicial") { 
+    if (descPaq === 30) return item.subtotal30 || 0; 
+    if (descPaq === 33) return item.subtotal33 || 0; 
+    if (descPaq === 42) return item.subtotal42 || 0; 
+    return 0; 
+  }
   const m = { 30: "subtotal30", 33: "subtotal33", 35: "subtotal35", 37: "subtotal37", 40: "subtotal40", 42: "subtotal42" };
   return item[m[descFinal]] || 0;
 };
