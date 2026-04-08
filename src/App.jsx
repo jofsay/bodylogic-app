@@ -47,7 +47,9 @@ function App() {
 
   const isD = perfilUsuario === "distribuidor";
   const isCP = perfilUsuario === "clientePreferente";
+  const isSimulador = perfilUsuario === "simulador";
   const isRecompra = modo === "recompraMensual";
+  
   const { estado, descuentoActual, totalConDescuento, obtenerPrecio, obtenerSubtotal, textoModo, paqueteActual, dentroPrimeros15, cumplioQuincena, puntosMes, mensajesPuntos, resultado } = engine;
   const { totales, productosSeleccionados, filasCalculadas, categorias } = order;
   const documentosVisibles = useMemo(() => getVisibleDocuments(perfilUsuario), [perfilUsuario]);
@@ -103,20 +105,38 @@ function App() {
             <Badge style={{ backgroundColor: "rgba(255,255,255,.14)", color: "#fff", border: "1px solid rgba(255,255,255,.22)" }}>Plataforma de Apoyo Comercial</Badge>
             <h1 style={{ margin: "14px 0 0", fontSize: "clamp(30px,7vw,50px)", lineHeight: 1.05, fontFamily: T.fontDisplay, fontWeight: 800, letterSpacing: "-.6px", textShadow: "0 3px 16px rgba(0,0,0,.18)" }}>BodyLogic</h1>
             <p style={{ marginTop: "10px", maxWidth: "640px", fontSize: "clamp(13px,2.5vw,16px)", lineHeight: 1.65, color: "rgba(255,255,255,.90)" }}>Centro avanzado de cálculo de puntos, validación comercial, documentos oficiales y gestión operativa.</p>
-            <div style={{ display: "inline-block", marginTop: "14px", padding: "11px 16px", borderRadius: T.r.md, backgroundColor: "rgba(255,255,255,.10)", border: "1px solid rgba(255,255,255,.18)", color: "#fff7ed", lineHeight: 1.5, fontSize: "12px", backdropFilter: "blur(6px)", maxWidth: "640px" }}>Creado por Jorge Francisco Sánchez Yerenas para su comunidad empresarial BodyLogic.</div>
           </div>
         </header>
 
         <SectionCard delay={1} key={`p-${animKey}`}>
-          <div style={{ marginBottom: "18px" }}><h2 style={secTitle}>Panel de control</h2><p style={secSub}>Configura perfil, modo y datos del distribuidor.</p></div>
+          <div style={{ marginBottom: "18px" }}><h2 style={secTitle}>Panel de control</h2><p style={secSub}>Configura perfil, modo y parámetros de cálculo.</p></div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: "12px" }}>
-            <div style={cc}><label style={lb}>Perfil</label><select value={perfilUsuario} onChange={(e) => setPerfilUsuario(e.target.value)} style={sel}><option value="distribuidor">Distribuidor Independiente</option><option value="clientePreferente">Cliente Preferente</option></select></div>
+            <div style={cc}>
+              <label style={lb}>Perfil</label>
+              <select value={perfilUsuario} onChange={(e) => setPerfilUsuario(e.target.value)} style={sel}>
+                <option value="distribuidor">Distribuidor Independiente</option>
+                <option value="clientePreferente">Cliente Preferente</option>
+                <option value="simulador">Simulador (Ver todos los descuentos)</option>
+              </select>
+            </div>
             <div style={cc}><label style={lb}>Categoría</label><select value={order.categoriaSeleccionada} onChange={(e) => order.setCategoriaSeleccionada(e.target.value)} style={sel}>{categorias.map((c) => <option key={c} value={c}>{c}</option>)}</select></div>
             <div style={cc}><label style={lb}>Buscar</label><div style={{ position: "relative" }}><input type="text" value={order.busqueda} onChange={(e) => order.setBusqueda(e.target.value)} placeholder="Ej. Omega 3, 4045156..." style={{ ...inp, paddingLeft: "36px" }} /><span style={{ position: "absolute", left: "11px", top: "50%", transform: "translateY(-50%)", fontSize: "15px", opacity: .35, pointerEvents: "none" }}>🔍</span></div></div>
-            <div style={{ ...ic, animation: "blScaleIn .35s ease both", animationDelay: ".1s" }}><div style={{ fontSize: "18px", fontWeight: 800, color: T.orange700, fontFamily: T.fontDisplay }}>{isD ? "Distribuidor" : "Cliente Preferente"}</div><div style={{ marginTop: "4px", color: T.textMuted, fontSize: "12px" }}>{isD ? "Ingreso y recompra" : "Descuento progresivo"}</div></div>
+            <div style={{ ...ic, animation: "blScaleIn .35s ease both", animationDelay: ".1s" }}>
+              <div style={{ fontSize: "18px", fontWeight: 800, color: isSimulador ? T.green700 : T.orange700, fontFamily: T.fontDisplay }}>{isD ? "Distribuidor" : isCP ? "Cliente Preferente" : "Simulador"}</div>
+              <div style={{ marginTop: "4px", color: T.textMuted, fontSize: "12px" }}>{isD ? "Ingreso y recompra" : isCP ? "Descuento progresivo" : "Corrida general de precios"}</div>
+            </div>
           </div>
 
-          {isD ? (
+          {isSimulador && (
+            <div key={`sim-${animKey}`} style={{ animation: "blFadeUp .3s ease both", marginTop: "16px" }}>
+               <div style={{ padding: "16px", backgroundColor: "rgba(255,255,255,.5)", borderRadius: T.r.md, border: `1px solid ${T.cream500}` }}>
+                 <p style={{ margin: 0, color: T.textDark, fontSize: "14px", lineHeight: 1.6 }}>Este perfil te permite calcular pedidos libremente. <strong>No aplica reglas de lealtad, puntos mínimos ni membresías.</strong> Simplemente agrega productos y visualiza la corrida completa con todos los porcentajes de descuento a nivel unitario y global.</p>
+                 <div style={{ marginTop: "14px" }}><Btn onClick={limpiarTodo} ghost>Limpiar pedido</Btn></div>
+               </div>
+            </div>
+          )}
+
+          {isD && (
             <div key={`d-${animKey}`} style={{ animation: "blFadeUp .3s ease both" }}>
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", margin: "16px 0" }}>
                 <Btn onClick={() => setModo("compraInicial")} active={modo === "compraInicial"}>Compra inicial</Btn>
@@ -132,82 +152,44 @@ function App() {
                   </div>
                 ) : (
                   <>
-                    {/* PASO 1: Paquete inicial */}
-                    <div style={cc}><label style={lb}>Paquete de compra inicial</label><select value={paqueteInicial} onChange={(e) => setPaqueteInicial(Number(e.target.value))} style={sel}><option value={100}>Paquete 100</option><option value={200}>Paquete 200</option><option value={300}>Paquete 300</option><option value={400}>Paquete 400</option><option value={500}>Paquete 500</option></select></div>
-
-                    {/* PASO 2: ¿Tiene 42%? */}
+                    <div style={cc}><label style={lb}>Paquete de compra inicial (Base)</label><select value={paqueteInicial} onChange={(e) => setPaqueteInicial(Number(e.target.value))} style={sel}><option value={100}>Paquete 100</option><option value={200}>Paquete 200</option><option value={300}>Paquete 300</option><option value={400}>Paquete 400</option><option value={500}>Paquete 500</option></select></div>
                     <div style={cc}><label style={lb}>¿Actualmente tienes el 42% de descuento?</label><select value={tiene42 ? "si" : "no"} onChange={(e) => setTiene42(e.target.value === "si")} style={sel}><option value="si">Sí</option><option value="no">No</option></select></div>
 
-                    {/* CASO: Tiene 42% → solo puntos personales del mes */}
                     {tiene42 && (
                       <div style={cc}><label style={lb}>Puntos personales en este mes</label><input type="number" min="0" value={puntosPersonalesMes} onChange={(e) => setPuntosPersonalesMes(Number(e.target.value || 0))} style={inp} /><div style={{ marginTop: "6px", fontSize: "11px", color: T.textMuted }}>Incluye tus compras personales + compras de tus Clientes Preferentes</div></div>
                     )}
 
-                    {/* CASO: No tiene 42% */}
                     {!tiene42 && (
                       <>
-                        {/* PASO 3: ¿Tiene red? */}
                         <div style={cc}><label style={lb}>¿Tienes red activa?</label><select value={tieneRed ? "si" : "no"} onChange={(e) => setTieneRed(e.target.value === "si")} style={sel}><option value="no">No</option><option value="si">Sí</option></select></div>
-
-                        {/* Sin red → PL: Mes actual */}
                         {!tieneRed && (
                           <div style={cc}><label style={lb}>Mes actual del programa</label><select value={mesActual} onChange={(e) => setMesActual(Number(e.target.value))} style={sel}>{Array.from({ length: 18 }, (_, i) => i + 1).map((m) => <option key={m} value={m}>{m === 18 ? "Mes 18+" : `Mes ${m}`}</option>)}</select></div>
                         )}
-
-                        {/* Con red → PLA: puntos personales acumulados + grupales */}
                         {tieneRed && (
                           <>
                             <div style={cc}><label style={lb}>Puntos personales acumulados</label><input type="number" min="0" value={puntosPersonalesAcum} onChange={(e) => setPuntosPersonalesAcum(Number(e.target.value || 0))} style={inp} /><div style={{ marginTop: "6px", fontSize: "11px", color: T.textMuted }}>Incluye compras de los meses anteriores</div></div>
-                            <div style={cc}><label style={lb}>Puntos grupales acumulados</label><input type="number" min="0" value={puntosGrupalesAcum} onChange={(e) => setPuntosGrupalesAcum(Number(e.target.value || 0))} style={inp} /></div>
+                            <div style={cc}><label style={lb}>Puntos grupales acumulados en 12 meses</label><input type="number" min="0" value={puntosGrupalesAcum} onChange={(e) => setPuntosGrupalesAcum(Number(e.target.value || 0))} style={inp} /></div>
                           </>
                         )}
-
-                        {/* Puntos personales del mes (para PL sin red) */}
                         {!tieneRed && (
                           <div style={cc}><label style={lb}>Puntos personales en este mes</label><input type="number" min="0" value={puntosPersonalesMes} onChange={(e) => setPuntosPersonalesMes(Number(e.target.value || 0))} style={inp} /><div style={{ marginTop: "6px", fontSize: "11px", color: T.textMuted }}>Incluye tus compras + las de tus Clientes Preferentes</div></div>
                         )}
                       </>
                     )}
 
-                    {/* Pregunta manual post-día 15 */}
                     {!dentroPrimeros15 && (
-                      <div style={{ ...cc, gridColumn: "1 / -1" }}>
-                        <label style={{ ...lb, color: T.orange700 }}>¿Hiciste al menos 100 puntos en los primeros 15 días de este mes?</label>
-                        <select value={cumplioQuincenaManual ? "si" : "no"} onChange={(e) => setCumplioQuincenaManual(e.target.value === "si")} style={{ ...sel, borderColor: T.orange400 }}><option value="si">Sí</option><option value="no">No</option></select>
-                      </div>
+                      <div style={{ ...cc, gridColumn: "1 / -1" }}><label style={{ ...lb, color: T.orange700 }}>¿Hiciste al menos 100 puntos en los primeros 15 días de este mes?</label><select value={cumplioQuincenaManual ? "si" : "no"} onChange={(e) => setCumplioQuincenaManual(e.target.value === "si")} style={{ ...sel, borderColor: T.orange400 }}><option value="si">Sí</option><option value="no">No</option></select></div>
                     )}
-
-                    {/* Fecha automática */}
-                    <div style={{ ...cc, gridColumn: "1 / -1" }}>
-                      <div style={msgCard(dentroPrimeros15 ? "#ecfccb" : "#fef3c7", dentroPrimeros15 ? "#84cc16" : "#f59e0b", dentroPrimeros15 ? "#3f6212" : "#92400e")}>
-                        {dentroPrimeros15 ? "📅 Estás dentro de los primeros 15 días del mes." : "📅 Ya pasaron los primeros 15 días del mes."}
-                      </div>
-                    </div>
-
-                    {/* Mensajes dinámicos */}
-                    {mensajesPuntos.length > 0 && (
-                      <div style={{ ...cc, gridColumn: "1 / -1" }}>
-                        {mensajesPuntos.map((m, i) => (
-                          <div key={i} style={msgCard(m.cumple ? "#ecfccb" : "#fee2e2", m.cumple ? "#84cc16" : "#ef4444", m.cumple ? "#3f6212" : "#991b1b")}>{m.texto}</div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Resultado */}
+                    <div style={{ ...cc, gridColumn: "1 / -1" }}><div style={msgCard(dentroPrimeros15 ? "#ecfccb" : "#fef3c7", dentroPrimeros15 ? "#84cc16" : "#f59e0b", dentroPrimeros15 ? "#3f6212" : "#92400e")}>{dentroPrimeros15 ? "📅 Estás dentro de los primeros 15 días del mes." : "📅 Ya pasaron los primeros 15 días del mes."}</div></div>
+                    {mensajesPuntos.length > 0 && (<div style={{ ...cc, gridColumn: "1 / -1" }}>{mensajesPuntos.map((m, i) => (<div key={i} style={msgCard(m.cumple ? "#ecfccb" : "#fee2e2", m.cumple ? "#84cc16" : "#ef4444", m.cumple ? "#3f6212" : "#991b1b")}>{m.texto}</div>))}</div>)}
                     <div style={{ ...ic, animation: "blScaleIn .3s ease both", gridColumn: "1 / -1" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
-                        <div>
-                          <div style={{ fontSize: "11px", fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: ".5px" }}>Programa detectado</div>
-                          <div style={{ fontSize: "18px", fontWeight: 800, color: T.orange700, fontFamily: T.fontDisplay, marginTop: "2px" }}>{modalidadLabel}</div>
-                        </div>
-                        <div style={{ textAlign: "right" }}>
-                          <div style={{ fontSize: "11px", fontWeight: 700, color: T.textMuted, textTransform: "uppercase" }}>Descuento</div>
-                          <div style={{ fontSize: "28px", fontWeight: 800, color: T.orange600 }}>{descuentoActual}%</div>
-                        </div>
+                        <div><div style={{ fontSize: "11px", fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: ".5px" }}>Programa detectado</div><div style={{ fontSize: "18px", fontWeight: 800, color: T.orange700, fontFamily: T.fontDisplay, marginTop: "2px" }}>{modalidadLabel}</div></div>
+                        <div style={{ textAlign: "right" }}><div style={{ fontSize: "11px", fontWeight: 700, color: T.textMuted, textTransform: "uppercase" }}>Descuento</div><div style={{ fontSize: "28px", fontWeight: 800, color: T.orange600 }}>{descuentoActual}%</div></div>
                       </div>
                       <div style={{ marginTop: "8px", fontSize: "12px", color: T.textMuted }}>
                         Puntos del mes: {puntosMes} (Personales: {puntosPersonalesMes} + Pedido: {totales.totalPuntos})
-                        {tieneRed && !tiene42 && resultado?.acumulado != null && <span> | Acumulado Total: {resultado.acumulado} pts</span>}
+                        {tieneRed && !tiene42 && resultado?.acumulado != null && <span> | Total Acelerado: {resultado.acumulado} pts (Incluye Base {resultado.base})</span>}
                       </div>
                       {tiene42 && <ProgressBar current={puntosMes} target={200} label={`${puntosMes}/200 pts mensuales`} />}
                       {!tiene42 && tieneRed && resultado?.acumulado != null && (() => { const sig = resultado.acumulado < 3001 ? { meta: resultado.acumulado < 501 ? 501 : resultado.acumulado < 1501 ? 1501 : 3001 } : null; return sig ? <ProgressBar current={resultado.acumulado} target={sig.meta} label={`${resultado.acumulado}/${sig.meta} pts`} /> : null; })()}
@@ -216,7 +198,9 @@ function App() {
                 )}
               </div>
             </div>
-          ) : (
+          )}
+
+          {isCP && (
             <div key={`cp-${animKey}`} style={{ animation: "blFadeUp .3s ease both" }}>
               <div style={{ display: "flex", gap: "8px", margin: "16px 0" }}><Btn onClick={limpiarTodo} ghost>Limpiar</Btn></div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: "12px" }}>
@@ -224,100 +208,103 @@ function App() {
                 <div style={{ ...ic, animation: "blScaleIn .3s ease both" }}><div style={{ fontSize: "13px", fontWeight: 700, color: T.orange700, marginBottom: "4px" }}>Puntos acumulados</div><div style={{ fontSize: "30px", fontWeight: 800, color: T.orange600 }}>{engine.puntosAcumuladosCP}</div></div>
                 <div style={{ ...ic, animation: "blScaleIn .3s ease both", animationDelay: ".08s" }}><div style={{ fontSize: "13px", fontWeight: 700, color: T.orange700, marginBottom: "4px" }}>Descuento actual</div><div style={{ fontSize: "30px", fontWeight: 800, color: T.orange600 }}>{engine.descuentoCP}%</div></div>
                 <div style={{ ...ic, animation: "blScaleIn .3s ease both", animationDelay: ".16s" }}>
-                  {engine.siguienteNivelCP ? (<><div style={{ fontSize: "13px", fontWeight: 700, color: T.orange700, marginBottom: "4px" }}>Progreso al siguiente nivel</div><div style={{ fontSize: "18px", fontWeight: 800, color: T.orange600 }}>Te faltan {engine.siguienteNivelCP.meta - engine.puntosAcumuladosCP} pts</div><div style={{ marginTop: "3px", color: T.textMuted, fontSize: "12px" }}>Para alcanzar el {engine.siguienteNivelCP.etiqueta} de descuento</div><ProgressBar current={engine.puntosAcumuladosCP} target={engine.siguienteNivelCP.meta} label={`${engine.puntosAcumuladosCP}/${engine.siguienteNivelCP.meta} → ${engine.siguienteNivelCP.etiqueta}`} /></>) : (<><div style={{ fontSize: "13px", fontWeight: 700, color: T.green500, marginBottom: "4px" }}>Nivel máximo alcanzado</div><div style={{ fontSize: "18px", fontWeight: 800, color: T.green500 }}>20%</div></>)}
+                  {engine.siguienteNivelCP ? (<><div style={{ fontSize: "13px", fontWeight: 700, color: T.orange700, marginBottom: "4px" }}>Progreso al siguiente nivel</div><div style={{ fontSize: "18px", fontWeight: 800, color: T.orange600 }}>Te faltan {engine.siguienteNivelCP.meta - engine.puntosAcumuladosCP} pts</div><div style={{ marginTop: "3px", color: T.textMuted, fontSize: "12px" }}>Para alcanzar el {engine.siguienteNivelCP.etiqueta} de descuento</div><ProgressBar current={engine.puntosAcumuladosCP} target={engine.siguienteNivelCP.meta} label={`${engine.puntosAcumuladosCP}/${engine.siguienteNivelCP.meta} → ${engine.siguienteNivelCP.etiqueta}`} /></>) : (<><div style={{ fontSize: "13px", fontWeight: 700, color: T.green500, marginBottom: "4px" }}>Nivel máximo alcanzado</div><div style={{ fontSize: "18px", fontWeight: 800, color: T.green500 }}>30%</div></>)}
                 </div>
               </div>
             </div>
           )}
-          {esMovil && <div style={{ display: "flex", gap: "6px", marginTop: "14px" }}><Btn onClick={() => setVistaMovil("cards")} active={vistaMovil === "cards"} style={{ flex: 1, fontSize: "13px", padding: "10px" }}>Tarjetas</Btn><Btn onClick={() => setVistaMovil("tabla")} active={vistaMovil === "tabla"} style={{ flex: 1, fontSize: "13px", padding: "10px" }}>Tabla</Btn></div>}
+          {esMovil && !isSimulador && <div style={{ display: "flex", gap: "6px", marginTop: "14px" }}><Btn onClick={() => setVistaMovil("cards")} active={vistaMovil === "cards"} style={{ flex: 1, fontSize: "13px", padding: "10px" }}>Tarjetas</Btn><Btn onClick={() => setVistaMovil("tabla")} active={vistaMovil === "tabla"} style={{ flex: 1, fontSize: "13px", padding: "10px" }}>Tabla</Btn></div>}
         </SectionCard>
 
-        {/* SEMÁFORO */}
-        <section className="bl-section bl-d2" key={`s-${animKey}`} style={{ display: "flex", gap: "14px", alignItems: "center", borderRadius: T.r.lg, padding: "18px 22px", marginBottom: "18px", backgroundColor: estado.colorFondo, border: `2px solid ${estado.colorBorde}`, boxShadow: T.s.md, transition: "all .4s cubic-bezier(.22,.61,.36,1)", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", left: 0, top: "10%", bottom: "10%", width: "4px", borderRadius: "0 4px 4px 0", backgroundColor: estado.colorSemaforo, boxShadow: `0 0 8px ${estado.colorSemaforo}40` }} />
-          <div className="bl-semaforo" style={{ width: "14px", height: "14px", borderRadius: "50%", flexShrink: 0, backgroundColor: estado.colorSemaforo, boxShadow: `0 0 0 4px ${estado.colorFondo},0 0 16px ${estado.colorSemaforo}45`, marginLeft: "6px" }} />
-          <div style={{ flex: 1 }}><div style={{ fontSize: "13px", fontWeight: 700, color: estado.colorTexto, lineHeight: 1.3 }}>{isCP ? "Cliente Preferente" : modo === "compraInicial" ? "Compra inicial" : modalidadLabel}</div><div style={{ marginTop: "4px", lineHeight: 1.55, color: estado.colorTexto, fontSize: "13px", opacity: .88 }}>{estado.texto}</div></div>
-        </section>
+        {/* SEMÁFORO (Se omite en Simulador) */}
+        {!isSimulador && (
+          <section className="bl-section bl-d2" key={`s-${animKey}`} style={{ display: "flex", gap: "14px", alignItems: "center", borderRadius: T.r.lg, padding: "18px 22px", marginBottom: "18px", backgroundColor: estado.colorFondo, border: `2px solid ${estado.colorBorde}`, boxShadow: T.s.md, transition: "all .4s cubic-bezier(.22,.61,.36,1)", position: "relative", overflow: "hidden" }}>
+            <div style={{ position: "absolute", left: 0, top: "10%", bottom: "10%", width: "4px", borderRadius: "0 4px 4px 0", backgroundColor: estado.colorSemaforo, boxShadow: `0 0 8px ${estado.colorSemaforo}40` }} />
+            <div className="bl-semaforo" style={{ width: "14px", height: "14px", borderRadius: "50%", flexShrink: 0, backgroundColor: estado.colorSemaforo, boxShadow: `0 0 0 4px ${estado.colorFondo},0 0 16px ${estado.colorSemaforo}45`, marginLeft: "6px" }} />
+            <div style={{ flex: 1 }}><div style={{ fontSize: "13px", fontWeight: 700, color: estado.colorTexto, lineHeight: 1.3 }}>{isCP ? "Cliente Preferente" : modo === "compraInicial" ? "Compra inicial" : modalidadLabel}</div><div style={{ marginTop: "4px", lineHeight: 1.55, color: estado.colorTexto, fontSize: "13px", opacity: .88 }}>{estado.texto}</div></div>
+          </section>
+        )}
 
-        {/* PEDIDO ACTUAL */}
-        <SectionCard delay={3}>
-          <div id="pedido-actual" style={{ marginBottom: "14px" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "10px" }}><div><h2 style={secTitle}>Pedido actual</h2><p style={secSub}>Productos capturados.</p></div>{productosSeleccionados.length > 0 && <Btn onClick={limpiarTodo} danger style={{ fontSize: "12px", padding: "9px 14px" }}>Vaciar pedido</Btn>}</div></div>
-          {productosSeleccionados.length === 0 ? <div style={{ padding: "28px", borderRadius: T.r.lg, backgroundColor: "rgba(255,250,245,.6)", border: `2px dashed ${T.cream700}`, color: T.textMuted, textAlign: "center", fontSize: "14px" }}>Aún no has agregado productos.</div> : (
-            <><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: "8px", marginBottom: "14px" }}><MiniDato label="Unidades" value={totales.totalUnidades} highlight large /><MiniDato label="Puntos" value={totales.totalPuntos} highlight large /><MiniDato label="P. público" value={formatoMoneda(totales.totalPrecioPublico)} large /><MiniDato label={`Con ${descuentoActual}%`} value={formatoMoneda(totalConDescuento)} highlight large /></div>
-            <div style={{ display: "grid", gap: "10px" }}>{productosSeleccionados.map((item, i) => (
-              <div key={item.codigo} className="bl-card" style={{ background: `linear-gradient(135deg,rgba(255,250,245,.8),rgba(255,244,234,.6))`, border: `1px solid ${T.cream500}`, borderRadius: T.r.lg, padding: "14px", animation: `blFadeUp .3s ease both`, animationDelay: `${i * .04}s` }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", alignItems: "flex-start" }}><div><Badge>{item.codigo}</Badge><div style={{ marginTop: "5px", fontSize: "15px", fontWeight: 700, color: T.textDark, lineHeight: 1.3 }}>{item.producto}</div>{item.contenido && <div style={{ marginTop: "2px", fontSize: "11px", color: T.textMuted }}>{item.contenido}</div>}</div><Btn onClick={() => order.eliminarProducto(item.codigo)} danger style={{ padding: "5px 10px", fontSize: "11px" }}>Quitar</Btn></div>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px" }}><Btn onClick={() => order.decrementarProducto(item.codigo)} style={{ width: "38px", height: "38px", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px" }}>−</Btn><input type="number" min="0" value={item.unidades} onChange={(e) => order.cambiarCantidad(item.codigo, e.target.value)} style={{ width: "70px", padding: "9px", borderRadius: T.r.sm, border: `1.5px solid ${T.cream700}`, backgroundColor: T.white, color: T.black, textAlign: "center", fontWeight: 700, fontSize: "15px", boxShadow: T.s.inner }} /><Btn onClick={() => order.incrementarProducto(item.codigo)} style={{ width: "38px", height: "38px", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px" }}>+</Btn></div>
-                <div style={{ marginTop: "10px", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: "6px" }}>
-                  <MiniDato label="Precio U." value={formatoMoneda(item.precioPublico)} />
-                  <MiniDato label={`Desc U.`} value={formatoMoneda(obtenerPrecio(item))} highlight />
-                  <MiniDato label="Sub. pts" value={item.subtotalPuntos} />
-                  <MiniDato label="Sub. Púb" value={formatoMoneda(item.subtotalPrecioPublico)} />
-                  <MiniDato label={`Sub. ${descuentoActual}%`} value={formatoMoneda(obtenerSubtotal(item))} highlight />
-                </div>
-              </div>
-            ))}</div></>
-          )}
-        </SectionCard>
+        {/* PEDIDO Y TABLA (Se dividen según perfil) */}
+        {!isSimulador ? (
+          <>
+            <SectionCard delay={3}>
+              <div id="pedido-actual" style={{ marginBottom: "14px" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "10px" }}><div><h2 style={secTitle}>Pedido actual</h2><p style={secSub}>Productos capturados.</p></div>{productosSeleccionados.length > 0 && <Btn onClick={limpiarTodo} danger style={{ fontSize: "12px", padding: "9px 14px" }}>Vaciar pedido</Btn>}</div></div>
+              {productosSeleccionados.length === 0 ? <div style={{ padding: "28px", borderRadius: T.r.lg, backgroundColor: "rgba(255,250,245,.6)", border: `2px dashed ${T.cream700}`, color: T.textMuted, textAlign: "center", fontSize: "14px" }}>Aún no has agregado productos.</div> : (
+                <><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: "8px", marginBottom: "14px" }}><MiniDato label="Unidades" value={totales.totalUnidades} highlight large /><MiniDato label="Puntos" value={totales.totalPuntos} highlight large /><MiniDato label="P. público" value={formatoMoneda(totales.totalPrecioPublico)} large /><MiniDato label={`Con ${descuentoActual}%`} value={formatoMoneda(totalConDescuento)} highlight large /></div>
+                <div style={{ display: "grid", gap: "10px" }}>{productosSeleccionados.map((item, i) => (
+                  <div key={item.codigo} className="bl-card" style={{ background: `linear-gradient(135deg,rgba(255,250,245,.8),rgba(255,244,234,.6))`, border: `1px solid ${T.cream500}`, borderRadius: T.r.lg, padding: "14px", animation: `blFadeUp .3s ease both`, animationDelay: `${i * .04}s` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", alignItems: "flex-start" }}><div><Badge>{item.codigo}</Badge><div style={{ marginTop: "5px", fontSize: "15px", fontWeight: 700, color: T.textDark, lineHeight: 1.3 }}>{item.producto}</div>{item.contenido && <div style={{ marginTop: "2px", fontSize: "11px", color: T.textMuted }}>{item.contenido}</div>}</div><Btn onClick={() => order.eliminarProducto(item.codigo)} danger style={{ padding: "5px 10px", fontSize: "11px" }}>Quitar</Btn></div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px" }}><Btn onClick={() => order.decrementarProducto(item.codigo)} style={{ width: "38px", height: "38px", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px" }}>−</Btn><input type="number" min="0" value={item.unidades} onChange={(e) => order.cambiarCantidad(item.codigo, e.target.value)} style={{ width: "70px", padding: "9px", borderRadius: T.r.sm, border: `1.5px solid ${T.cream700}`, backgroundColor: T.white, color: T.black, textAlign: "center", fontWeight: 700, fontSize: "15px", boxShadow: T.s.inner }} /><Btn onClick={() => order.incrementarProducto(item.codigo)} style={{ width: "38px", height: "38px", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px" }}>+</Btn></div>
+                    <div style={{ marginTop: "10px", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: "6px" }}>
+                      <MiniDato label="Precio U." value={formatoMoneda(item.precioPublico)} />
+                      <MiniDato label={`Desc U.`} value={formatoMoneda(obtenerPrecio(item))} highlight />
+                      <MiniDato label="Sub. pts" value={item.subtotalPuntos} />
+                      <MiniDato label="Sub. Púb" value={formatoMoneda(item.subtotalPrecioPublico)} />
+                      <MiniDato label={`Sub. ${descuentoActual}%`} value={formatoMoneda(obtenerSubtotal(item))} highlight />
+                    </div>
+                  </div>
+                ))}</div></>
+              )}
+            </SectionCard>
 
-        {/* TABLA MAESTRA */}
-        <SectionCard delay={4}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "10px", marginBottom: "14px" }}><div><h2 style={secTitle}>Tabla maestra</h2><p style={secSub}><strong>{filasCalculadas.length}</strong> producto(s){order.categoriaSeleccionada !== "TODAS" ? ` en "${order.categoriaSeleccionada}"` : ""}</p></div><div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}><Btn onClick={handlePDF} active style={{ fontSize: "13px", padding: "9px 16px" }}>PDF</Btn><Btn onClick={handlePrint} style={{ fontSize: "13px", padding: "9px 16px" }}>Imprimir</Btn></div></div>
-          {esMovil && vistaMovil === "cards" ? (
-            <div style={{ display: "grid", gap: "10px" }}>{filasCalculadas.map((item, i) => { const act = order.filaActiva === item.codigo; return (
-              <div key={item.codigo} ref={(el) => { order.productRefs.current[item.codigo] = el; }} className="bl-card" onClick={() => order.setFilaActiva(item.codigo)} style={{ background: item.unidades > 0 ? `linear-gradient(135deg,${T.orange50},${T.orange100})` : `linear-gradient(135deg,rgba(255,250,245,.7),rgba(255,244,234,.5))`, border: act ? `2px solid ${T.orange500}` : `1px solid ${T.cream500}`, borderRadius: T.r.lg, padding: "14px", boxShadow: act ? T.s.glow : T.s.xs, animation: `blFadeUp .3s ease both`, animationDelay: `${i * .025}s` }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: "6px", alignItems: "flex-start" }}><div><Badge>{item.codigo}</Badge><div style={{ marginTop: "5px", fontSize: "15px", fontWeight: 700, color: T.textDark, lineHeight: 1.3 }}>{item.producto}</div>{item.contenido && <div style={{ marginTop: "2px", fontSize: "11px", color: T.textMuted }}>{item.contenido}</div>}</div><Badge style={{ backgroundColor: T.cream400, color: T.orange800, fontSize: "9px", padding: "3px 7px" }}>{item.categoria}</Badge></div>
-                <div style={{ marginTop: "10px" }}><label style={{ display: "block", marginBottom: "5px", fontSize: "11px", fontWeight: 600, color: T.textDark, textTransform: "uppercase", letterSpacing: ".4px" }}>Unidades</label><input type="number" min="0" value={item.unidades} onChange={(e) => order.cambiarCantidad(item.codigo, e.target.value)} onFocus={() => order.setFilaActiva(item.codigo)} style={inp} /></div>
-                <div style={{ marginTop: "10px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
-                  <MiniDato label="Pts unit." value={item.puntos} />
-                  <MiniDato label="Precio U." value={formatoMoneda(item.precioPublico)} />
-                  <MiniDato label={`Desc U.`} value={formatoMoneda(obtenerPrecio(item))} highlight />
-                  <MiniDato label="Sub. pts" value={item.subtotalPuntos} />
-                  <MiniDato label="Sub. Púb" value={formatoMoneda(item.subtotalPrecioPublico)} />
-                  <MiniDato label={`Sub. ${descuentoActual}%`} value={formatoMoneda(obtenerSubtotal(item))} highlight />
-                </div>
-              </div>); })}</div>
-          ) : isCP ? renderTable(["Cat.","Cód.","Producto","Contenido","Uds.","Pts","Sub.pts","P.púb.","Sub.púb.","P.desc.","Sub.desc."],(item,idx)=><tr key={item.codigo} ref={(el)=>{order.productRefs.current[item.codigo]=el;}} onClick={()=>order.setFilaActiva(item.codigo)} style={{backgroundColor:rowBg(item,idx),cursor:"pointer",transition:"background-color .18s"}}><td style={tdS}>{item.categoria}</td><td style={tdS}>{item.codigo}</td><td style={{...tdS,color:T.textDark,fontWeight:600}}>{item.producto}</td><td style={tdS}>{item.contenido}</td><td style={tdS}><input type="number" min="0" value={item.unidades} onChange={(e)=>order.cambiarCantidad(item.codigo,e.target.value)} onFocus={()=>order.setFilaActiva(item.codigo)} style={inpT}/></td><td style={tdS}>{item.puntos}</td><td style={tdS}>{item.subtotalPuntos}</td><td style={tdS}>{formatoMoneda(item.precioPublico)}</td><td style={tdS}>{formatoMoneda(item.subtotalPrecioPublico)}</td><td style={tdS}>{formatoMoneda(obtenerPrecio(item))}</td><td style={tdS}>{formatoMoneda(obtenerSubtotal(item))}</td></tr>,()=><tr style={{background:`linear-gradient(180deg,${T.cream100},${T.cream300})`}}><td style={tdT}/><td style={tdT}/><td style={{...tdT,fontWeight:700}}>TOTAL</td><td style={tdT}/><td style={{...tdT,fontWeight:700}}>{totales.totalUnidades}</td><td style={tdT}/><td style={{...tdT,fontWeight:700,backgroundColor:estado.colorFondo,color:estado.colorTexto,border:`2px solid ${estado.colorBorde}`,borderRadius:"6px"}}>{totales.totalPuntos}</td><td style={tdT}/><td style={{...tdT,fontWeight:700}}>{formatoMoneda(totales.totalPrecioPublico)}</td><td style={tdT}/><td style={{...tdT,fontWeight:700}}>{formatoMoneda(engine.totalSegunDescuentoCP)}</td></tr>)
-          : renderTable(["Cat.","Cód.","Producto","Contenido","Uds.","Pts","Sub.pts","P.púb.","Sub.púb.","V.com.","Sub.com."],(item,idx)=><tr key={item.codigo} ref={(el)=>{order.productRefs.current[item.codigo]=el;}} onClick={()=>order.setFilaActiva(item.codigo)} style={{backgroundColor:rowBg(item,idx),cursor:"pointer",transition:"background-color .18s"}}><td style={tdS}>{item.categoria}</td><td style={tdS}>{item.codigo}</td><td style={{...tdS,color:T.textDark,fontWeight:600}}>{item.producto}</td><td style={tdS}>{item.contenido}</td><td style={tdS}><input type="number" min="0" value={item.unidades} onChange={(e)=>order.cambiarCantidad(item.codigo,e.target.value)} onFocus={()=>order.setFilaActiva(item.codigo)} style={inpT}/></td><td style={tdS}>{item.puntos}</td><td style={tdS}>{item.subtotalPuntos}</td><td style={tdS}>{formatoMoneda(item.precioPublico)}</td><td style={tdS}>{formatoMoneda(item.subtotalPrecioPublico)}</td><td style={tdS}>{formatoMoneda(item.valorComisionable)}</td><td style={tdS}>{formatoMoneda(item.subtotalValorComisionable)}</td></tr>,()=><tr style={{background:`linear-gradient(180deg,${T.cream100},${T.cream300})`}}><td style={tdT}/><td style={tdT}/><td style={{...tdT,fontWeight:700}}>TOTAL</td><td style={tdT}/><td style={{...tdT,fontWeight:700}}>{totales.totalUnidades}</td><td style={tdT}/><td style={{...tdT,fontWeight:700,backgroundColor:estado.colorFondo,color:estado.colorTexto,border:`2px solid ${estado.colorBorde}`,borderRadius:"6px"}}>{totales.totalPuntos}</td><td style={tdT}/><td style={{...tdT,fontWeight:700}}>{formatoMoneda(totales.totalPrecioPublico)}</td><td style={tdT}/><td style={{...tdT,fontWeight:700}}>{formatoMoneda(totales.totalValorComisionable)}</td></tr>)}
-        </SectionCard>
-
-        {/* SIMULADOR DE DESCUENTOS */}
-        {productosSeleccionados.length > 0 && (
-          <SectionCard delay={5}>
-            <div style={{ marginBottom: "14px" }}>
-              <h2 style={secTitle}>Simulador de Descuentos</h2>
-              <p style={secSub}>Visualiza cuánto pagarías por tu pedido actual con los diferentes porcentajes.</p>
-            </div>
-            <div style={{ overflowX: "auto", borderRadius: T.r.lg, border: `1px solid ${T.cream500}`, boxShadow: T.s.sm }}>
-              <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, minWidth: "950px", backgroundColor: T.white, fontSize: "13px" }}>
+            <SectionCard delay={4}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "10px", marginBottom: "14px" }}><div><h2 style={secTitle}>Tabla maestra</h2><p style={secSub}><strong>{filasCalculadas.length}</strong> producto(s){order.categoriaSeleccionada !== "TODAS" ? ` en "${order.categoriaSeleccionada}"` : ""}</p></div><div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}><Btn onClick={handlePDF} active style={{ fontSize: "13px", padding: "9px 16px" }}>PDF</Btn><Btn onClick={handlePrint} style={{ fontSize: "13px", padding: "9px 16px" }}>Imprimir</Btn></div></div>
+              {esMovil && vistaMovil === "cards" ? (
+                <div style={{ display: "grid", gap: "10px" }}>{filasCalculadas.map((item, i) => { const act = order.filaActiva === item.codigo; return (
+                  <div key={item.codigo} ref={(el) => { order.productRefs.current[item.codigo] = el; }} className="bl-card" onClick={() => order.setFilaActiva(item.codigo)} style={{ background: item.unidades > 0 ? `linear-gradient(135deg,${T.orange50},${T.orange100})` : `linear-gradient(135deg,rgba(255,250,245,.7),rgba(255,244,234,.5))`, border: act ? `2px solid ${T.orange500}` : `1px solid ${T.cream500}`, borderRadius: T.r.lg, padding: "14px", boxShadow: act ? T.s.glow : T.s.xs, animation: `blFadeUp .3s ease both`, animationDelay: `${i * .025}s` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: "6px", alignItems: "flex-start" }}><div><Badge>{item.codigo}</Badge><div style={{ marginTop: "5px", fontSize: "15px", fontWeight: 700, color: T.textDark, lineHeight: 1.3 }}>{item.producto}</div>{item.contenido && <div style={{ marginTop: "2px", fontSize: "11px", color: T.textMuted }}>{item.contenido}</div>}</div><Badge style={{ backgroundColor: T.cream400, color: T.orange800, fontSize: "9px", padding: "3px 7px" }}>{item.categoria}</Badge></div>
+                    <div style={{ marginTop: "10px" }}><label style={{ display: "block", marginBottom: "5px", fontSize: "11px", fontWeight: 600, color: T.textDark, textTransform: "uppercase", letterSpacing: ".4px" }}>Unidades</label><input type="number" min="0" value={item.unidades} onChange={(e) => order.cambiarCantidad(item.codigo, e.target.value)} onFocus={() => order.setFilaActiva(item.codigo)} style={inp} /></div>
+                    <div style={{ marginTop: "10px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+                      <MiniDato label="Pts unit." value={item.puntos} />
+                      <MiniDato label="Precio U." value={formatoMoneda(item.precioPublico)} />
+                      <MiniDato label={`Desc U.`} value={formatoMoneda(obtenerPrecio(item))} highlight />
+                      <MiniDato label="Sub. pts" value={item.subtotalPuntos} />
+                      <MiniDato label="Sub. Púb" value={formatoMoneda(item.subtotalPrecioPublico)} />
+                      <MiniDato label={`Sub. ${descuentoActual}%`} value={formatoMoneda(obtenerSubtotal(item))} highlight />
+                    </div>
+                  </div>); })}</div>
+              ) : isCP ? renderTable(["Cat.","Cód.","Producto","Contenido","Uds.","Pts","Sub.pts","P.púb.","Sub.púb.","P.desc.","Sub.desc."],(item,idx)=><tr key={item.codigo} ref={(el)=>{order.productRefs.current[item.codigo]=el;}} onClick={()=>order.setFilaActiva(item.codigo)} style={{backgroundColor:rowBg(item,idx),cursor:"pointer",transition:"background-color .18s"}}><td style={tdS}>{item.categoria}</td><td style={tdS}>{item.codigo}</td><td style={{...tdS,color:T.textDark,fontWeight:600}}>{item.producto}</td><td style={tdS}>{item.contenido}</td><td style={tdS}><input type="number" min="0" value={item.unidades} onChange={(e)=>order.cambiarCantidad(item.codigo,e.target.value)} onFocus={()=>order.setFilaActiva(item.codigo)} style={inpT}/></td><td style={tdS}>{item.puntos}</td><td style={tdS}>{item.subtotalPuntos}</td><td style={tdS}>{formatoMoneda(item.precioPublico)}</td><td style={tdS}>{formatoMoneda(item.subtotalPrecioPublico)}</td><td style={tdS}>{formatoMoneda(obtenerPrecio(item))}</td><td style={tdS}>{formatoMoneda(obtenerSubtotal(item))}</td></tr>,()=><tr style={{background:`linear-gradient(180deg,${T.cream100},${T.cream300})`}}><td style={tdT}/><td style={tdT}/><td style={{...tdT,fontWeight:700}}>TOTAL</td><td style={tdT}/><td style={{...tdT,fontWeight:700}}>{totales.totalUnidades}</td><td style={tdT}/><td style={{...tdT,fontWeight:700,backgroundColor:estado.colorFondo,color:estado.colorTexto,border:`2px solid ${estado.colorBorde}`,borderRadius:"6px"}}>{totales.totalPuntos}</td><td style={tdT}/><td style={{...tdT,fontWeight:700}}>{formatoMoneda(totales.totalPrecioPublico)}</td><td style={tdT}/><td style={{...tdT,fontWeight:700}}>{formatoMoneda(engine.totalSegunDescuentoCP)}</td></tr>)
+              : renderTable(["Cat.","Cód.","Producto","Contenido","Uds.","Pts","Sub.pts","P.púb.","Sub.púb.","V.com.","Sub.com."],(item,idx)=><tr key={item.codigo} ref={(el)=>{order.productRefs.current[item.codigo]=el;}} onClick={()=>order.setFilaActiva(item.codigo)} style={{backgroundColor:rowBg(item,idx),cursor:"pointer",transition:"background-color .18s"}}><td style={tdS}>{item.categoria}</td><td style={tdS}>{item.codigo}</td><td style={{...tdS,color:T.textDark,fontWeight:600}}>{item.producto}</td><td style={tdS}>{item.contenido}</td><td style={tdS}><input type="number" min="0" value={item.unidades} onChange={(e)=>order.cambiarCantidad(item.codigo,e.target.value)} onFocus={()=>order.setFilaActiva(item.codigo)} style={inpT}/></td><td style={tdS}>{item.puntos}</td><td style={tdS}>{item.subtotalPuntos}</td><td style={tdS}>{formatoMoneda(item.precioPublico)}</td><td style={tdS}>{formatoMoneda(item.subtotalPrecioPublico)}</td><td style={tdS}>{formatoMoneda(item.valorComisionable)}</td><td style={tdS}>{formatoMoneda(item.subtotalValorComisionable)}</td></tr>,()=><tr style={{background:`linear-gradient(180deg,${T.cream100},${T.cream300})`}}><td style={tdT}/><td style={tdT}/><td style={{...tdT,fontWeight:700}}>TOTAL</td><td style={tdT}/><td style={{...tdT,fontWeight:700}}>{totales.totalUnidades}</td><td style={tdT}/><td style={{...tdT,fontWeight:700,backgroundColor:estado.colorFondo,color:estado.colorTexto,border:`2px solid ${estado.colorBorde}`,borderRadius:"6px"}}>{totales.totalPuntos}</td><td style={tdT}/><td style={{...tdT,fontWeight:700}}>{formatoMoneda(totales.totalPrecioPublico)}</td><td style={tdT}/><td style={{...tdT,fontWeight:700}}>{formatoMoneda(totales.totalValorComisionable)}</td></tr>)}
+            </SectionCard>
+          </>
+        ) : (
+          /* TABLA ÚNICA SIMULADOR (Remplaza Pedido y Maestra) */
+          <SectionCard delay={2}>
+             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "10px", marginBottom: "14px" }}><div><h2 style={secTitle}>Simulador de Descuentos</h2><p style={secSub}>Calcula libremente. Las columnas muestran Unitario ($) y Subtotal (<strong>$</strong>) para cada porcentaje.</p></div>{productosSeleccionados.length > 0 && <Btn onClick={limpiarTodo} danger style={{ fontSize: "12px", padding: "9px 14px" }}>Vaciar simulador</Btn>}</div>
+             <div style={{ overflowX: "auto", borderRadius: T.r.lg, border: `1px solid ${T.cream500}`, boxShadow: T.s.sm }}>
+              <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, minWidth: "1250px", backgroundColor: T.white, fontSize: "13px" }}>
                 <thead>
                   <tr>
-                    {["Producto", "Pts", "P. Público", "10%", "15%", "20%", "30%", "33%", "35%", "37%", "40%", "42%"].map((h) => (
-                      <th key={h} style={{ textAlign: "left", padding: "11px 10px", borderBottom: `2px solid ${T.cream500}`, color: T.orange800, fontSize: "10px", fontWeight: 700, whiteSpace: "nowrap", background: `linear-gradient(180deg,${T.cream300},${T.cream400})`, letterSpacing: ".6px", textTransform: "uppercase" }}>{h}</th>
+                    {["Producto", "Uds", "P. Público", "10%", "20%", "30%", "33%", "35%", "37%", "40%", "42%"].map((h) => (
+                      <th key={h} style={{ textAlign: "left", padding: "11px 10px", borderBottom: `2px solid ${T.cream500}`, color: T.orange800, fontSize: "10px", fontWeight: 700, whiteSpace: "nowrap", background: `linear-gradient(180deg,${T.cream300},${T.cream400})`, position: "sticky", top: 0, zIndex: 1, letterSpacing: ".6px", textTransform: "uppercase" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {productosSeleccionados.map((item, idx) => (
-                    <tr key={item.codigo} style={{ backgroundColor: idx % 2 === 0 ? T.white : "rgba(255,250,245,.5)" }}>
-                      <td style={tdS}><strong>{item.producto}</strong> (x{item.unidades})</td>
-                      <td style={tdS}>{item.subtotalPuntos}</td>
-                      <td style={tdS}>{formatoMoneda(item.subtotalPrecioPublico)}</td>
-                      {[10, 15, 20, 30, 33, 35, 37, 40, 42].map((d) => (
-                        <td key={d} style={{ ...tdS, fontWeight: d === descuentoActual ? 700 : 400, color: d === descuentoActual ? T.orange600 : T.text, backgroundColor: d === descuentoActual ? "rgba(251,146,60,.1)" : "transparent" }}>
-                          {formatoMoneda(item[`subtotal${d}`])}
-                        </td>
-                      ))}
+                  {filasCalculadas.map((item, idx) => (
+                    <tr key={item.codigo} style={{ backgroundColor: item.unidades > 0 ? "rgba(255,241,230,.7)" : idx % 2 === 0 ? T.white : "rgba(255,250,245,.5)", transition: "background-color .18s" }}>
+                      <td style={tdS}><div><strong>{item.producto}</strong></div><div style={{color: T.textMuted, fontSize: "11px", marginTop: "2px"}}>{item.codigo} | {item.puntos} pts</div></td>
+                      <td style={tdS}><input type="number" min="0" value={item.unidades} onChange={(e) => order.cambiarCantidad(item.codigo, e.target.value)} style={inpT} /></td>
+                      <td style={{ ...tdS, background: "rgba(0,0,0,.02)" }}><div style={{color: T.text}}>{formatoMoneda(item.precioPublico)} un.</div><div style={{fontWeight: 700, marginTop: "2px", color: T.textDark}}>{formatoMoneda(item.subtotalPrecioPublico)} sub.</div></td>
+                      {[10, 20, 30, 33, 35, 37, 40, 42].map((d) => {
+                        const unitKey = d === 10 ? item.precioCP10 ?? item.precioPublico * 0.9 : d === 20 ? item.precio20 ?? item.precioPublico * 0.8 : item[`precio${d}`];
+                        const subKey = item[`subtotal${d}`];
+                        return (
+                          <td key={d} style={tdS}>
+                            <div style={{color: T.text}}>{formatoMoneda(unitKey)} un.</div>
+                            <div style={{fontWeight: 700, marginTop: "2px", color: T.orange700}}>{formatoMoneda(subKey)} sub.</div>
+                          </td>
+                        );
+                      })}
                     </tr>
                   ))}
                   <tr style={{ background: `linear-gradient(180deg,${T.cream100},${T.cream300})` }}>
-                    <td style={{ ...tdT, fontWeight: 700 }}>TOTALES</td>
-                    <td style={{ ...tdT, fontWeight: 700 }}>{totales.totalPuntos}</td>
-                    <td style={{ ...tdT, fontWeight: 700 }}>{formatoMoneda(totales.totalPrecioPublico)}</td>
-                    {[10, 15, 20, 30, 33, 35, 37, 40, 42].map((d) => (
-                      <td key={d} style={{ ...tdT, fontWeight: 800, color: d === descuentoActual ? T.orange700 : T.textDark, backgroundColor: d === descuentoActual ? "rgba(251,146,60,.2)" : "transparent" }}>
-                        {formatoMoneda(totales[`total${d}`])}
-                      </td>
+                    <td style={{ ...tdT, fontWeight: 700 }}>TOTALES GENERALES</td>
+                    <td style={{ ...tdT, fontWeight: 700 }}>{totales.totalUnidades}</td>
+                    <td style={{ ...tdT, fontWeight: 800, color: T.textDark }}>{formatoMoneda(totales.totalPrecioPublico)}</td>
+                    {[10, 20, 30, 33, 35, 37, 40, 42].map((d) => (
+                      <td key={d} style={{ ...tdT, fontWeight: 800, color: T.orange800 }}>{formatoMoneda(totales[`total${d}`])}</td>
                     ))}
                   </tr>
                 </tbody>
@@ -332,7 +319,7 @@ function App() {
 
         <SectionCard delay={8}><h2 style={secTitle}>Documentos</h2><p style={{...secSub,marginBottom:"14px"}}>{isCP?"Para Cliente Preferente.":"Archivos oficiales."}</p><div style={{display:"grid",gap:"10px"}}>{documentosVisibles.map((doc,i)=>{const dl=descargandoArchivo===doc.archivo;return(<div key={doc.archivo} className="bl-card" style={{background:`linear-gradient(180deg,${T.cream100},${T.cream200})`,border:`1px solid ${T.cream500}`,borderRadius:T.r.lg,padding:"14px",animation:`blFadeUp .3s ease both`,animationDelay:`${i*.05}s`}}><div style={{display:"flex",gap:"10px",alignItems:"flex-start"}}><span style={{fontSize:"22px",lineHeight:1}}>{doc.icono}</span><div style={{flex:1}}><div style={{fontWeight:700,fontSize:"15px",color:T.textDark}}>{doc.nombre}</div><div style={{marginTop:"3px",color:T.textMuted,fontSize:"12px",lineHeight:1.5}}>{doc.descripcion}</div><div style={{marginTop:"3px",color:T.orange500,fontSize:"11px",fontWeight:500}}>{doc.archivo}</div></div></div><Btn onClick={()=>handleDescargar(doc.archivo,doc.nombre)} active style={{marginTop:"10px",fontSize:"12px",padding:"9px 16px",width:"100%"}} disabled={dl}>{dl?"Descargando...":doc.tipo==="membresia"?"Descargar y rellenar":"Descargar PDF"}</Btn></div>);})}</div></SectionCard>
 
-        {esMovil && (
+        {esMovil && !isSimulador && (
           <div className="bl-float-glass" style={{position:"fixed",left:"6px",right:"6px",bottom:"6px",zIndex:999,borderRadius:"18px",padding:"14px 16px",backgroundColor:`${estado.colorFondo}ee`,border:`1.5px solid ${estado.colorBorde}`,boxShadow:`0 -8px 40px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.3)`,color:estado.colorTexto,transition:"all .35s cubic-bezier(.22,.61,.36,1)",paddingBottom:"max(14px, env(safe-area-inset-bottom, 14px))"}}>
             <div style={{width:"32px",height:"3px",borderRadius:"3px",backgroundColor:estado.colorTexto,opacity:.2,margin:"0 auto 10px"}}/>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:"8px"}}>

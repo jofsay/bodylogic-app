@@ -10,16 +10,22 @@ export function useDiscountEngine({
   acumuladoPrevioClientePreferente, totales,
 }) {
   const { totalPuntos } = totales;
+
+  // Si es Simulador, bypass limpio
+  if (perfilUsuario === "simulador") {
+    return {
+      estado: { texto: "Perfil Simulador activo. Agrega productos para ver la corrida financiera con todos los porcentajes de descuento.", colorFondo: "#f0fdf4", colorTexto: "#14532d", colorBorde: "#22c55e", colorSemaforo: "#16a34a", mensajePrincipal: "Herramienta de Simulación Múltiple", mensajeSecundario: "Visualiza precio público y descuentos desde 10% hasta 42% en un solo lugar." },
+      descuentoActual: 0, totalConDescuento: totales.totalPrecioPublico,
+      obtenerPrecio: (item) => item.precioPublico,
+      obtenerSubtotal: (item) => item.subtotalPrecioPublico,
+      textoModo: "Simulador Múltiple",
+      paqueteActual: {nombre: ""}, dentroPrimeros15: true, cumplioQuincena: true, puntosMes: totales.totalPuntos, mensajesPuntos: [], resultado: {}, puntosAcumuladosCP: 0, descuentoCP: 0, totalSegunDescuentoCP: 0, siguienteNivelCP: null
+    };
+  }
+
   const dentroPrimeros15 = useMemo(() => C.detectarPrimeros15Dias(), []);
-
-  // Puntos del mes = personales del mes + pedido actual
-  // (CP ya incluidos en personales según regla del negocio)
   const puntosMes = Number(puntosPersonalesMes || 0) + totalPuntos;
-
-  // ¿Cumplió la primera quincena?
   const cumplioQuincena = dentroPrimeros15 ? (puntosMes >= 100) : cumplioQuincenaManual;
-
-  // Compra Inicial
   const paqueteActual = useMemo(() => C.obtenerPaqueteCompraInicial(totalPuntos, totales), [totalPuntos, totales]);
 
   // Cliente Preferente
@@ -28,20 +34,17 @@ export function useDiscountEngine({
   const totalSegunDescuentoCP = C.obtenerTotalSegunDescuentoCP(descuentoCP, totales);
   const siguienteNivelCP = C.obtenerSiguienteNivelCP(puntosAcumuladosCP);
 
-  // Mensajes de puntos
   const mensajesPuntos = useMemo(
     () => C.generarMensajesPuntos(puntosMes, tiene42, dentroPrimeros15, cumplioQuincena),
     [puntosMes, tiene42, dentroPrimeros15, cumplioQuincena]
   );
 
-  // Resolución de descuento según flujo
   const resultado = useMemo(() => {
     if (tiene42) return { ...C.resolverTiene42(puntosMes, cumplioQuincena), modalidad: "tiene42" };
     if (tieneRed) return C.resolverPLA(puntosPersonalesAcum, puntosGrupalesAcum, paqueteInicial, puntosMes, cumplioQuincena, totalPuntos);
     return C.resolverPL(puntosMes, mesActual || 1, cumplioQuincena);
   }, [tiene42, tieneRed, puntosMes, cumplioQuincena, puntosPersonalesAcum, puntosGrupalesAcum, paqueteInicial, mesActual, totalPuntos]);
 
-  // Estado unificado
   const estado = useMemo(() => {
     if (perfilUsuario === "clientePreferente") return C.obtenerMensajeClientePreferente(puntosAcumuladosCP);
     if (modo === "compraInicial") return C.obtenerMensajeCompraInicial(totalPuntos, paqueteActual);
