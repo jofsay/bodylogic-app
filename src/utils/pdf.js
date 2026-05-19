@@ -2,115 +2,158 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { formatoMoneda } from "./format";
 
+const nombreArchivo = (nombreCliente) => {
+  const base = (nombreCliente || "").trim();
+  if (!base) return "Nota-BodyLogic.pdf";
+  const seguro = base.replace(/[^\w\sáéíóúñÁÉÍÓÚÑ-]/gi, "").trim().replace(/\s+/g, "-").slice(0, 40);
+  return seguro ? `Nota-${seguro}.pdf` : "Nota-BodyLogic.pdf";
+};
+
 /**
- * Generate and download a PDF order summary.
+ * Nota de compra para el cliente: solo nombre, productos y precios al público.
  */
 export const generarPDFPedido = ({
   productosSeleccionados,
-  descuentoActual,
-  totalUnidades,
-  totalPuntos,
+  nombreCliente = "",
   totalPrecioPublico,
-  totalConDescuento,
-  obtenerSubtotal,
-  textoModo,
-  estadoTexto,
 }) => {
   if (productosSeleccionados.length === 0) {
     alert("Primero captura al menos un producto con unidades mayores a 0.");
     return;
   }
 
-  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
   const fecha = new Date().toLocaleString("es-MX");
+  const cliente = (nombreCliente || "").trim();
 
   doc.setFillColor(234, 88, 12);
-  doc.rect(0, 0, 842, 84, "F");
+  doc.rect(0, 0, 595, 72, "F");
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(24);
-  doc.text("BodyLogic - Resumen de pedido", 40, 38);
+  doc.setFontSize(22);
+  doc.text("BodyLogic", 40, 34);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.text(textoModo, 40, 60);
+  doc.setFontSize(11);
+  doc.text("Nota de compra", 40, 52);
 
-  doc.setTextColor(80, 80, 80);
-  doc.text(`Fecha: ${fecha}`, 40, 108);
-  doc.text(`Estado: ${estadoTexto}`, 40, 124);
+  doc.setTextColor(60, 60, 60);
+  doc.setFontSize(10);
+  let y = 96;
+  if (cliente) {
+    doc.setFont("helvetica", "bold");
+    doc.text(`Cliente: ${cliente}`, 40, y);
+    doc.setFont("helvetica", "normal");
+    y += 18;
+  }
+  doc.text(`Fecha: ${fecha}`, 40, y);
 
   const body = productosSeleccionados.map((i) => [
     i.producto,
+    i.contenido || "—",
+    formatoMoneda(i.precioPublico),
     String(i.unidades),
-    String(i.subtotalPuntos),
     formatoMoneda(i.subtotalPrecioPublico),
-    formatoMoneda(obtenerSubtotal(i)),
   ]);
 
   autoTable(doc, {
-    startY: 145,
-    head: [["Producto", "Uds", "Sub. pts", "Sub. público", `Sub. ${descuentoActual}%`]],
+    startY: y + 22,
+    head: [["Producto", "Contenido", "Precio unitario", "Unidades", "Subtotal"]],
     body,
     theme: "grid",
-    headStyles: { fillColor: [234, 88, 12], textColor: [255, 255, 255], fontStyle: "bold", halign: "center" },
+    headStyles: {
+      fillColor: [234, 88, 12],
+      textColor: [255, 255, 255],
+      fontStyle: "bold",
+      halign: "center",
+      fontSize: 9,
+    },
     styles: { fontSize: 9, cellPadding: 6, textColor: [40, 40, 40], valign: "middle" },
+    columnStyles: {
+      0: { cellWidth: 130 },
+      1: { cellWidth: 95 },
+      2: { halign: "right", cellWidth: 72 },
+      3: { halign: "center", cellWidth: 52 },
+      4: { halign: "right", cellWidth: 72 },
+    },
     alternateRowStyles: { fillColor: [255, 250, 245] },
     margin: { left: 40, right: 40 },
   });
 
-  const fy = doc.lastAutoTable.finalY + 22;
+  const fy = doc.lastAutoTable.finalY + 20;
   doc.setDrawColor(234, 88, 12);
   doc.setLineWidth(1);
-  doc.line(40, fy, 802, fy);
+  doc.line(40, fy, 555, fy);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
+  doc.setFontSize(13);
   doc.setTextColor(124, 45, 18);
-  doc.text(`Total unidades: ${totalUnidades}`, 40, fy + 22);
-  doc.text(`Total puntos: ${totalPuntos}`, 190, fy + 22);
-  doc.text(`Total público: ${formatoMoneda(totalPrecioPublico)}`, 330, fy + 22);
-  doc.text(`Total descuento: ${formatoMoneda(totalConDescuento)}`, 40, fy + 44);
+  doc.text(`Total a pagar: ${formatoMoneda(totalPrecioPublico)}`, 40, fy + 24);
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor(90, 90, 90);
-  doc.text(
-    "Este material ha sido creado por el líder Jorge Francisco Sánchez Yerenas para el apoyo de su comunidad empresarial BodyLogic.",
-    40, fy + 70
-  );
-
-  doc.save("Resumen-Pedido-BodyLogic.pdf");
+  doc.save(nombreArchivo(cliente));
 };
 
 /**
- * Open a print-friendly order form in a new window.
+ * Vista de impresión con el mismo formato que la nota para el cliente.
  */
 export const imprimirFormulario = ({
   productosSeleccionados,
-  descuentoActual,
-  totalUnidades,
-  totalPuntos,
+  nombreCliente = "",
   totalPrecioPublico,
-  totalConDescuento,
-  obtenerSubtotal,
-  subtitulo,
-  estadoTexto,
 }) => {
   if (productosSeleccionados.length === 0) {
     alert("Primero captura al menos un producto con unidades mayores a 0.");
     return;
   }
 
+  const cliente = (nombreCliente || "").trim();
   const filasHTML = productosSeleccionados
     .map(
-      (i) => `<tr><td>${i.producto}</td><td style="text-align:center">${i.unidades}</td><td style="text-align:center">${i.subtotalPuntos}</td><td style="text-align:right">${formatoMoneda(i.subtotalPrecioPublico)}</td><td style="text-align:right">${formatoMoneda(obtenerSubtotal(i))}</td></tr>`
+      (i) =>
+        "<tr>" +
+        `<td>${i.producto}</td>` +
+        `<td>${i.contenido || "—"}</td>` +
+        `<td style="text-align:right">${formatoMoneda(i.precioPublico)}</td>` +
+        `<td style="text-align:center">${i.unidades}</td>` +
+        `<td style="text-align:right">${formatoMoneda(i.subtotalPrecioPublico)}</td>` +
+        "</tr>"
     )
     .join("");
 
-  const w = window.open("", "_blank", "width=1200,height=900");
+  const w = window.open("", "_blank", "width=900,height=900");
   if (!w) {
     alert("Permite pop-ups e inténtalo de nuevo.");
     return;
   }
 
-  w.document.write(`<html><head><title>BodyLogic</title><style>body{font-family:'DM Sans',Arial,sans-serif;margin:30px;color:#222}.enc{background:linear-gradient(135deg,#c2410c,#fb923c);color:#fff;padding:18px 22px;border-radius:16px;margin-bottom:24px}h1{margin:0 0 6px;font-size:26px}.sub{font-size:13px;opacity:.95}.meta{margin:14px 0 20px;font-size:13px;line-height:1.7}table{width:100%;border-collapse:collapse;margin-top:14px}th{background:#ea580c;color:#fff;padding:10px;border:1px solid #d6d3d1;font-size:13px}td{border:1px solid #e5e7eb;padding:10px;font-size:13px}tr:nth-child(even){background:#fffaf5}.tot{margin-top:24px;padding:16px;border:1px solid #fdba74;border-radius:14px;background:#fff7ed;line-height:1.8;font-size:14px}.firm{margin-top:40px;font-size:12px;color:#666}</style></head><body><div class="enc"><h1>BodyLogic - Formulario</h1><div class="sub">${subtitulo}</div></div><div class="meta"><div><strong>Fecha:</strong> ${new Date().toLocaleString("es-MX")}</div><div><strong>Estado:</strong> ${estadoTexto}</div></div><table><thead><tr><th>Producto</th><th>Uds</th><th>Sub. pts</th><th>Sub. público</th><th>Sub. ${descuentoActual}%</th></tr></thead><tbody>${filasHTML}</tbody></table><div class="tot"><div><strong>Total uds:</strong> ${totalUnidades}</div><div><strong>Total pts:</strong> ${totalPuntos}</div><div><strong>Total público:</strong> ${formatoMoneda(totalPrecioPublico)}</div><div><strong>Total descuento:</strong> ${formatoMoneda(totalConDescuento)}</div></div><div class="firm">Este material ha sido creado por el líder Jorge Francisco Sánchez Yerenas para el apoyo de su comunidad empresarial BodyLogic.</div><script>window.onload=function(){window.print();};</script></body></html>`);
+  const clienteLinea = cliente
+    ? `<div><strong>Cliente:</strong> ${cliente}</div>`
+    : "";
+
+  const html = [
+    "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>BodyLogic</title>",
+    "<style>",
+    "body{font-family:Arial,sans-serif;margin:28px;color:#222}",
+    ".enc{background:linear-gradient(135deg,#c2410c,#fb923c);color:#fff;padding:16px 20px;border-radius:12px;margin-bottom:20px}",
+    "h1{margin:0 0 4px;font-size:24px}.sub{font-size:13px;opacity:.95}",
+    ".meta{margin:12px 0 16px;font-size:13px;line-height:1.6}",
+    "table{width:100%;border-collapse:collapse}th{background:#ea580c;color:#fff;padding:9px;font-size:12px}",
+    "td{border:1px solid #e5e7eb;padding:9px;font-size:12px}tr:nth-child(even){background:#fffaf5}",
+    ".tot{margin-top:20px;padding:14px;border:2px solid #ea580c;border-radius:10px;background:#fff7ed;font-size:16px;font-weight:700}",
+    "</style></head><body>",
+    '<div class="enc"><h1>BodyLogic</h1><div class="sub">Nota de compra</div></div>',
+    '<div class="meta">',
+    clienteLinea,
+    "<div><strong>Fecha:</strong> ",
+    new Date().toLocaleString("es-MX"),
+    "</div></div>",
+    "<table><thead><tr><th>Producto</th><th>Contenido</th><th>Precio unitario</th><th>Unidades</th><th>Subtotal</th></tr></thead><tbody>",
+    filasHTML,
+    "</tbody></table>",
+    '<div class="tot">Total a pagar: ',
+    formatoMoneda(totalPrecioPublico),
+    "</div>",
+    "<script>window.onload=function(){window.print();};</script></body></html>",
+  ].join("");
+
+  w.document.write(html);
   w.document.close();
 };

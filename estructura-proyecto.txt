@@ -1,0 +1,15 @@
+C:\Users\Dell\Desktop\bodylogic-app
+├── dist
+├── eslint.config.js
+├── estructura-proyecto.txt
+├── index.html
+├── node_modules
+├── package-lock.json
+├── package.json
+├── public
+├── README.md
+├── src
+└── vite.config.js
+
+directory: 4 file: 7
+

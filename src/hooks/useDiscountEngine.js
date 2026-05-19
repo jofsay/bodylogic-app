@@ -34,19 +34,21 @@ export function useDiscountEngine({
   }, [tiene42, tieneRed, puntosMes, cumplioQuincena, puntosPersonalesAcum, puntosGrupalesAcum, paqueteInicial, mesActual]);
 
   const estado = useMemo(() => {
+    if (perfilUsuario === "ventas") return { texto: "Ventas — precio al público", colorFondo: "#ecfccb", colorTexto: "#3f6212", colorBorde: "#84cc16", colorSemaforo: "#65a30d", mensajePrincipal: "Venta al público", mensajeSecundario: "Los puntos de esta compra se muestran solo en el resumen." };
     if (perfilUsuario === "simulador") return { texto: `Simulador — ${descuentoSimulador || 0}%`, colorFondo: "#ecfccb", colorTexto: "#3f6212", colorBorde: "#84cc16", colorSemaforo: "#65a30d", mensajePrincipal: `Simulador de precios — ${descuentoSimulador || 0}%`, mensajeSecundario: "" };
     if (perfilUsuario === "clientePreferente") return C.obtenerMensajeClientePreferente(puntosAcumuladosCP);
     if (modo === "compraInicial") return C.obtenerMensajeCompraInicial(totalPuntos, paqueteActual);
     return resultado;
   }, [perfilUsuario, modo, totalPuntos, paqueteActual, puntosAcumuladosCP, resultado, descuentoSimulador]);
 
-  const descuentoActual = perfilUsuario === "simulador" ? (descuentoSimulador || 0) : perfilUsuario === "clientePreferente" ? descuentoCP : modo === "compraInicial" ? paqueteActual.descuento : resultado.descuento;
-  const totalConDescuento = perfilUsuario === "simulador" ? C.obtenerTotalSegunDescuento(descuentoSimulador || 0, totales) : perfilUsuario === "clientePreferente" ? totalSegunDescuentoCP : modo === "compraInicial" ? paqueteActual.totalConDescuento : C.obtenerTotalSegunDescuento(resultado.descuento, totales);
+  const descuentoActual = perfilUsuario === "ventas" ? 0 : perfilUsuario === "simulador" ? (descuentoSimulador || 0) : perfilUsuario === "clientePreferente" ? descuentoCP : modo === "compraInicial" ? paqueteActual.descuento : resultado.descuento;
+  const totalConDescuento = perfilUsuario === "ventas" ? totales.totalPrecioPublico : perfilUsuario === "simulador" ? C.obtenerTotalSegunDescuento(descuentoSimulador || 0, totales) : perfilUsuario === "clientePreferente" ? totalSegunDescuentoCP : modo === "compraInicial" ? paqueteActual.totalConDescuento : C.obtenerTotalSegunDescuento(resultado.descuento, totales);
 
   const obtenerPrecio = (item) => C.obtenerPrecioActual(item, perfilUsuario, descuentoCP, paqueteActual.descuento, modo, perfilUsuario === "simulador" ? (descuentoSimulador || 0) : resultado.descuento);
   const obtenerSubtotal = (item) => C.obtenerSubtotalPedido(item, perfilUsuario, descuentoCP, paqueteActual.descuento, modo, perfilUsuario === "simulador" ? (descuentoSimulador || 0) : resultado.descuento);
 
   const textoModo = (() => {
+    if (perfilUsuario === "ventas") return "Ventas | Precio al público";
     if (perfilUsuario === "simulador") return `Simulador | ${descuentoSimulador || 0}%`;
     if (perfilUsuario === "clientePreferente") return `Cliente Preferente | ${descuentoCP}% | ${puntosAcumuladosCP} pts`;
     if (modo === "compraInicial") return `Compra inicial | ${paqueteActual.nombre} | ${paqueteActual.descuento}%`;

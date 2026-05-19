@@ -29,6 +29,7 @@ function App() {
   const [descargandoArchivo, setDescargandoArchivo] = useState("");
   const [resumenContraido, setResumenContraido] = useState(false);
   const [animKey, setAnimKey] = useState(0);
+  const [nombreCliente, setNombreCliente] = useState("");
 
   const { esMovil, vistaMovil, setVistaMovil } = useResponsive();
   const order = useOrder();
@@ -44,6 +45,7 @@ function App() {
   const isD = perfilUsuario === "distribuidor";
   const isCP = perfilUsuario === "clientePreferente";
   const isSim = perfilUsuario === "simulador";
+  const isVentas = perfilUsuario === "ventas";
   const isRecompra = modo === "recompraMensual";
   const { estado, descuentoActual, totalConDescuento, obtenerPrecio, obtenerSubtotal, textoModo, paqueteActual, dentroPrimeros15, cumplioQuincena, puntosMes, mensajesPuntos, resultado } = engine;
   const { totales, productosSeleccionados, filasCalculadas, categorias } = order;
@@ -70,10 +72,17 @@ function App() {
     setPuntosGrupalesAcum(0);
     setAcumuladoPrevioClientePreferente(0);
     setCumplioQuincenaManual(true);
+    setNombreCliente("");
   }, [order]);
 
-  const handlePDF = useCallback(() => { generarPDFPedido({ productosSeleccionados, descuentoActual, totalUnidades: totales.totalUnidades, totalPuntos: totales.totalPuntos, totalPrecioPublico: totales.totalPrecioPublico, totalConDescuento, obtenerSubtotal, textoModo, estadoTexto: estado.texto }); }, [productosSeleccionados, descuentoActual, totales, totalConDescuento, obtenerSubtotal, textoModo, estado.texto]);
-  const handlePrint = useCallback(() => { imprimirFormulario({ productosSeleccionados, descuentoActual, totalUnidades: totales.totalUnidades, totalPuntos: totales.totalPuntos, totalPrecioPublico: totales.totalPrecioPublico, totalConDescuento, obtenerSubtotal, subtitulo: textoModo, estadoTexto: estado.texto }); }, [productosSeleccionados, descuentoActual, totales, totalConDescuento, obtenerSubtotal, textoModo, estado.texto]);
+  const notaClienteArgs = useMemo(() => ({
+    productosSeleccionados,
+    nombreCliente,
+    totalPrecioPublico: totales.totalPrecioPublico,
+  }), [productosSeleccionados, nombreCliente, totales.totalPrecioPublico]);
+
+  const handlePDF = useCallback(() => { generarPDFPedido(notaClienteArgs); }, [notaClienteArgs]);
+  const handlePrint = useCallback(() => { imprimirFormulario(notaClienteArgs); }, [notaClienteArgs]);
   const handleDescargar = useCallback((archivo, nombre) => { descargarArchivo(archivo, nombre, setDescargandoArchivo, () => setDescargandoArchivo("")); }, []);
 
   const cc = { background: `linear-gradient(180deg,${T.cream100},rgba(255,247,237,.5))`, border: `1px solid ${T.cream500}`, borderRadius: T.r.lg, padding: "16px", boxShadow: T.s.xs };
@@ -122,10 +131,10 @@ function App() {
         <SectionCard delay={1} key={`p-${animKey}`}>
           <div style={{ marginBottom: "18px" }}><h2 style={secTitle}>Panel de control</h2><p style={secSub}>Configura perfil, modo y datos.</p></div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: "12px" }}>
-            <div style={cc}><label style={lb}>Perfil</label><select value={perfilUsuario} onChange={(e) => setPerfilUsuario(e.target.value)} style={sel}><option value="distribuidor">Distribuidor Independiente</option><option value="clientePreferente">Cliente Preferente</option><option value="simulador">Simulador de Precios</option></select></div>
+            <div style={cc}><label style={lb}>Perfil</label><select value={perfilUsuario} onChange={(e) => setPerfilUsuario(e.target.value)} style={sel}><option value="distribuidor">Distribuidor Independiente</option><option value="clientePreferente">Cliente Preferente</option><option value="simulador">Simulador de Precios</option><option value="ventas">Ventas</option></select></div>
             <div style={cc}><label style={lb}>Categoría</label><select value={order.categoriaSeleccionada} onChange={(e) => order.setCategoriaSeleccionada(e.target.value)} style={sel}>{categorias.map((c) => <option key={c} value={c}>{c}</option>)}</select></div>
             <div style={cc}><label style={lb}>Buscar</label><div style={{ position: "relative" }}><input type="text" value={order.busqueda} onChange={(e) => order.setBusqueda(e.target.value)} placeholder="Ej. Omega 3, 4045156..." style={{ ...inp, paddingLeft: "36px" }} /><span style={{ position: "absolute", left: "11px", top: "50%", transform: "translateY(-50%)", fontSize: "15px", opacity: .35, pointerEvents: "none" }}>🔍</span></div></div>
-            <div style={{ ...ic, animation: "blScaleIn .35s ease both", animationDelay: ".1s" }}><div style={{ fontSize: "18px", fontWeight: 800, color: T.orange700, fontFamily: T.fontDisplay }}>{isD ? "Distribuidor" : isCP ? "Cliente Preferente" : "Simulador"}</div><div style={{ marginTop: "4px", color: T.textMuted, fontSize: "12px" }}>{isD ? "Ingreso y recompra" : isCP ? "Descuento progresivo" : "Comparador de precios"}</div></div>
+            <div style={{ ...ic, animation: "blScaleIn .35s ease both", animationDelay: ".1s" }}><div style={{ fontSize: "18px", fontWeight: 800, color: T.orange700, fontFamily: T.fontDisplay }}>{isD ? "Distribuidor" : isCP ? "Cliente Preferente" : isVentas ? "Ventas" : "Simulador"}</div><div style={{ marginTop: "4px", color: T.textMuted, fontSize: "12px" }}>{isD ? "Ingreso y recompra" : isCP ? "Descuento progresivo" : isVentas ? "Precio al público" : "Comparador de precios"}</div></div>
           </div>
 
           {/* ── SIMULADOR ── */}
@@ -136,6 +145,14 @@ function App() {
                 <div style={cc}><label style={lb}>Descuento a simular</label><select value={descuentoSimulador} onChange={(e) => setDescuentoSimulador(Number(e.target.value))} style={sel}>{DESCUENTOS_SIMULADOR.filter(d => d > 0).map((d) => <option key={d} value={d}>{d}%</option>)}</select></div>
                 <div style={{ ...ic, animation: "blScaleIn .3s ease both" }}><div style={{ fontSize: "28px", fontWeight: 800, color: T.orange600 }}>{descuentoSimulador}%</div><div style={{ marginTop: "3px", color: T.textMuted, fontSize: "12px" }}>Descuento activo en simulación</div></div>
               </div>
+            </div>
+          )}
+
+          {/* ── VENTAS ── */}
+          {isVentas && (
+            <div key="ventas" style={{ animation: "blFadeUp .3s ease both" }}>
+              <div style={{ display: "flex", gap: "8px", margin: "16px 0" }}><Btn onClick={limpiarTodo} ghost>Limpiar</Btn></div>
+              <div style={{ ...cc, gridColumn: "1 / -1" }}><div style={msgCard("#ecfccb", "#84cc16", "#3f6212")}>Precios al público. Los puntos de esta venta aparecen en el resumen flotante (no en la nota del cliente).</div></div>
             </div>
           )}
 
@@ -207,7 +224,7 @@ function App() {
         </SectionCard>
 
         {/* ══ SEMÁFORO (no simulador) ══ */}
-        {!isSim && (
+        {!isSim && !isVentas && (
           <section className="bl-section bl-d2" key={`s-${animKey}`} style={{ display: "flex", gap: "14px", alignItems: "center", borderRadius: T.r.lg, padding: "18px 22px", marginBottom: "18px", backgroundColor: estado.colorFondo, border: `2px solid ${estado.colorBorde}`, boxShadow: T.s.md, transition: "all .4s cubic-bezier(.22,.61,.36,1)", position: "relative", overflow: "hidden" }}>
             <div style={{ position: "absolute", left: 0, top: "10%", bottom: "10%", width: "4px", borderRadius: "0 4px 4px 0", backgroundColor: estado.colorSemaforo, boxShadow: `0 0 8px ${estado.colorSemaforo}40` }} />
             <div className="bl-semaforo" style={{ width: "14px", height: "14px", borderRadius: "50%", flexShrink: 0, backgroundColor: estado.colorSemaforo, boxShadow: `0 0 0 4px ${estado.colorFondo},0 0 16px ${estado.colorSemaforo}45`, marginLeft: "6px" }} />
@@ -217,7 +234,8 @@ function App() {
 
         {/* ══ PEDIDO ACTUAL ══ */}
         <SectionCard delay={3}>
-          <div id="pedido-actual" style={{ marginBottom: "14px" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "10px" }}><div><h2 style={secTitle}>Pedido actual</h2><p style={secSub}>{isSim ? `Simulación activa al ${descuentoSimulador}% de descuento.` : "Productos capturados."}</p></div>{productosSeleccionados.length > 0 && <Btn onClick={limpiarTodo} danger style={{ fontSize: "12px", padding: "9px 14px" }}>Vaciar pedido</Btn>}</div></div>
+          <div id="pedido-actual" style={{ marginBottom: "14px" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "10px" }}><div><h2 style={secTitle}>Pedido actual</h2><p style={secSub}>{isSim ? `Simulación activa al ${descuentoSimulador}% de descuento.` : isVentas ? "Venta al público — captura productos y nombre del cliente." : "Productos capturados."}</p></div>{productosSeleccionados.length > 0 && <Btn onClick={limpiarTodo} danger style={{ fontSize: "12px", padding: "9px 14px" }}>Vaciar pedido</Btn>}</div></div>
+          <div style={{ ...cc, marginBottom: "14px" }}><label style={lb}>Nombre del cliente (aparece en la nota PDF)</label><input type="text" value={nombreCliente} onChange={(e) => setNombreCliente(e.target.value)} placeholder="Ej. María López" style={inp} /></div>
           {productosSeleccionados.length === 0 ? <div style={{ padding: "28px", borderRadius: T.r.lg, backgroundColor: "rgba(255,250,245,.6)", border: `2px dashed ${T.cream700}`, color: T.textMuted, textAlign: "center", fontSize: "14px" }}>Aún no has agregado productos.</div> : (
             <>
             {/* Totals — Simulador: no "Unidades", yes puntos + público + con descuento */}
@@ -226,6 +244,11 @@ function App() {
                 <MiniDato label="Total puntos" value={simTotals.puntos} highlight large />
                 <MiniDato label="Total público" value={formatoMoneda(simTotals.publico)} large />
                 <MiniDato label={`Total con ${descuentoSimulador}%`} value={formatoMoneda(simTotals.conDescuento)} highlight large />
+              </div>
+            ) : isVentas ? (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: "8px", marginBottom: "14px" }}>
+                <MiniDato label="Unidades" value={totales.totalUnidades} highlight large />
+                <MiniDato label="Total" value={formatoMoneda(totales.totalPrecioPublico)} highlight large />
               </div>
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: "8px", marginBottom: "14px" }}>
@@ -247,11 +270,20 @@ function App() {
                 <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", alignItems: "flex-start" }}><div><Badge>{item.codigo}</Badge><div style={{ marginTop: "5px", fontSize: "15px", fontWeight: 700, color: T.textDark, lineHeight: 1.3 }}>{item.producto}</div>{item.contenido && <div style={{ marginTop: "2px", fontSize: "11px", color: T.textMuted }}>{item.contenido}</div>}</div><Btn onClick={() => order.eliminarProducto(item.codigo)} danger style={{ padding: "5px 10px", fontSize: "11px" }}>Quitar</Btn></div>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px" }}><Btn onClick={() => order.decrementarProducto(item.codigo)} style={{ width: "38px", height: "38px", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px" }}>−</Btn><input type="number" min="0" value={item.unidades} onChange={(e) => order.cambiarCantidad(item.codigo, e.target.value)} style={{ width: "70px", padding: "9px", borderRadius: T.r.sm, border: `1.5px solid ${T.cream700}`, backgroundColor: T.white, color: T.black, textAlign: "center", fontWeight: 700, fontSize: "15px", boxShadow: T.s.inner }} /><Btn onClick={() => order.incrementarProducto(item.codigo)} style={{ width: "38px", height: "38px", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px" }}>+</Btn></div>
                 <div style={{ marginTop: "10px", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: "6px" }}>
-                  <MiniDato label="Pts unitarios" value={item.puntos} />
-                  <MiniDato label="Total pts" value={ptsTotal} />
-                  <MiniDato label="P. público unit." value={formatoMoneda(item.precioPublico)} />
-                  <MiniDato label="P. público total" value={formatoMoneda(pubTotal)} />
-                  <MiniDato label={`Descuento ${descLabel}%`} value={formatoMoneda(descTotal)} highlight />
+                  {isVentas ? (
+                    <>
+                      <MiniDato label="Precio unit." value={formatoMoneda(item.precioPublico)} />
+                      <MiniDato label="Subtotal" value={formatoMoneda(pubTotal)} highlight />
+                    </>
+                  ) : (
+                    <>
+                      <MiniDato label="Pts unitarios" value={item.puntos} />
+                      <MiniDato label="Total pts" value={ptsTotal} />
+                      <MiniDato label="P. público unit." value={formatoMoneda(item.precioPublico)} />
+                      <MiniDato label="P. público total" value={formatoMoneda(pubTotal)} />
+                      <MiniDato label={`Descuento ${descLabel}%`} value={formatoMoneda(descTotal)} highlight />
+                    </>
+                  )}
                 </div>
               </div>);
             })}</div></>
@@ -267,14 +299,27 @@ function App() {
                 <div style={{ display: "flex", justifyContent: "space-between", gap: "6px", alignItems: "flex-start" }}><div><Badge>{item.codigo}</Badge><div style={{ marginTop: "5px", fontSize: "15px", fontWeight: 700, color: T.textDark, lineHeight: 1.3 }}>{item.producto}</div>{item.contenido && <div style={{ marginTop: "2px", fontSize: "11px", color: T.textMuted }}>{item.contenido}</div>}</div><Badge style={{ backgroundColor: T.cream400, color: T.orange800, fontSize: "9px", padding: "3px 7px" }}>{item.categoria}</Badge></div>
                 <div style={{ marginTop: "10px" }}><label style={{ display: "block", marginBottom: "5px", fontSize: "11px", fontWeight: 600, color: T.textDark, textTransform: "uppercase", letterSpacing: ".4px" }}>Unidades</label><input type="number" min="0" value={item.unidades} onChange={(e) => order.cambiarCantidad(item.codigo, e.target.value)} onFocus={() => order.setFilaActiva(item.codigo)} style={inp} /></div>
                 <div style={{ marginTop: "10px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
-                  <MiniDato label="Pts unit." value={item.puntos} />
-                  <MiniDato label="Total pts" value={item.subtotalPuntos} />
-                  <MiniDato label="Público" value={formatoMoneda(item.precioPublico)} />
-                  <MiniDato label={`Con ${isSim ? descuentoSimulador : descuentoActual}%`} value={formatoMoneda(simPrecio)} highlight />
-                  {item.unidades > 0 && <MiniDato label="Púb. total" value={formatoMoneda(item.subtotalPrecioPublico)} />}
-                  {item.unidades > 0 && <MiniDato label={`Total ${isSim ? descuentoSimulador : descuentoActual}%`} value={formatoMoneda(isSim ? item.unidades * calcularPrecioSimulador(item.precioPublico, descuentoSimulador) : obtenerSubtotal(item))} highlight />}
+                  {isVentas ? (
+                    <>
+                      <MiniDato label="Precio" value={formatoMoneda(item.precioPublico)} />
+                      {item.unidades > 0 && <MiniDato label="Subtotal" value={formatoMoneda(item.subtotalPrecioPublico)} highlight />}
+                    </>
+                  ) : (
+                    <>
+                      <MiniDato label="Pts unit." value={item.puntos} />
+                      <MiniDato label="Total pts" value={item.subtotalPuntos} />
+                      <MiniDato label="Público" value={formatoMoneda(item.precioPublico)} />
+                      <MiniDato label={`Con ${isSim ? descuentoSimulador : descuentoActual}%`} value={formatoMoneda(simPrecio)} highlight />
+                      {item.unidades > 0 && <MiniDato label="Púb. total" value={formatoMoneda(item.subtotalPrecioPublico)} />}
+                      {item.unidades > 0 && <MiniDato label={`Total ${isSim ? descuentoSimulador : descuentoActual}%`} value={formatoMoneda(isSim ? item.unidades * calcularPrecioSimulador(item.precioPublico, descuentoSimulador) : obtenerSubtotal(item))} highlight />}
+                    </>
+                  )}
                 </div>
               </div>); })}</div>
+          ) : isVentas ? renderTable(
+            ["Cat.","Cód.","Producto","Contenido","Precio","Uds.","Subtotal"],
+            (item,idx)=><tr key={item.codigo} ref={(el)=>{order.productRefs.current[item.codigo]=el;}} onClick={()=>order.setFilaActiva(item.codigo)} style={{backgroundColor:rowBg(item,idx),cursor:"pointer"}}><td style={tdS}>{item.categoria}</td><td style={tdS}>{item.codigo}</td><td style={{...tdS,color:T.textDark,fontWeight:600}}>{item.producto}</td><td style={tdS}>{item.contenido}</td><td style={tdS}>{formatoMoneda(item.precioPublico)}</td><td style={tdS}><input type="number" min="0" value={item.unidades} onChange={(e)=>order.cambiarCantidad(item.codigo,e.target.value)} style={inpT}/></td><td style={{...tdS,fontWeight:600,color:T.orange700}}>{formatoMoneda(item.subtotalPrecioPublico)}</td></tr>,
+            ()=><tr style={{background:`linear-gradient(180deg,${T.cream100},${T.cream300})`}}><td style={tdT}/><td style={tdT}/><td style={{...tdT,fontWeight:700}}>TOTAL</td><td style={tdT}/><td style={tdT}/><td style={{...tdT,fontWeight:700}}>{totales.totalUnidades}</td><td style={{...tdT,fontWeight:700,color:T.orange700}}>{formatoMoneda(totales.totalPrecioPublico)}</td></tr>
           ) : isSim ? renderTable(
             ["Cat.","Cód.","Producto","Uds.","Pts","Sub.pts","Público","Sub.púb.",`Con ${descuentoSimulador}%`,`Sub. ${descuentoSimulador}%`],
             (item,idx)=>{const p=calcularPrecioSimulador(item.precioPublico,descuentoSimulador);return <tr key={item.codigo} ref={(el)=>{order.productRefs.current[item.codigo]=el;}} onClick={()=>order.setFilaActiva(item.codigo)} style={{backgroundColor:rowBg(item,idx),cursor:"pointer"}}><td style={tdS}>{item.categoria}</td><td style={tdS}>{item.codigo}</td><td style={{...tdS,color:T.textDark,fontWeight:600}}>{item.producto}</td><td style={tdS}><input type="number" min="0" value={item.unidades} onChange={(e)=>order.cambiarCantidad(item.codigo,e.target.value)} style={inpT}/></td><td style={tdS}>{item.puntos}</td><td style={tdS}>{item.subtotalPuntos}</td><td style={tdS}>{formatoMoneda(item.precioPublico)}</td><td style={tdS}>{formatoMoneda(item.subtotalPrecioPublico)}</td><td style={{...tdS,fontWeight:600,color:T.orange700}}>{formatoMoneda(p)}</td><td style={{...tdS,fontWeight:600,color:T.orange700}}>{formatoMoneda(item.unidades*p)}</td></tr>;},
@@ -292,7 +337,7 @@ function App() {
 
         <SectionCard delay={5}><h2 style={secTitle}>3 formas de adquirir</h2><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:"12px",marginTop:"14px"}}><div className="bl-card" style={{background:`linear-gradient(135deg,${T.orange50},${T.orange100})`,border:`1px solid ${T.orange300}`,borderRadius:T.r.lg,padding:"16px"}}><Badge>Web</Badge><h3 style={{margin:"8px 0 6px",color:T.textDark,fontSize:"16px",fontWeight:700}}>Sitio web</h3><p style={{margin:0,color:T.textMuted,fontSize:"13px"}}>Ingresa a:</p><a href="https://www.bodylogicglobal.com" target="_blank" rel="noreferrer" className="bl-btn-hover" style={{display:"inline-block",marginTop:"8px",color:T.orange600,fontWeight:700,textDecoration:"none",padding:"9px 14px",borderRadius:T.r.sm,backgroundColor:T.white,border:`1px solid ${T.cream700}`,fontSize:"13px"}}>bodylogicglobal.com ↗</a></div><div className="bl-card" style={{background:`linear-gradient(180deg,${T.cream100},${T.cream200})`,border:`1px solid ${T.cream500}`,borderRadius:T.r.lg,padding:"16px"}}><Badge>Teléfono</Badge><h3 style={{margin:"8px 0 6px",color:T.textDark,fontSize:"16px",fontWeight:700}}>Centro de servicio</h3><a href="tel:8007024840" style={{display:"inline-block",color:T.orange600,fontWeight:700,textDecoration:"none",fontSize:"17px"}}>800 702 4840</a><p style={{margin:"4px 0 0",color:T.textMuted,fontSize:"12px",lineHeight:1.5}}>L-V 8:00–20:00 · S 9:00–14:00</p></div><div className="bl-card" style={{background:`linear-gradient(180deg,${T.cream100},${T.cream200})`,border:`1px solid ${T.cream500}`,borderRadius:T.r.lg,padding:"16px"}}><Badge>Presencial</Badge><h3 style={{margin:"8px 0 6px",color:T.textDark,fontSize:"16px",fontWeight:700}}>CAD</h3><p style={{margin:0,color:T.textMuted,fontSize:"13px",lineHeight:1.5}}>Tu CAD más cercano.</p></div></div></SectionCard>
 
-        <SectionCard delay={5} style={{background:`linear-gradient(180deg,${T.orange50},rgba(255,244,234,.5))`,border:`1px solid ${T.cream700}`}}><h2 style={{...secTitle,marginBottom:"12px"}}>Leyendas</h2>{["Los puntos corresponden al valor en puntos de cada producto.",isD&&"El valor comisionable = 89% del precio con descuento sin IVA.","Herramientas de negocio no generan puntos ni V.C.","Valida siempre con la lista vigente de la empresa."].filter(Boolean).map((t,i)=><div key={i} style={{padding:"10px 14px",borderRadius:T.r.sm,backgroundColor:"rgba(255,255,255,.65)",border:`1px solid ${T.orange200}`,color:T.orange700,lineHeight:1.55,fontSize:"13px",marginBottom:i<3?"8px":0}}>{t}</div>)}</SectionCard>
+        <SectionCard delay={5} style={{background:`linear-gradient(180deg,${T.orange50},rgba(255,244,234,.5))`,border:`1px solid ${T.cream700}`}}><h2 style={{...secTitle,marginBottom:"12px"}}>Leyendas</h2>{[!isVentas&&"Los puntos corresponden al valor en puntos de cada producto.",isD&&"El valor comisionable = 89% del precio con descuento sin IVA.","Herramientas de negocio no generan puntos ni V.C.","Valida siempre con la lista vigente de la empresa."].filter(Boolean).map((t,i)=><div key={i} style={{padding:"10px 14px",borderRadius:T.r.sm,backgroundColor:"rgba(255,255,255,.65)",border:`1px solid ${T.orange200}`,color:T.orange700,lineHeight:1.55,fontSize:"13px",marginBottom:i<3?"8px":0}}>{t}</div>)}</SectionCard>
 
         <SectionCard delay={6}><h2 style={secTitle}>Documentos</h2><p style={{...secSub,marginBottom:"14px"}}>{isCP?"Para Cliente Preferente.":"Archivos oficiales."}</p><div style={{display:"grid",gap:"10px"}}>{documentosVisibles.map((doc,i)=>{const dl=descargandoArchivo===doc.archivo;return(<div key={doc.archivo} className="bl-card" style={{background:`linear-gradient(180deg,${T.cream100},${T.cream200})`,border:`1px solid ${T.cream500}`,borderRadius:T.r.lg,padding:"14px",animation:`blFadeUp .3s ease both`,animationDelay:`${i*.05}s`}}><div style={{display:"flex",gap:"10px",alignItems:"flex-start"}}><span style={{fontSize:"22px",lineHeight:1}}>{doc.icono}</span><div style={{flex:1}}><div style={{fontWeight:700,fontSize:"15px",color:T.textDark}}>{doc.nombre}</div><div style={{marginTop:"3px",color:T.textMuted,fontSize:"12px",lineHeight:1.5}}>{doc.descripcion}</div><div style={{marginTop:"3px",color:T.orange500,fontSize:"11px",fontWeight:500}}>{doc.archivo}</div></div></div><Btn onClick={()=>handleDescargar(doc.archivo,doc.nombre)} active style={{marginTop:"10px",fontSize:"12px",padding:"9px 16px",width:"100%"}} disabled={dl}>{dl?"Descargando...":doc.tipo==="membresia"?"Descargar y rellenar":"Descargar PDF"}</Btn></div>);})}</div></SectionCard>
 
@@ -302,7 +347,8 @@ function App() {
             <div style={{width:"32px",height:"3px",borderRadius:"3px",backgroundColor:isSim?simEstado.colorTexto:estado.colorTexto,opacity:.2,margin:"0 auto 10px"}}/>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:"8px"}}>
               <div style={{display:"flex",gap:"14px",alignItems:"center",flexWrap:"wrap"}}>
-                {isSim?(<><FS l="Desc." v={`${descuentoSimulador}%`} c={simEstado.colorTexto} big/><FS l="Pts" v={simTotals?.puntos||0} c={simEstado.colorTexto}/><FS l="Total" v={formatoMoneda(simTotals?.conDescuento||0)} c={simEstado.colorTexto}/></>)
+                {isVentas?(<><FS l="Pts" v={totales.totalPuntos} c={estado.colorTexto} big/><FS l="Total" v={formatoMoneda(totales.totalPrecioPublico)} c={estado.colorTexto}/></>)
+                :isSim?(<><FS l="Desc." v={`${descuentoSimulador}%`} c={simEstado.colorTexto} big/><FS l="Pts" v={simTotals?.puntos||0} c={simEstado.colorTexto}/><FS l="Total" v={formatoMoneda(simTotals?.conDescuento||0)} c={simEstado.colorTexto}/></>)
                 :isCP?(<><FS l="Perfil" v="CP" c={estado.colorTexto}/><FS l="Acum." v={engine.puntosAcumuladosCP} c={estado.colorTexto} big/><FS l="Desc." v={`${engine.descuentoCP}%`} c={estado.colorTexto}/></>)
                 :modo==="compraInicial"?(<><FS l="Pts" v={totales.totalPuntos} c={estado.colorTexto} big/><FS l="Paq." v={paqueteActual.nombre.replace("Paquete ","")} c={estado.colorTexto}/><FS l="Desc." v={`${paqueteActual.descuento}%`} c={estado.colorTexto}/></>)
                 :(<><FS l="Prog." v={resultado?.modalidad === "tiene42" ? "42%" : resultado?.modalidad === "PLA" ? "Acel." : "PL"} c={estado.colorTexto}/><FS l="Pts" v={puntosMes} c={estado.colorTexto} big/><FS l="Desc." v={`${descuentoActual}%`} c={estado.colorTexto}/></>)}
@@ -314,12 +360,15 @@ function App() {
                 <div style={{margin:"10px 0 8px",padding:"10px 14px",borderRadius:"12px",backgroundColor:"rgba(255,255,255,.35)",position:"relative",overflow:"hidden",backdropFilter:"blur(4px)"}}>
                   <div style={{position:"absolute",left:0,top:0,bottom:0,width:"3px",background:`linear-gradient(180deg,${isSim?simEstado.colorSemaforo:estado.colorSemaforo},${isSim?simEstado.colorBorde:estado.colorBorde})`,borderRadius:"3px 0 0 3px"}}/>
                   <div style={{paddingLeft:"8px"}}>
-                    <div style={{fontSize:"17px",fontWeight:800,lineHeight:1.15,color:isSim?simEstado.colorTexto:estado.colorTexto,fontFamily:T.fontDisplay}}>{isSim?`Simulador — ${descuentoSimulador}%`:isCP?"Cliente Preferente":modo==="compraInicial"?paqueteActual.nombre:modalidadLabel}</div>
-                    <div style={{marginTop:"3px",fontSize:"12px",fontWeight:700,color:isSim?simEstado.colorTexto:estado.colorTexto,opacity:.80}}>Descuento: {isSim?descuentoSimulador:descuentoActual}%</div>
+                    <div style={{fontSize:"17px",fontWeight:800,lineHeight:1.15,color:isSim?simEstado.colorTexto:estado.colorTexto,fontFamily:T.fontDisplay}}>{isVentas?"Ventas":isSim?`Simulador — ${descuentoSimulador}%`:isCP?"Cliente Preferente":modo==="compraInicial"?paqueteActual.nombre:modalidadLabel}</div>
+                    {!isVentas && <div style={{marginTop:"3px",fontSize:"12px",fontWeight:700,color:isSim?simEstado.colorTexto:estado.colorTexto,opacity:.80}}>Descuento: {isSim?descuentoSimulador:descuentoActual}%</div>}
                   </div>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"6px",marginBottom:"8px"}}>
-                  {isSim?(<>
+                  {isVentas?(<>
+                    <FC l="Pts venta" v={totales.totalPuntos} num e={estado}/>
+                    <FC l="Total cobrado" v={formatoMoneda(totales.totalPrecioPublico)} e={estado}/>
+                  </>):isSim?(<>
                     <FC l="Pts" v={simTotals?.puntos||0} num e={simEstado}/>
                     <FC l="Público" v={formatoMoneda(simTotals?.publico||0)} e={simEstado}/>
                     <FC l={`Con ${descuentoSimulador}%`} v={formatoMoneda(simTotals?.conDescuento||0)} e={simEstado}/>
@@ -329,7 +378,8 @@ function App() {
                     <FC l={`Con ${descuentoActual}%`} v={formatoMoneda(totalConDescuento)} e={estado}/>
                   </>)}
                 </div>
-                {!isSim && <div style={{padding:"8px 10px",borderRadius:T.r.sm,backgroundColor:"rgba(255,255,255,.38)",fontSize:"11px",lineHeight:1.45,marginBottom:"8px"}}><div style={{fontWeight:700,color:estado.colorTexto}}>{estado.mensajePrincipal||estado.siguienteMensaje||estado.texto}</div>{estado.mensajeSecundario&&<div style={{fontWeight:600,color:estado.colorTexto,marginTop:"4px",opacity:.85}}>{estado.mensajeSecundario}</div>}</div>}
+                {!isSim && !isVentas && <div style={{padding:"8px 10px",borderRadius:T.r.sm,backgroundColor:"rgba(255,255,255,.38)",fontSize:"11px",lineHeight:1.45,marginBottom:"8px"}}><div style={{fontWeight:700,color:estado.colorTexto}}>{estado.mensajePrincipal||estado.siguienteMensaje||estado.texto}</div>{estado.mensajeSecundario&&<div style={{fontWeight:600,color:estado.colorTexto,marginTop:"4px",opacity:.85}}>{estado.mensajeSecundario}</div>}</div>}
+                {isVentas && <div style={{padding:"8px 10px",borderRadius:T.r.sm,backgroundColor:"rgba(255,255,255,.38)",fontSize:"11px",lineHeight:1.45,marginBottom:"8px",fontWeight:700,color:estado.colorTexto}}>Puntos de esta venta (solo para ti): {totales.totalPuntos}</div>}
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px"}}>
                   <Btn onClick={irAPedidoActual} active style={{fontSize:"12px",padding:"10px"}}>Ver pedido</Btn>
                   <Btn onClick={handlePDF} style={{fontSize:"12px",padding:"10px",borderColor:isSim?simEstado.colorBorde:estado.colorBorde,backgroundColor:"rgba(255,255,255,.55)"}}>PDF</Btn>
