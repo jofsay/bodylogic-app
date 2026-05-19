@@ -1,2 +1,0 @@
-import { Badge } from '../shared';
-export default function Header() { return <header className="hero"><div><Badge>Dashboard comercial premium</Badge><h1>BodyLogic — Centro de cálculo y documentos</h1><p>Calculadora de puntos, descuentos, recompra mensual, Cliente Preferente, documentos, PDF e impresión.</p></div><div className="contact-box"><a href="https://www.bodylogicglobal.com" target="_blank" rel="noreferrer">bodylogicglobal.com ↗</a><a href="tel:8007024840">CES 800 702 4840</a><span>L-V 8:00–20:00 · S 9:00–14:00 · CAD más cercano</span></div></header>; }

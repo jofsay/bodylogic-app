@@ -137,7 +137,6 @@ export const calcularPrecioSimulador = (precio, descuento) => precio * (1 - desc
 
 // ─── Price resolution ────────────────────────────────────────
 export const obtenerPrecioActual = (item, perfil, descCP, descPaq, modo, descFinal) => {
-  if (perfil === "ventas") return item.precioPublico;
   if (perfil === "simulador") return descFinal > 0 ? calcularPrecioSimulador(item.precioPublico, descFinal) : item.precioPublico;
   if (perfil === "clientePreferente") { if (descCP === 10) return item.precioCP10 ?? item.precioPublico * 0.9; if (descCP === 20) return item.precio20 ?? item.precioPublico * 0.8; return item.precio30; }
   if (modo === "compraInicial") { if (descPaq === 30) return item.precio30; if (descPaq === 33) return item.precio33; if (descPaq === 42) return item.precio42; return item.precioPublico; }
@@ -146,7 +145,6 @@ export const obtenerPrecioActual = (item, perfil, descCP, descPaq, modo, descFin
 };
 
 export const obtenerSubtotalPedido = (item, perfil, descCP, descPaq, modo, descFinal) => {
-  if (perfil === "ventas") return item.subtotalPrecioPublico;
   if (perfil === "simulador") return descFinal > 0 ? item.unidades * calcularPrecioSimulador(item.precioPublico, descFinal) : item.subtotalPrecioPublico;
   if (perfil === "clientePreferente") { if (descCP === 10) return item.subtotal10; if (descCP === 20) return item.subtotal20; return item.subtotal30; }
   if (modo === "compraInicial") { if (descPaq === 30) return item.subtotal30; if (descPaq === 33) return item.subtotal33; if (descPaq === 42) return item.subtotal42; return 0; }
