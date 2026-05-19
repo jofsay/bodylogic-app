@@ -1,5 +1,27 @@
-import { documentUrl } from '../config/documents';
-export function descargarArchivo(ruta, nombre = 'archivo') { const a = document.createElement('a'); a.href = ruta; a.download = nombre; document.body.appendChild(a); a.click(); a.remove(); }
-export function descargarDocumento(archivo) { descargarArchivo(documentUrl(archivo), archivo); }
-export function exportarPedidoJSON(payload) { const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); descargarArchivo(url, `pedido-bodylogic-${Date.now()}.json`); URL.revokeObjectURL(url); }
-export function leerJSON(file) { return new Promise((resolve, reject) => { const r = new FileReader(); r.onload = () => { try { resolve(JSON.parse(r.result)); } catch (e) { reject(e); } }; r.onerror = reject; r.readAsText(file); }); }
+/**
+ * Robust file downloader with fallback to window.open.
+ */
+export const descargarArchivo = async (archivo, nombreVisible, onStart, onEnd) => {
+  const ruta = `/archivos/${archivo}`;
+  onStart?.(archivo);
+  try {
+    const r = await fetch(ruta, { cache: "no-store" });
+    if (!r.ok) throw new Error(`${r.status}`);
+    const blob = await r.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = archivo;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => window.URL.revokeObjectURL(url), 1500);
+  } catch (e) {
+    console.error(e);
+    alert(`No se pudo descargar "${nombreVisible}".`);
+    window.open(ruta, "_blank", "noopener,noreferrer");
+  } finally {
+    onEnd?.();
+  }
+};
