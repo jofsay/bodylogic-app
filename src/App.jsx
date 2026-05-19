@@ -6,7 +6,7 @@ import { useDiscountEngine } from "./hooks/useDiscountEngine";
 import { useResponsive } from "./hooks/useResponsive";
 import { getVisibleDocuments } from "./config/documents";
 import { formatoMoneda } from "./utils/format";
-import { generarPDFPedido, imprimirFormulario } from "./utils/pdf";
+import { generarPDFPedido, generarPDFNotaVentas, imprimirFormulario, imprimirNotaVentas } from "./utils/pdf";
 import { descargarArchivo } from "./utils/download";
 import { DESCUENTOS_SIMULADOR, calcularPrecioSimulador } from "./utils/calculations";
 import { Badge, Btn, MiniDato, ProgressBar, SectionCard, FS, FC } from "./components/shared";
@@ -75,14 +75,36 @@ function App() {
     setNombreCliente("");
   }, [order]);
 
-  const notaClienteArgs = useMemo(() => ({
+  const notaVentasArgs = useMemo(() => ({
     productosSeleccionados,
     nombreCliente,
     totalPrecioPublico: totales.totalPrecioPublico,
   }), [productosSeleccionados, nombreCliente, totales.totalPrecioPublico]);
 
-  const handlePDF = useCallback(() => { generarPDFPedido(notaClienteArgs); }, [notaClienteArgs]);
-  const handlePrint = useCallback(() => { imprimirFormulario(notaClienteArgs); }, [notaClienteArgs]);
+  const resumenPedidoArgs = useMemo(() => ({
+    productosSeleccionados,
+    nombreCliente,
+    descuentoActual,
+    totalUnidades: totales.totalUnidades,
+    totalPuntos: totales.totalPuntos,
+    totalPrecioPublico: totales.totalPrecioPublico,
+    totalConDescuento,
+    obtenerSubtotal,
+    obtenerPrecio,
+    textoModo,
+    estadoTexto: estado.texto,
+    subtitulo: textoModo,
+  }), [productosSeleccionados, nombreCliente, descuentoActual, totales, totalConDescuento, obtenerSubtotal, obtenerPrecio, textoModo, estado.texto]);
+
+  const handlePDF = useCallback(() => {
+    if (isVentas) generarPDFNotaVentas(notaVentasArgs);
+    else generarPDFPedido(resumenPedidoArgs);
+  }, [isVentas, notaVentasArgs, resumenPedidoArgs]);
+
+  const handlePrint = useCallback(() => {
+    if (isVentas) imprimirNotaVentas(notaVentasArgs);
+    else imprimirFormulario(resumenPedidoArgs);
+  }, [isVentas, notaVentasArgs, resumenPedidoArgs]);
   const handleDescargar = useCallback((archivo, nombre) => { descargarArchivo(archivo, nombre, setDescargandoArchivo, () => setDescargandoArchivo("")); }, []);
 
   const cc = { background: `linear-gradient(180deg,${T.cream100},rgba(255,247,237,.5))`, border: `1px solid ${T.cream500}`, borderRadius: T.r.lg, padding: "16px", boxShadow: T.s.xs };
