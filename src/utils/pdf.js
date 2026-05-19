@@ -2,11 +2,38 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { formatoMoneda } from "./format";
 
-const LEYENDA_JORGE =
-  "Este material ha sido creado por el Líder Jorge Francisco Sánchez Yerenas para el apoyo de su comunidad empresarial BodyLogic.";
+const NOMBRE_JORGE = "Jorge Francisco Sánchez Yerenas";
+const MARCA_NUTRI = "NutriConCiencia";
 
-const MSJ_GRACIAS_VENTAS =
-  "Gracias por su compra y preferencia. En NutriConCiencia nos honra acompañarle en el cuidado de su salud y bienestar con fórmulas nutricionales avanzadas, creadas con ciencia, conciencia y compromiso. ¡Hasta pronto!";
+const LEYENDA_JORGE_PREFIJO = "Este material ha sido creado por el Líder ";
+const LEYENDA_JORGE_SUFIJO = " para el apoyo de su comunidad empresarial Bodylogic.";
+
+const MSJ_GRACIAS_PREFIJO = "Gracias por su compra y preferencia. En ";
+const MSJ_GRACIAS_SUFIJO =
+  " nos honra acompañarle en el cuidado de su salud y bienestar con fórmulas nutricionales y avanzadas, creadas con ciencia, conciencia y compromiso. ¡Hasta pronto!";
+
+const MSJ_GRACIAS_HTML =
+  MSJ_GRACIAS_PREFIJO + "<strong>" + MARCA_NUTRI + "</strong>" + MSJ_GRACIAS_SUFIJO;
+
+const LEYENDA_JORGE_HTML =
+  LEYENDA_JORGE_PREFIJO + "<strong>" + NOMBRE_JORGE + "</strong>" + LEYENDA_JORGE_SUFIJO;
+
+const ESTILOS_TABLA_PDF = {
+  theme: "grid",
+  headStyles: {
+    fillColor: [234, 88, 12],
+    textColor: [255, 255, 255],
+    fontStyle: "bold",
+    halign: "center",
+    valign: "middle",
+  },
+  styles: {
+    halign: "center",
+    valign: "middle",
+    textColor: [40, 40, 40],
+  },
+  alternateRowStyles: { fillColor: [255, 250, 245] },
+};
 
 const nombreArchivoVentas = (nombreCliente) => {
   const base = (nombreCliente || "").trim();
@@ -28,6 +55,88 @@ function abrirVentanaImpresion() {
   return w;
 }
 
+/** Partes de texto para dibujar una frase con un segmento en negritas y salto de línea. */
+function tokenizarConNegrita(texto, palabraNegrita) {
+  const partes = texto.split(palabraNegrita);
+  const tokens = [];
+  partes.forEach((parte, i) => {
+    if (parte) tokens.push({ text: parte, bold: false });
+    if (i < partes.length - 1) tokens.push({ text: palabraNegrita, bold: true });
+  });
+  return tokens;
+}
+
+/** Envuelve tokens en líneas según el ancho máximo. */
+function envolverTokens(doc, tokens, maxWidth, estiloBase, estiloNegrita) {
+  const lineas = [];
+  let linea = [];
+  let anchoLinea = 0;
+
+  const medir = (texto, negrita) => {
+    doc.setFont("helvetica", negrita ? estiloNegrita : estiloBase);
+    return doc.getTextWidth(texto);
+  };
+
+  for (const token of tokens) {
+    const fragmentos = token.text.match(/\S+\s*|\s+/g) || [];
+    for (const frag of fragmentos) {
+      const w = medir(frag, token.bold);
+      if (anchoLinea + w > maxWidth && linea.length > 0) {
+        lineas.push(linea);
+        linea = [];
+        anchoLinea = 0;
+      }
+      linea.push({ text: frag, bold: token.bold });
+      anchoLinea += w;
+    }
+  }
+  if (linea.length) lineas.push(linea);
+  return lineas;
+}
+
+/** Dibuja líneas con segmentos normales y en negrita; devuelve la Y final. */
+function dibujarLineasConNegrita(doc, x, y, lineas, fontSize, estiloBase, estiloNegrita, color, lineHeight) {
+  doc.setFontSize(fontSize);
+  doc.setTextColor(color[0], color[1], color[2]);
+  let cy = y;
+  for (const linea of lineas) {
+    let cx = x;
+    for (const seg of linea) {
+      doc.setFont("helvetica", seg.bold ? estiloNegrita : estiloBase);
+      doc.text(seg.text, cx, cy);
+      cx += doc.getTextWidth(seg.text);
+    }
+    cy += lineHeight;
+  }
+  return cy;
+}
+
+function dibujarParrafoConPalabraNegrita(doc, {
+  x,
+  y,
+  maxWidth,
+  texto,
+  palabraNegrita,
+  fontSize = 9,
+  estiloBase = "italic",
+  estiloNegrita = "bold",
+  color = [80, 80, 80],
+}) {
+  const tokens = tokenizarConNegrita(texto, palabraNegrita);
+  const lineas = envolverTokens(doc, tokens, maxWidth, estiloBase, estiloNegrita);
+  return dibujarLineasConNegrita(
+    doc,
+    x,
+    y,
+    lineas,
+    fontSize,
+    estiloBase,
+    estiloNegrita,
+    color,
+    fontSize * 1.4
+  );
+}
+
 /**
  * Nota al público — solo perfil Ventas.
  */
@@ -46,6 +155,7 @@ export const generarPDFNotaVentas = ({
   const cliente = (nombreCliente || "").trim();
   const marginX = 40;
   const anchoTexto = 515;
+  const textoGracias = MSJ_GRACIAS_PREFIJO + MARCA_NUTRI + MSJ_GRACIAS_SUFIJO;
 
   doc.setFillColor(234, 88, 12);
   doc.rect(0, 0, 595, 72, "F");
@@ -80,23 +190,9 @@ export const generarPDFNotaVentas = ({
     startY: y + 22,
     head: [["Producto", "Contenido", "Precio unitario", "Unidades", "Subtotal"]],
     body,
-    theme: "grid",
-    headStyles: {
-      fillColor: [234, 88, 12],
-      textColor: [255, 255, 255],
-      fontStyle: "bold",
-      halign: "center",
-      fontSize: 9,
-    },
-    styles: { fontSize: 9, cellPadding: 6, textColor: [40, 40, 40], valign: "middle" },
-    columnStyles: {
-      0: { cellWidth: 130 },
-      1: { cellWidth: 95 },
-      2: { halign: "right", cellWidth: 72 },
-      3: { halign: "center", cellWidth: 52 },
-      4: { halign: "right", cellWidth: 72 },
-    },
-    alternateRowStyles: { fillColor: [255, 250, 245] },
+    ...ESTILOS_TABLA_PDF,
+    headStyles: { ...ESTILOS_TABLA_PDF.headStyles, fontSize: 9 },
+    styles: { ...ESTILOS_TABLA_PDF.styles, fontSize: 9, cellPadding: 6 },
     margin: { left: marginX, right: marginX },
   });
 
@@ -109,10 +205,17 @@ export const generarPDFNotaVentas = ({
   doc.setTextColor(124, 45, 18);
   doc.text(`Total a pagar: ${formatoMoneda(totalPrecioPublico)}`, marginX, fy + 24);
 
-  doc.setFont("helvetica", "italic");
-  doc.setFontSize(9);
-  doc.setTextColor(80, 80, 80);
-  doc.text(doc.splitTextToSize(MSJ_GRACIAS_VENTAS, anchoTexto), marginX, fy + 48);
+  dibujarParrafoConPalabraNegrita(doc, {
+    x: marginX,
+    y: fy + 48,
+    maxWidth: anchoTexto,
+    texto: textoGracias,
+    palabraNegrita: MARCA_NUTRI,
+    fontSize: 9,
+    estiloBase: "italic",
+    estiloNegrita: "bold",
+    color: [80, 80, 80],
+  });
 
   doc.save(nombreArchivoVentas(cliente));
 };
@@ -143,6 +246,7 @@ export const generarPDFPedido = ({
   const cliente = (nombreCliente || "").trim();
   const ahorro = Math.max(0, totalPrecioPublico - totalConDescuento);
   const descLabel = descuentoActual ?? 0;
+  const textoLeyenda = LEYENDA_JORGE_PREFIJO + NOMBRE_JORGE + LEYENDA_JORGE_SUFIJO;
 
   doc.setFillColor(234, 88, 12);
   doc.rect(0, 0, 842, 84, "F");
@@ -189,16 +293,9 @@ export const generarPDFPedido = ({
       `Sub. ${descLabel}%`,
     ]],
     body,
-    theme: "grid",
-    headStyles: {
-      fillColor: [234, 88, 12],
-      textColor: [255, 255, 255],
-      fontStyle: "bold",
-      halign: "center",
-      fontSize: 8,
-    },
-    styles: { fontSize: 8, cellPadding: 5, textColor: [40, 40, 40], valign: "middle" },
-    alternateRowStyles: { fillColor: [255, 250, 245] },
+    ...ESTILOS_TABLA_PDF,
+    headStyles: { ...ESTILOS_TABLA_PDF.headStyles, fontSize: 8 },
+    styles: { ...ESTILOS_TABLA_PDF.styles, fontSize: 8, cellPadding: 5 },
     margin: { left: 40, right: 40 },
   });
 
@@ -221,10 +318,17 @@ export const generarPDFPedido = ({
   doc.setFontSize(12);
   doc.text(`Total a pagar: ${formatoMoneda(totalConDescuento)}`, 560, fila2);
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.setTextColor(90, 90, 90);
-  doc.text(doc.splitTextToSize(LEYENDA_JORGE, 760), 40, fila2 + 28);
+  dibujarParrafoConPalabraNegrita(doc, {
+    x: 40,
+    y: fila2 + 28,
+    maxWidth: 760,
+    texto: textoLeyenda,
+    palabraNegrita: NOMBRE_JORGE,
+    fontSize: 8,
+    estiloBase: "normal",
+    estiloNegrita: "bold",
+    color: [90, 90, 90],
+  });
 
   const base = nombreArchivoVentas(cliente).replace(".pdf", "");
   doc.save(cliente ? `Resumen-Pedido-${base}.pdf` : "Resumen-Pedido-BodyLogic.pdf");
@@ -280,6 +384,9 @@ export const imprimirFormulario = ({
   w.document.close();
 };
 
+const CSS_TABLA_CENTRADA =
+  "table{width:100%;border-collapse:collapse}th,td{text-align:center;vertical-align:middle}";
+
 function buildHtmlNotaVentas({ productosSeleccionados, nombreCliente, totalPrecioPublico }) {
   const cliente = (nombreCliente || "").trim();
   const filas = productosSeleccionados
@@ -289,11 +396,11 @@ function buildHtmlNotaVentas({ productosSeleccionados, nombreCliente, totalPreci
         i.producto +
         "</td><td>" +
         (i.contenido || "—") +
-        '</td><td style="text-align:right">' +
+        "</td><td>" +
         formatoMoneda(i.precioPublico) +
-        '</td><td style="text-align:center">' +
+        "</td><td>" +
         i.unidades +
-        '</td><td style="text-align:right">' +
+        "</td><td>" +
         formatoMoneda(i.subtotalPrecioPublico) +
         "</td></tr>"
     )
@@ -307,7 +414,8 @@ function buildHtmlNotaVentas({ productosSeleccionados, nombreCliente, totalPreci
     ".enc{background:linear-gradient(135deg,#c2410c,#fb923c);color:#fff;padding:16px 20px;border-radius:12px;margin-bottom:20px}" +
     "h1{margin:0 0 4px;font-size:24px}.sub{font-size:13px;opacity:.95}" +
     ".meta{margin:12px 0 16px;font-size:13px;line-height:1.6}" +
-    "table{width:100%;border-collapse:collapse}th{background:#ea580c;color:#fff;padding:9px;font-size:12px}" +
+    CSS_TABLA_CENTRADA +
+    "th{background:#ea580c;color:#fff;padding:9px;font-size:12px}" +
     "td{border:1px solid #e5e7eb;padding:9px;font-size:12px}tr:nth-child(even){background:#fffaf5}" +
     ".tot{margin-top:20px;padding:14px;border:2px solid #ea580c;border-radius:10px;background:#fff7ed;font-size:16px;font-weight:700}" +
     ".gracias{margin-top:14px;font-size:11px;color:#555;font-style:italic;line-height:1.55;max-width:720px}" +
@@ -325,7 +433,7 @@ function buildHtmlNotaVentas({ productosSeleccionados, nombreCliente, totalPreci
     formatoMoneda(totalPrecioPublico) +
     "</div>" +
     '<p class="gracias">' +
-    MSJ_GRACIAS_VENTAS +
+    MSJ_GRACIAS_HTML +
     "</p>" +
     "<script>window.onload=function(){window.print();};</script></body></html>"
   );
@@ -355,19 +463,19 @@ function buildHtmlResumenPedido({
         i.producto +
         "</td><td>" +
         (i.contenido || "—") +
-        '</td><td style="text-align:center">' +
+        "</td><td>" +
         i.puntos +
-        '</td><td style="text-align:center">' +
+        "</td><td>" +
         i.unidades +
-        '</td><td style="text-align:center">' +
+        "</td><td>" +
         i.subtotalPuntos +
-        '</td><td style="text-align:right">' +
+        "</td><td>" +
         formatoMoneda(i.precioPublico) +
-        '</td><td style="text-align:right">' +
+        "</td><td>" +
         formatoMoneda(i.subtotalPrecioPublico) +
-        '</td><td style="text-align:right">' +
+        "</td><td>" +
         formatoMoneda(obtenerPrecio(i)) +
-        '</td><td style="text-align:right">' +
+        "</td><td>" +
         formatoMoneda(obtenerSubtotal(i)) +
         "</td></tr>"
     )
@@ -380,7 +488,8 @@ function buildHtmlResumenPedido({
     "<style>body{font-family:'Segoe UI',Arial,sans-serif;margin:24px;color:#222;font-size:12px}" +
     ".enc{background:linear-gradient(135deg,#c2410c,#fb923c);color:#fff;padding:16px 20px;border-radius:12px;margin-bottom:16px}" +
     "h1{margin:0 0 6px;font-size:22px}.sub{font-size:13px;opacity:.95}" +
-    ".meta{margin:12px 0 16px;line-height:1.6}table{width:100%;border-collapse:collapse}" +
+    ".meta{margin:12px 0 16px;line-height:1.6}" +
+    CSS_TABLA_CENTRADA +
     "th{background:#ea580c;color:#fff;padding:8px;border:1px solid #d6d3d1;font-size:11px}" +
     "td{border:1px solid #e5e7eb;padding:8px;font-size:11px}tr:nth-child(even){background:#fffaf5}" +
     ".tot{margin-top:18px;padding:14px;border:1px solid #fdba74;border-radius:12px;background:#fff7ed;line-height:1.7}" +
@@ -427,7 +536,7 @@ function buildHtmlResumenPedido({
     formatoMoneda(totalConDescuento) +
     "</div></div>" +
     '<div class="firm">' +
-    LEYENDA_JORGE +
+    LEYENDA_JORGE_HTML +
     "</div>" +
     "<script>window.onload=function(){window.print();};</script></body></html>"
   );
