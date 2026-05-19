@@ -1,64 +1,62 @@
-import { useMemo } from "react";
-import * as C from "../utils/calculations";
+import { useMemo } from 'react';
+import { obtenerCompraInicial, calcularLealtad, calcularAcelerado, calcularClientePreferente, totalPorDescuento, estadoVisual } from '../utils/calculations';
 
-export function useDiscountEngine({
-  perfilUsuario, modo,
-  paqueteInicial, tiene42, tieneRed, mesActual,
-  puntosPersonalesMes,
-  puntosPersonalesAcum, puntosGrupalesAcum,
-  cumplioQuincenaManual, descuentoSimulador,
-  acumuladoPrevioClientePreferente, totales,
-}) {
-  const { totalPuntos } = totales;
-  const dentroPrimeros15 = useMemo(() => C.detectarPrimeros15Dias(), []);
-  const puntosMes = Number(puntosPersonalesMes || 0) + totalPuntos;
-  const cumplioQuincena = dentroPrimeros15 ? (puntosMes >= 100) : cumplioQuincenaManual;
+export function useDiscountEngine({ perfilUsuario, modo, totales, recompra, clientePreferente, descuentoSimulador }) {
+  return useMemo(() => {
+    const totalPuntos = totales.totalPuntos || 0;
+    const compraInicial = obtenerCompraInicial(totalPuntos, totales);
+    const puntosPersonalesMes = totalPuntos + Number(recompra.puntosClientesPreferentes || 0);
+    const lealtad = calcularLealtad({
+      mes: recompra.mesActual,
+      dentroPrimeros15: recompra.dentroPrimeros15,
+      puntosPersonales: puntosPersonalesMes,
+      descuentoActualDeclarado: recompra.descuentoActual,
+    });
+    const acelerado = calcularAcelerado({
+      puntosPersonales: puntosPersonalesMes + Number(recompra.puntosPersonalesExtra || 0),
+      puntosGrupales: recompra.puntosGrupales,
+      acumuladoPrevio: recompra.acumuladoPrevio,
+      ingreso500: recompra.ingreso500,
+    });
+    const cliente = calcularClientePreferente(totalPuntos + Number(clientePreferente.acumuladoPrevio || 0));
 
-  const paqueteActual = useMemo(() => C.obtenerPaqueteCompraInicial(totalPuntos, totales), [totalPuntos, totales]);
+    let resumen;
+    if (perfilUsuario === 'ventas') {
+      resumen = {
+        tipo: 'ventas',
+        descuento: 0,
+        precioAplicable: totales.totalPrecioPublico || 0,
+        estado: totalPuntos > 0 ? 'green' : 'orange',
+        mensajePrincipal: 'Nota de venta activa.',
+        mensajeSecundario: 'El PDF del cliente no mostrará puntos ni descuentos; los puntos quedan solo como dato interno.',
+      };
+    } else if (perfilUsuario === 'simulador') {
+      resumen = {
+        tipo: 'simulador',
+        descuento: descuentoSimulador,
+        precioAplicable: totalPorDescuento(totales, descuentoSimulador),
+        estado: 'green',
+        mensajePrincipal: `Simulación activa al ${descuentoSimulador}%.`,
+        mensajeSecundario: 'El selector de descuento controla todos los precios visibles.',
+      };
+    } else if (perfilUsuario === 'clientePreferente') {
+      resumen = { tipo: 'clientePreferente', ...cliente, precioAplicable: totalPorDescuento(totales, cliente.descuento) };
+    } else if (modo === 'compraInicial') {
+      resumen = { tipo: 'compraInicial', ...compraInicial };
+    } else if (recompra.programa === 'acelerado') {
+      resumen = { tipo: 'acelerado', ...acelerado, precioAplicable: totalPorDescuento(totales, acelerado.descuento) };
+    } else {
+      resumen = { tipo: 'lealtad', ...lealtad, precioAplicable: totalPorDescuento(totales, lealtad.descuento) };
+    }
 
-  // CP
-  const puntosAcumuladosCP = Number(acumuladoPrevioClientePreferente || 0) + totalPuntos;
-  const descuentoCP = C.obtenerDescuentoClientePreferente(puntosAcumuladosCP);
-  const totalSegunDescuentoCP = C.obtenerTotalSegunDescuentoCP(descuentoCP, totales);
-  const siguienteNivelCP = C.obtenerSiguienteNivelCP(puntosAcumuladosCP);
-
-  const mensajesPuntos = useMemo(
-    () => C.generarMensajesPuntos(puntosMes, tiene42, dentroPrimeros15, cumplioQuincena),
-    [puntosMes, tiene42, dentroPrimeros15, cumplioQuincena]
-  );
-
-  const resultado = useMemo(() => {
-    if (tiene42) return { ...C.resolverTiene42(puntosMes, cumplioQuincena), modalidad: "tiene42" };
-    if (tieneRed) return C.resolverPLA(puntosPersonalesAcum, puntosGrupalesAcum, paqueteInicial, puntosMes, cumplioQuincena);
-    return C.resolverPL(puntosMes, mesActual || 1, cumplioQuincena);
-  }, [tiene42, tieneRed, puntosMes, cumplioQuincena, puntosPersonalesAcum, puntosGrupalesAcum, paqueteInicial, mesActual]);
-
-  const estado = useMemo(() => {
-    if (perfilUsuario === "simulador") return { texto: `Simulador — ${descuentoSimulador || 0}%`, colorFondo: "#ecfccb", colorTexto: "#3f6212", colorBorde: "#84cc16", colorSemaforo: "#65a30d", mensajePrincipal: `Simulador de precios — ${descuentoSimulador || 0}%`, mensajeSecundario: "" };
-    if (perfilUsuario === "clientePreferente") return C.obtenerMensajeClientePreferente(puntosAcumuladosCP);
-    if (modo === "compraInicial") return C.obtenerMensajeCompraInicial(totalPuntos, paqueteActual);
-    return resultado;
-  }, [perfilUsuario, modo, totalPuntos, paqueteActual, puntosAcumuladosCP, resultado, descuentoSimulador]);
-
-  const descuentoActual = perfilUsuario === "simulador" ? (descuentoSimulador || 0) : perfilUsuario === "clientePreferente" ? descuentoCP : modo === "compraInicial" ? paqueteActual.descuento : resultado.descuento;
-  const totalConDescuento = perfilUsuario === "simulador" ? C.obtenerTotalSegunDescuento(descuentoSimulador || 0, totales) : perfilUsuario === "clientePreferente" ? totalSegunDescuentoCP : modo === "compraInicial" ? paqueteActual.totalConDescuento : C.obtenerTotalSegunDescuento(resultado.descuento, totales);
-
-  const obtenerPrecio = (item) => C.obtenerPrecioActual(item, perfilUsuario, descuentoCP, paqueteActual.descuento, modo, perfilUsuario === "simulador" ? (descuentoSimulador || 0) : resultado.descuento);
-  const obtenerSubtotal = (item) => C.obtenerSubtotalPedido(item, perfilUsuario, descuentoCP, paqueteActual.descuento, modo, perfilUsuario === "simulador" ? (descuentoSimulador || 0) : resultado.descuento);
-
-  const textoModo = (() => {
-    if (perfilUsuario === "simulador") return `Simulador | ${descuentoSimulador || 0}%`;
-    if (perfilUsuario === "clientePreferente") return `Cliente Preferente | ${descuentoCP}% | ${puntosAcumuladosCP} pts`;
-    if (modo === "compraInicial") return `Compra inicial | ${paqueteActual.nombre} | ${paqueteActual.descuento}%`;
-    if (tiene42) return `Mantenimiento 42% | ${puntosMes} pts`;
-    if (tieneRed) return `Lealtad Acelerado | ${resultado.acumulado || 0} pts | ${resultado.descuento}%`;
-    return `Programa de Lealtad | Mes ${mesActual} | ${resultado.descuento}%`;
-  })();
-
-  return {
-    paqueteActual, dentroPrimeros15, cumplioQuincena, puntosMes,
-    mensajesPuntos, resultado,
-    puntosAcumuladosCP, descuentoCP, totalSegunDescuentoCP, siguienteNivelCP,
-    estado, descuentoActual, totalConDescuento, obtenerPrecio, obtenerSubtotal, textoModo,
-  };
+    return {
+      compraInicial,
+      lealtad,
+      acelerado,
+      cliente,
+      resumen: { ...resumen, visual: estadoVisual(resumen.estado) },
+      descuentoActivo: resumen.descuento || 0,
+      puntosPersonalesMes,
+    };
+  }, [perfilUsuario, modo, totales, recompra, clientePreferente, descuentoSimulador]);
 }
